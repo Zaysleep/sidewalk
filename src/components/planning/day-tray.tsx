@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
+
 import { dayPeriodDefinitions, dayPeriods, type DayPeriod } from "@/types/day-period";
 import type { DayStop } from "@/types/day-plan";
 
@@ -11,7 +13,9 @@ type DayTrayProps = Readonly<{
    isOpen: boolean;
 
    onToggle: () => void;
+   onDone: () => void;
    onRemove: (stopId: string) => void;
+   onClearDay: () => void;
    onEditPeriod: (period: DayPeriod) => void;
    onContinuePlanning: () => void;
    onPlanAnotherDay: () => void;
@@ -86,7 +90,122 @@ function getTitle(stopCount: number): string {
    return "Your Sidewalk Day";
 }
 
-export function DayTray({ planningDate, stops, isOpen, onToggle, onRemove, onEditPeriod, onContinuePlanning, onPlanAnotherDay }: DayTrayProps) {
+function isCompactTrayLayout(): boolean {
+   return window.matchMedia("(max-width: 63.99rem)").matches;
+}
+
+export function DayTray({ planningDate, stops, isOpen, onToggle, onDone, onRemove, onClearDay, onEditPeriod, onContinuePlanning, onPlanAnotherDay }: DayTrayProps) {
+   const [isClearConfirmationOpen, setIsClearConfirmationOpen] = useState(false);
+
+   const summaryButtonReference = useRef<HTMLButtonElement | null>(null);
+
+   const trayHeadingReference = useRef<HTMLHeadingElement | null>(null);
+
+   const trayContentReference = useRef<HTMLDivElement | null>(null);
+
+   const clearDayButtonReference = useRef<HTMLButtonElement | null>(null);
+
+   const cancelClearButtonReference = useRef<HTMLButtonElement | null>(null);
+
+   const hasMountedReference = useRef(false);
+
+   const previousOpenStateReference = useRef(isOpen);
+
+   const shouldRestoreTriggerFocusReference = useRef(false);
+
+   /**
+    * On compact screens the tray behaves like a disclosure panel. Move focus
+    * into it when opened and return focus to the trigger when closed.
+    */
+   useEffect(() => {
+      if (!hasMountedReference.current) {
+         hasMountedReference.current = true;
+         previousOpenStateReference.current = isOpen;
+         return;
+      }
+
+      if (!isCompactTrayLayout()) {
+         previousOpenStateReference.current = isOpen;
+         return;
+      }
+
+      const wasOpen = previousOpenStateReference.current;
+
+      const frameId = window.requestAnimationFrame(() => {
+         if (isOpen && !wasOpen) {
+            trayHeadingReference.current?.focus();
+         }
+
+         if (!isOpen && wasOpen && shouldRestoreTriggerFocusReference.current) {
+            summaryButtonReference.current?.focus();
+
+            shouldRestoreTriggerFocusReference.current = false;
+         }
+      });
+
+      previousOpenStateReference.current = isOpen;
+
+      return () => {
+         window.cancelAnimationFrame(frameId);
+      };
+   }, [isOpen]);
+
+   /**
+    * Escape closes the compact tray without affecting the always-visible
+    * desktop itinerary. When the clear confirmation is open, Escape cancels
+    * that confirmation first.
+    */
+   useEffect(() => {
+      if (!isOpen) {
+         return;
+      }
+
+      function handleKeyDown(event: KeyboardEvent) {
+         if (event.key !== "Escape") {
+            return;
+         }
+
+         if (isClearConfirmationOpen) {
+            event.preventDefault();
+            setIsClearConfirmationOpen(false);
+
+            window.requestAnimationFrame(() => {
+               clearDayButtonReference.current?.focus();
+            });
+
+            return;
+         }
+
+         if (isCompactTrayLayout()) {
+            event.preventDefault();
+
+            shouldRestoreTriggerFocusReference.current = true;
+
+            onDone();
+         }
+      }
+
+      document.addEventListener("keydown", handleKeyDown);
+
+      return () => {
+         document.removeEventListener("keydown", handleKeyDown);
+      };
+   }, [isClearConfirmationOpen, isOpen, onDone]);
+
+   useEffect(() => {
+      if (!isClearConfirmationOpen) {
+         return;
+      }
+
+      const frameId = window.requestAnimationFrame(() => {
+         cancelClearButtonReference.current?.focus();
+      });
+
+      return () => {
+         window.cancelAnimationFrame(frameId);
+      };
+   }, [isClearConfirmationOpen]);
+
    if (stops.length === 0) {
       return null;
    }
@@ -95,13 +214,55 @@ export function DayTray({ planningDate, stops, isOpen, onToggle, onRemove, onEdi
 
    const isComplete = orderedStops.length >= 2;
 
-   const canAddAnotherStop = orderedStops.length === 2;
+   const canAddAnotherStop = orderedStops.length < dayPeriods.length;
 
    const formattedPlanningDate = formatPlanningDate(planningDate);
 
+   const trayTitleId = "sidewalk-day-tray-title";
+
+   const clearConfirmationTitleId = "sidewalk-clear-day-title";
+
+   const clearConfirmationDescriptionId = "sidewalk-clear-day-description";
+
+   function preserveTrayScroll(action: () => void) {
+      const currentScrollTop = trayContentReference.current?.scrollTop ?? 0;
+
+      action();
+
+      window.requestAnimationFrame(() => {
+         window.requestAnimationFrame(() => {
+            if (trayContentReference.current) {
+               trayContentReference.current.scrollTop = currentScrollTop;
+            }
+         });
+      });
+   }
+
+   function handleCancelClearDay() {
+      setIsClearConfirmationOpen(false);
+
+      window.requestAnimationFrame(() => {
+         clearDayButtonReference.current?.focus();
+      });
+   }
+
    return (
-      <aside className={styles.tray} data-open={isOpen} aria-label="Your day">
-         <button type="button" className={styles.summaryButton} aria-expanded={isOpen} aria-controls="sidewalk-day-tray-content" onClick={onToggle}>
+      <aside className={styles.tray} data-open={isOpen} aria-label="Your saved day">
+         <button
+            ref={summaryButtonReference}
+            type="button"
+            className={styles.summaryButton}
+            aria-expanded={isOpen}
+            aria-controls="sidewalk-day-tray-content"
+            aria-label={`${isOpen ? "Close" : "Open"} your day with ${orderedStops.length} ${orderedStops.length === 1 ? "stop" : "stops"}`}
+            onClick={() => {
+               if (isOpen) {
+                  shouldRestoreTriggerFocusReference.current = true;
+               }
+
+               onToggle();
+            }}
+         >
             <span className={styles.summaryHeading}>{isComplete ? "Saved Day" : "Your Day"}</span>
 
             <span className={styles.summaryPlace}>{getSummaryLabel(orderedStops)}</span>
@@ -109,12 +270,14 @@ export function DayTray({ planningDate, stops, isOpen, onToggle, onRemove, onEdi
             <span className={styles.summaryAction}>{isOpen ? "Close" : "Open"}</span>
          </button>
 
-         <div id="sidewalk-day-tray-content" className={styles.content}>
+         <div ref={trayContentReference} id="sidewalk-day-tray-content" className={styles.content} role="region" aria-labelledby={trayTitleId}>
             <header className={styles.heading}>
                <div>
                   <p className={styles.eyebrow}>{isComplete ? "Day saved" : "Your Day"}</p>
 
-                  <h2 className={styles.title}>{getTitle(orderedStops.length)}</h2>
+                  <h2 ref={trayHeadingReference} id={trayTitleId} className={styles.title} tabIndex={-1}>
+                     {getTitle(orderedStops.length)}
+                  </h2>
 
                   {formattedPlanningDate ? <p className={styles.date}>{formattedPlanningDate}</p> : null}
                </div>
@@ -125,41 +288,52 @@ export function DayTray({ planningDate, stops, isOpen, onToggle, onRemove, onEdi
             </header>
 
             <div className={styles.stopList}>
-               {orderedStops.map((stop) => (
-                  <article key={stop.id} className={styles.stop} aria-labelledby={`day-stop-title-${stop.id}`}>
-                     <div className={styles.stopHeading}>
-                        <p className={styles.stopLabel}>{getPeriodLabel(stop.dayPeriod)}</p>
+               {orderedStops.map((stop) => {
+                  const periodLabel = getPeriodLabel(stop.dayPeriod);
 
-                        <p className={styles.window}>{stop.bestWindow}</p>
-                     </div>
+                  return (
+                     <article key={stop.id} className={styles.stop} aria-labelledby={`day-stop-title-${stop.id}`}>
+                        <div className={styles.stopHeading}>
+                           <p className={styles.stopLabel}>{periodLabel}</p>
 
-                     <h3 id={`day-stop-title-${stop.id}`} className={styles.stopName}>
-                        {stop.placeName}
-                     </h3>
+                           <p className={styles.window}>{stop.bestWindow}</p>
+                        </div>
 
-                     <p className={styles.location}>
-                        {stop.localAreaName}, {stop.municipalityName}
-                     </p>
+                        <h3 id={`day-stop-title-${stop.id}`} className={styles.stopName}>
+                           {stop.placeName}
+                        </h3>
 
-                     <p className={styles.duration}>{formatDuration(stop.visitDurationMinutes.minimum, stop.visitDurationMinutes.maximum)}</p>
+                        <p className={styles.location}>
+                           {stop.localAreaName}, {stop.municipalityName}
+                        </p>
 
-                     {stop.locationUrl ? (
-                        <a className={styles.locationLink} href={stop.locationUrl} target="_blank" rel="noreferrer">
-                           Open location
-                        </a>
-                     ) : null}
+                        <p className={styles.duration}>{formatDuration(stop.visitDurationMinutes.minimum, stop.visitDurationMinutes.maximum)}</p>
 
-                     <div className={styles.stopActions}>
-                        <button type="button" className={styles.editButton} onClick={() => onEditPeriod(stop.dayPeriod)}>
-                           Change {getPeriodLabel(stop.dayPeriod)}
-                        </button>
+                        {stop.locationUrl ? (
+                           <a className={styles.locationLink} href={stop.locationUrl} target="_blank" rel="noreferrer" aria-label={`Open ${stop.placeName} location in a new tab`}>
+                              Open location
+                           </a>
+                        ) : null}
 
-                        <button type="button" className={styles.removeButton} onClick={() => onRemove(stop.id)}>
-                           Remove
-                        </button>
-                     </div>
-                  </article>
-               ))}
+                        <div className={styles.stopActions}>
+                           <button type="button" className={styles.editButton} onClick={() => onEditPeriod(stop.dayPeriod)}>
+                              Change {periodLabel}
+                           </button>
+
+                           <button
+                              type="button"
+                              className={styles.removeButton}
+                              aria-label={`Remove ${stop.placeName} from ${periodLabel}`}
+                              onClick={() => {
+                                 preserveTrayScroll(() => onRemove(stop.id));
+                              }}
+                           >
+                              Remove
+                           </button>
+                        </div>
+                     </article>
+                  );
+               })}
             </div>
 
             <div className={styles.footer}>
@@ -169,12 +343,12 @@ export function DayTray({ planningDate, stops, isOpen, onToggle, onRemove, onEdi
                   <p className={styles.completionNote}>Choose one more stop to save this day.</p>
                ) : (
                   <>
-                     <p className={styles.completionNote}>{canAddAnotherStop ? "Two stops are enough. Add a third only if it improves the day." : "Your morning, afternoon, and evening are set."}</p>
+                     <p className={styles.completionNote}>{canAddAnotherStop ? "Two stops are enough. Add more only if they improve the day." : "Your day is fully planned from early morning through night."}</p>
 
                      <div className={styles.footerActions}>
                         {canAddAnotherStop ? (
                            <button type="button" className={styles.continueButton} onClick={onContinuePlanning}>
-                              Add one more stop
+                              Add another stop
                            </button>
                         ) : null}
 
@@ -184,6 +358,46 @@ export function DayTray({ planningDate, stops, isOpen, onToggle, onRemove, onEdi
                      </div>
                   </>
                )}
+
+               <div className={styles.trayActions}>
+                  <button ref={clearDayButtonReference} type="button" className={styles.clearDayButton} aria-expanded={isClearConfirmationOpen} aria-controls="sidewalk-clear-day-confirmation" onClick={() => setIsClearConfirmationOpen(true)}>
+                     Clear day
+                  </button>
+
+                  <button
+                     type="button"
+                     className={styles.doneButton}
+                     onClick={() => {
+                        shouldRestoreTriggerFocusReference.current = true;
+
+                        onDone();
+                     }}
+                  >
+                     Done
+                  </button>
+               </div>
+
+               {isClearConfirmationOpen ? (
+                  <div id="sidewalk-clear-day-confirmation" className={styles.clearConfirmation} role="alertdialog" aria-modal="false" aria-labelledby={clearConfirmationTitleId} aria-describedby={clearConfirmationDescriptionId}>
+                     <p id={clearConfirmationTitleId} className={styles.clearTitle}>
+                        Clear this day?
+                     </p>
+
+                     <p id={clearConfirmationDescriptionId} className={styles.clearDescription}>
+                        This removes every stop you have chosen. Your area, date, and preferences will stay in place.
+                     </p>
+
+                     <div className={styles.clearConfirmationActions}>
+                        <button ref={cancelClearButtonReference} type="button" className={styles.cancelClearButton} onClick={handleCancelClearDay}>
+                           Cancel
+                        </button>
+
+                        <button type="button" className={styles.confirmClearButton} onClick={onClearDay}>
+                           Clear day
+                        </button>
+                     </div>
+                  </div>
+               ) : null}
             </div>
          </div>
       </aside>

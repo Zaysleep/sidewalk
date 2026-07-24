@@ -9,7 +9,7 @@ export const maxPeriodRecommendationRefreshes = 2;
 export const periodRecommendationLimits = {
    maximumRequestBodyBytes: 32_768,
    maximumExcludedPlaceIds: 50,
-   maximumCommittedStops: 3,
+   maximumCommittedStops: 5,
    maximumSessionSeedLength: 128,
    maximumIdentifierLength: 160,
    maximumPlaceNameLength: 200,

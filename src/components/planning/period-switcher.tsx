@@ -64,7 +64,7 @@ export function PeriodSwitcher({ activePeriod, completedPeriods, disabled = fals
    }
 
    return (
-      <div className={styles.switcher} role="tablist" aria-label="Choose a part of the day">
+      <div className={styles.switcher} role="tablist" aria-label="Choose a part of the day" aria-orientation="horizontal">
          {dayPeriodDefinitions.map((period, index) => {
             const isActive = period.id === activePeriod;
 

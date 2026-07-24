@@ -179,6 +179,20 @@ export const metroRegions = [
    /* ------------------------------------------------------------------------ */
 
    {
+      id: "metro-orange-county",
+      name: "Orange County",
+      slug: "orange-county",
+      stateOrRegion: "California",
+      countryCode: "US",
+      timezone: "America/Los_Angeles",
+      coverageTier: "growing",
+      coverageStatus: "active",
+      centerLatitude: 33.7175,
+      centerLongitude: -117.8311,
+      description: "Food districts, coastal towns, cultural centers, and locally distinctive days across Orange County.",
+      isActive: true,
+   },
+   {
       id: "metro-new-york",
       name: "New York Metro",
       slug: "new-york-metro",

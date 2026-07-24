@@ -35,6 +35,88 @@ export const municipalities = [
    },
 
    /* ------------------------------------------------------------------------ */
+   /* Orange County                                                           */
+   /* ------------------------------------------------------------------------ */
+
+   {
+      id: "municipality-orange-county-irvine",
+      metroRegionId: "metro-orange-county",
+      name: "Irvine",
+      slug: "irvine",
+      stateOrRegion: "California",
+   },
+   {
+      id: "municipality-orange-county-costa-mesa",
+      metroRegionId: "metro-orange-county",
+      name: "Costa Mesa",
+      slug: "costa-mesa",
+      stateOrRegion: "California",
+   },
+   {
+      id: "municipality-orange-county-santa-ana",
+      metroRegionId: "metro-orange-county",
+      name: "Santa Ana",
+      slug: "santa-ana",
+      stateOrRegion: "California",
+   },
+   {
+      id: "municipality-orange-county-anaheim",
+      metroRegionId: "metro-orange-county",
+      name: "Anaheim",
+      slug: "anaheim",
+      stateOrRegion: "California",
+   },
+   {
+      id: "municipality-orange-county-fullerton",
+      metroRegionId: "metro-orange-county",
+      name: "Fullerton",
+      slug: "fullerton",
+      stateOrRegion: "California",
+   },
+   {
+      id: "municipality-orange-county-newport-beach",
+      metroRegionId: "metro-orange-county",
+      name: "Newport Beach",
+      slug: "newport-beach",
+      stateOrRegion: "California",
+   },
+   {
+      id: "municipality-orange-county-huntington-beach",
+      metroRegionId: "metro-orange-county",
+      name: "Huntington Beach",
+      slug: "huntington-beach",
+      stateOrRegion: "California",
+   },
+   {
+      id: "municipality-orange-county-orange",
+      metroRegionId: "metro-orange-county",
+      name: "Orange",
+      slug: "orange",
+      stateOrRegion: "California",
+   },
+   {
+      id: "municipality-orange-county-westminster",
+      metroRegionId: "metro-orange-county",
+      name: "Westminster",
+      slug: "westminster",
+      stateOrRegion: "California",
+   },
+   {
+      id: "municipality-orange-county-garden-grove",
+      metroRegionId: "metro-orange-county",
+      name: "Garden Grove",
+      slug: "garden-grove",
+      stateOrRegion: "California",
+   },
+   {
+      id: "municipality-orange-county-laguna-beach",
+      metroRegionId: "metro-orange-county",
+      name: "Laguna Beach",
+      slug: "laguna-beach",
+      stateOrRegion: "California",
+   },
+
+   /* ------------------------------------------------------------------------ */
    /* Los Angeles                                                             */
    /* ------------------------------------------------------------------------ */
 

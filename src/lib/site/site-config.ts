@@ -6,10 +6,7 @@
  * local builds working before deployment.
  */
 function normalizeSiteUrl(value: string): URL {
-   const normalizedValue =
-      /^https?:\/\//i.test(value)
-         ? value
-         : `https://${value}`;
+   const normalizedValue = /^https?:\/\//i.test(value) ? value : `https://${value}`;
 
    try {
       return new URL(normalizedValue);
@@ -19,29 +16,22 @@ function normalizeSiteUrl(value: string): URL {
 }
 
 function resolveSiteUrl(): URL {
-   const configuredUrl =
-      process.env.NEXT_PUBLIC_SITE_URL?.trim();
+   const configuredUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
 
    if (configuredUrl) {
       return normalizeSiteUrl(configuredUrl);
    }
 
-   const vercelProductionUrl =
-      process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim();
+   const vercelProductionUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim();
 
    if (vercelProductionUrl) {
-      return normalizeSiteUrl(
-         vercelProductionUrl,
-      );
+      return normalizeSiteUrl(vercelProductionUrl);
    }
 
-   const vercelPreviewUrl =
-      process.env.VERCEL_URL?.trim();
+   const vercelPreviewUrl = process.env.VERCEL_URL?.trim();
 
    if (vercelPreviewUrl) {
-      return normalizeSiteUrl(
-         vercelPreviewUrl,
-      );
+      return normalizeSiteUrl(vercelPreviewUrl);
    }
 
    return new URL("http://localhost:3000");
@@ -51,8 +41,7 @@ export const siteConfig = {
    name: "Sidewalk",
    title: "Sidewalk — A Kin City Guide",
    shortName: "Sidewalk",
-   description:
-      "A thoughtful city guide for planning one worthwhile morning, afternoon, and evening.",
+   description: "A thoughtful city guide for planning one worthwhile day, from early morning through night.",
    locale: "en_US",
    language: "en-US",
    url: resolveSiteUrl(),

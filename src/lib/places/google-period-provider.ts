@@ -299,6 +299,25 @@ const distanceRulesByActivity: Readonly<Record<ActivityKind, ActivityDistanceRul
 };
 
 const profilesByPeriod: Readonly<Record<DayPeriod, readonly ActivityProfile[]>> = {
+   "early-morning": [
+      {
+         activity: "outdoors",
+         query: "sunrise viewpoints, beaches, parks, scenic walks, hiking trails, and outdoor attractions open early",
+      },
+      {
+         activity: "food",
+         query: "early breakfast restaurants, bakeries, coffee shops, cafes, and donut shops",
+      },
+      {
+         activity: "browse",
+         query: "farmers markets, flower markets, neighborhood markets, and local shops open early",
+      },
+      {
+         activity: "culture",
+         query: "historic landmarks, public gardens, libraries, museums, and cultural attractions open early",
+      },
+   ],
+
    morning: [
       {
          activity: "outdoors",
@@ -306,7 +325,7 @@ const profilesByPeriod: Readonly<Record<DayPeriod, readonly ActivityProfile[]>> 
       },
       {
          activity: "food",
-         query: "breakfast restaurants, bakeries, coffee shops, cafes, and morning markets",
+         query: "breakfast restaurants, brunch restaurants, bakeries, coffee shops, cafes, and morning markets",
       },
       {
          activity: "browse",
@@ -314,7 +333,7 @@ const profilesByPeriod: Readonly<Record<DayPeriod, readonly ActivityProfile[]>> 
       },
       {
          activity: "culture",
-         query: "museums, libraries, historic sites, and daytime cultural attractions",
+         query: "museums, libraries, historic sites, gardens, and daytime cultural attractions",
       },
    ],
 
@@ -355,14 +374,33 @@ const profilesByPeriod: Readonly<Record<DayPeriod, readonly ActivityProfile[]>> 
          query: "night markets, evening markets, record stores, and local shops open late",
       },
    ],
+
+   night: [
+      {
+         activity: "food",
+         query: "late-night restaurants, diners, taco shops, dessert shops, supper clubs, and food open after 9 PM",
+      },
+      {
+         activity: "culture",
+         query: "cocktail bars, speakeasies, live music venues, comedy clubs, nightclubs, lounges, and late-night entertainment",
+      },
+      {
+         activity: "browse",
+         query: "night markets, late-night arcades, record stores, and local shops open after 9 PM",
+      },
+      {
+         activity: "outdoors",
+         query: "waterfront walks, illuminated public spaces, scenic overlooks, and outdoor attractions open at night",
+      },
+   ],
 };
 
 const typeSignals: Readonly<Record<ActivityKind, readonly string[]>> = {
    outdoors: ["park", "national_park", "state_park", "hiking_area", "botanical_garden", "tourist_attraction"],
 
-   culture: ["museum", "art_museum", "art_gallery", "library", "historical_landmark", "performing_arts_theater", "cultural_center", "tourist_attraction"],
+   culture: ["museum", "art_museum", "art_gallery", "library", "historical_landmark", "performing_arts_theater", "cultural_center", "tourist_attraction", "concert_hall", "comedy_club", "event_venue", "bar", "night_club"],
 
-   browse: ["book_store", "store", "shopping_mall", "market", "gift_shop", "clothing_store", "home_goods_store", "record_store"],
+   browse: ["book_store", "store", "shopping_mall", "market", "gift_shop", "clothing_store", "home_goods_store", "record_store", "video_arcade"],
 
    food: ["restaurant", "cafe", "bakery", "food_court", "meal_takeaway", "coffee_shop", "dessert_shop"],
 };
@@ -383,6 +421,11 @@ const durationByPeriod: Readonly<
       }>
    >
 > = {
+   "early-morning": {
+      minimum: 45,
+      maximum: 90,
+   },
+
    morning: {
       minimum: 60,
       maximum: 120,
@@ -397,6 +440,11 @@ const durationByPeriod: Readonly<
       minimum: 75,
       maximum: 120,
    },
+
+   night: {
+      minimum: 60,
+      maximum: 150,
+   },
 };
 
 const periodWindowByDayPeriod: Readonly<
@@ -408,19 +456,33 @@ const periodWindowByDayPeriod: Readonly<
       }>
    >
 > = {
+   "early-morning": {
+      startMinute: 5 * 60 + 30,
+      endMinute: 8 * 60 + 30,
+   },
+
    morning: {
       startMinute: 9 * 60,
-      endMinute: 11 * 60,
+      endMinute: 11 * 60 + 30,
    },
 
    afternoon: {
-      startMinute: 13 * 60,
-      endMinute: 15 * 60,
+      startMinute: 12 * 60 + 30,
+      endMinute: 16 * 60 + 30,
    },
 
    evening: {
-      startMinute: 18 * 60 + 30,
+      startMinute: 17 * 60 + 30,
       endMinute: 20 * 60 + 30,
+   },
+
+   /**
+    * End minutes may extend beyond midnight. Twenty-six hours means 2:00 AM
+    * on the calendar day following the selected planning date.
+    */
+   night: {
+      startMinute: 21 * 60,
+      endMinute: 26 * 60,
    },
 };
 
@@ -1019,6 +1081,24 @@ function scoreCandidate(place: GooglePlace, activity: ActivityKind, providerInde
 }
 
 const fitStatementsByPeriod: Readonly<Record<DayPeriod, Readonly<Record<ActivityKind, readonly string[]>>>> = {
+   "early-morning": {
+      outdoors: [
+         "It makes good use of the quieter early hours and leaves the entire day open afterward.",
+         "It brings a little movement into the day before the neighborhood gets busy.",
+         "It works as a calm start without turning the morning into a schedule.",
+      ],
+
+      food: ["It gives the day a proper beginning without using up the whole morning.", "It suits an early coffee or breakfast while later plans are still wide open.", "It offers an easy first stop before the city settles into its usual pace."],
+
+      browse: ["It adds a small bit of discovery while the day still feels unhurried.", "It works as a gentle early stop that can stay brief or take its time.", "It leaves plenty of room to decide what the rest of the day should become."],
+
+      culture: [
+         "It gives the early hours one thoughtful destination without making the day feel overplanned.",
+         "It adds a quiet point of interest before busier daytime plans begin.",
+         "It works well when the day should start with something calm and focused.",
+      ],
+   },
+
    morning: {
       outdoors: ["It brings movement and open air into the morning without taking over the day.", "It makes good use of the cooler morning window and leaves later plans flexible.", "It gives the day a calmer start with room to keep exploring afterward."],
 
@@ -1050,11 +1130,33 @@ const fitStatementsByPeriod: Readonly<Record<DayPeriod, Readonly<Record<Activity
    evening: {
       outdoors: ["It gives the evening a quieter finish with open air and less structure.", "It makes room for a slower end to the day without adding another formal stop.", "It works well when the day needs a scenic, low-pressure close."],
 
-      food: ["It suits a slower dinner and gives the day a natural finish.", "It leaves enough time to settle into a proper evening meal.", "It works as an easy final stop when the day should end around the table."],
+      food: ["It suits a slower dinner and gives the day a natural finish.", "It leaves enough time to settle into a proper evening meal.", "It works as an easy evening stop when the day should gather around the table."],
 
-      browse: ["It keeps the evening casual and leaves room to linger or call it a day.", "It adds one last bit of discovery without making the evening feel crowded.", "It works as a low-pressure finish for a day that does not need another big event."],
+      browse: ["It keeps the evening casual and leaves room to linger or move into the night.", "It adds another bit of discovery without making the evening feel crowded.", "It works as a low-pressure option before deciding whether the night continues."],
 
-      culture: ["It gives the evening a memorable final experience without overloading the day.", "It adds a stronger sense of occasion to the end of the day.", "It works well as the day’s final planned experience."],
+      culture: ["It gives the evening a memorable experience without overloading the day.", "It adds a stronger sense of occasion as the day moves toward night.", "It works well as the main event of the evening."],
+   },
+
+   night: {
+      outdoors: [
+         "It gives the night a quieter direction with open air and very little structure.",
+         "It works when the day should wind down somewhere scenic rather than somewhere loud.",
+         "It leaves the night flexible while still giving it a clear destination.",
+      ],
+
+      food: [
+         "It gives the night a proper late meal without requiring a full evening schedule.",
+         "It works well as a final food stop after the rest of the day has settled.",
+         "It keeps the night social and unhurried without needing another major activity.",
+      ],
+
+      browse: ["It adds something playful or unexpected without committing the entire night.", "It keeps the night casual and lets the group decide how long to stay.", "It works as a flexible late stop when the night should remain open-ended."],
+
+      culture: [
+         "It gives the night a stronger sense of occasion through music, drinks, comedy, or performance.",
+         "It works as a distinct late-night experience rather than an extension of dinner.",
+         "It adds energy to the final part of the day while keeping the choice intentional.",
+      ],
    },
 };
 
@@ -1065,6 +1167,26 @@ function hasPlaceType(place: GooglePlace, ...types: readonly string[]): boolean 
 }
 
 function createPlaceSummary(place: GooglePlace, activity: ActivityKind): string {
+   if (hasPlaceType(place, "night_club")) {
+      return "A nightclub for music, dancing, and a higher-energy late-night stop.";
+   }
+
+   if (hasPlaceType(place, "bar")) {
+      return "A bar or lounge for drinks and a relaxed social stop later in the day.";
+   }
+
+   if (hasPlaceType(place, "comedy_club")) {
+      return "A comedy venue for a focused night out built around a live show.";
+   }
+
+   if (hasPlaceType(place, "concert_hall", "event_venue")) {
+      return "A live-event venue for music, performance, or a more energetic night out.";
+   }
+
+   if (hasPlaceType(place, "video_arcade")) {
+      return "An arcade for a playful, low-pressure stop that can run later into the night.";
+   }
+
    if (hasPlaceType(place, "korean_restaurant")) {
       return "A Korean restaurant suited to a relaxed, social meal.";
    }

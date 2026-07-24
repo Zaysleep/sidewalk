@@ -54,7 +54,7 @@ type StoredChapterRefreshState = Readonly<{
 type StoredChapterRefreshStates = Record<DayPeriod, StoredChapterRefreshState>;
 
 type StoredPlanningSession = Readonly<{
-   version: 4;
+   version: 5;
 
    selectedMetroSlug: string;
    selectedMunicipalityId: string;
@@ -73,6 +73,32 @@ type StoredPlanningSession = Readonly<{
    chapterRefreshStates: StoredChapterRefreshStates;
 }>;
 
+type LegacyDayPeriod = "morning" | "afternoon" | "evening";
+
+type LegacyActivityDirectionsByPeriod = Record<LegacyDayPeriod, ActivityDirection | null>;
+
+type LegacyStoredChapterRefreshStates = Record<LegacyDayPeriod, StoredChapterRefreshState>;
+
+type LegacyStoredPlanningSessionV4 = Readonly<{
+   version: 4;
+
+   selectedMetroSlug: string;
+   selectedMunicipalityId: string;
+   selectedLocalAreaId: string;
+
+   planningDate: string;
+
+   activityDirectionsByPeriod: LegacyActivityDirectionsByPeriod;
+
+   activeDayPeriod: LegacyDayPeriod;
+
+   sessionSeed: string;
+
+   dayStops: readonly DayStop[];
+
+   chapterRefreshStates: LegacyStoredChapterRefreshStates;
+}>;
+
 const activeMetroRegions = metroRegions
    .filter((metroRegion) => metroRegion.isActive && metroRegion.coverageStatus === "active")
    .slice()
@@ -80,42 +106,32 @@ const activeMetroRegions = metroRegions
 
 const defaultMetroSlug = "san-diego";
 
-const planningSessionStorageKey = "sidewalk-active-planning-session-v4";
+const planningSessionStorageKey = "sidewalk-active-planning-session-v5";
+
+const legacyPlanningSessionStorageKey = "sidewalk-active-planning-session-v4";
 
 const previousPlanningSessionStorageKeys = ["sidewalk-active-planning-session-v3", "sidewalk-active-planning-session-v2", "sidewalk-active-planning-session-v1"] as const;
 
 const sessionSeedStorageKey = "sidewalk-planning-session-seed";
 
+function createPeriodRecord<T>(createValue: (period: DayPeriod) => T): Record<DayPeriod, T> {
+   return Object.fromEntries(dayPeriods.map((period) => [period, createValue(period)])) as Record<DayPeriod, T>;
+}
+
 function createEmptyRecommendations(): RecommendationsByPeriod {
-   return {
-      morning: [],
-      afternoon: [],
-      evening: [],
-   };
+   return createPeriodRecord<readonly PeriodRecommendation[]>(() => []);
 }
 
 function createIdleStatuses(): RecommendationStatuses {
-   return {
-      morning: "idle",
-      afternoon: "idle",
-      evening: "idle",
-   };
+   return createPeriodRecord<PeriodRecommendationStatus>(() => "idle");
 }
 
 function createEmptyActivityDirections(): ActivityDirectionsByPeriod {
-   return {
-      morning: null,
-      afternoon: null,
-      evening: null,
-   };
+   return createPeriodRecord<ActivityDirection | null>(() => null);
 }
 
 function createEmptyRequestKeys(): RequestKeysByPeriod {
-   return {
-      morning: null,
-      afternoon: null,
-      evening: null,
-   };
+   return createPeriodRecord<string | null>(() => null);
 }
 
 function createInitialChapterRefreshState(): ChapterRefreshStates {
@@ -127,11 +143,7 @@ function createInitialChapterRefreshState(): ChapterRefreshStates {
       message: "",
    });
 
-   return {
-      morning: createPeriodState(),
-      afternoon: createPeriodState(),
-      evening: createPeriodState(),
-   };
+   return createPeriodRecord<ChapterRefreshState>(createPeriodState);
 }
 
 function getLocalIsoDate(date: Date): string {
@@ -163,43 +175,19 @@ function isPlanningDate(value: unknown): value is string {
 }
 
 function toStoredChapterRefreshStates(states: ChapterRefreshStates): StoredChapterRefreshStates {
-   return {
-      morning: {
-         refreshCount: states.morning.refreshCount,
-         shownPlaceIds: states.morning.shownPlaceIds,
-         canRefresh: states.morning.canRefresh,
-         message: states.morning.message,
-      },
-      afternoon: {
-         refreshCount: states.afternoon.refreshCount,
-         shownPlaceIds: states.afternoon.shownPlaceIds,
-         canRefresh: states.afternoon.canRefresh,
-         message: states.afternoon.message,
-      },
-      evening: {
-         refreshCount: states.evening.refreshCount,
-         shownPlaceIds: states.evening.shownPlaceIds,
-         canRefresh: states.evening.canRefresh,
-         message: states.evening.message,
-      },
-   };
+   return createPeriodRecord((period) => ({
+      refreshCount: states[period].refreshCount,
+      shownPlaceIds: states[period].shownPlaceIds,
+      canRefresh: states[period].canRefresh,
+      message: states[period].message,
+   }));
 }
 
 function fromStoredChapterRefreshStates(states: StoredChapterRefreshStates): ChapterRefreshStates {
-   return {
-      morning: {
-         ...states.morning,
-         isRefreshing: false,
-      },
-      afternoon: {
-         ...states.afternoon,
-         isRefreshing: false,
-      },
-      evening: {
-         ...states.evening,
-         isRefreshing: false,
-      },
-   };
+   return createPeriodRecord((period) => ({
+      ...states[period],
+      isRefreshing: false,
+   }));
 }
 
 function createPeriodRequestKey(
@@ -308,18 +296,14 @@ function getFirstUnfilledPeriod(stops: readonly DayStop[]): DayPeriod | null {
 
 function getPlanProgressCopy(stopCount: number): string {
    if (stopCount === 0) {
-      return "Choose two or three stops";
+      return "Choose two or more stops";
    }
 
    if (stopCount === 1) {
       return "1 stop chosen · choose one more to complete the day";
    }
 
-   if (stopCount === 2) {
-      return "2 stops chosen · day saved";
-   }
-
-   return "3 stops chosen · day saved";
+   return `${stopCount} stops chosen · day saved`;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -406,7 +390,31 @@ function isStoredDayStop(value: unknown): value is DayStop {
    );
 }
 
-function isStoredPlanningSession(value: unknown): value is StoredPlanningSession {
+function isLegacyDayPeriod(value: unknown): value is LegacyDayPeriod {
+   return value === "morning" || value === "afternoon" || value === "evening";
+}
+
+function isLegacyStoredActivityDirections(value: unknown): value is LegacyActivityDirectionsByPeriod {
+   if (!isRecord(value)) {
+      return false;
+   }
+
+   return (["morning", "afternoon", "evening"] as const).every((period) => {
+      const direction = value[period];
+
+      return direction === null || isActivityDirection(direction);
+   });
+}
+
+function isLegacyStoredChapterRefreshStates(value: unknown): value is LegacyStoredChapterRefreshStates {
+   if (!isRecord(value)) {
+      return false;
+   }
+
+   return (["morning", "afternoon", "evening"] as const).every((period) => isStoredChapterRefreshState(value[period]));
+}
+
+function isLegacyStoredPlanningSessionV4(value: unknown): value is LegacyStoredPlanningSessionV4 {
    if (!isRecord(value)) {
       return false;
    }
@@ -417,12 +425,68 @@ function isStoredPlanningSession(value: unknown): value is StoredPlanningSession
       typeof value.selectedMunicipalityId === "string" &&
       typeof value.selectedLocalAreaId === "string" &&
       isPlanningDate(value.planningDate) &&
+      isLegacyStoredActivityDirections(value.activityDirectionsByPeriod) &&
+      isLegacyDayPeriod(value.activeDayPeriod) &&
+      typeof value.sessionSeed === "string" &&
+      value.sessionSeed.length > 0 &&
+      Array.isArray(value.dayStops) &&
+      value.dayStops.length <= 3 &&
+      value.dayStops.every(isStoredDayStop) &&
+      isLegacyStoredChapterRefreshStates(value.chapterRefreshStates)
+   );
+}
+
+function migrateLegacyPlanningSessionV4(legacySession: LegacyStoredPlanningSessionV4): StoredPlanningSession {
+   const activityDirectionsByPeriod = createEmptyActivityDirections();
+
+   const chapterRefreshStates = toStoredChapterRefreshStates(createInitialChapterRefreshState());
+
+   (["morning", "afternoon", "evening"] as const).forEach((period) => {
+      activityDirectionsByPeriod[period] = legacySession.activityDirectionsByPeriod[period];
+
+      chapterRefreshStates[period] = {
+         ...legacySession.chapterRefreshStates[period],
+      };
+   });
+
+   return {
+      version: 5,
+
+      selectedMetroSlug: legacySession.selectedMetroSlug,
+      selectedMunicipalityId: legacySession.selectedMunicipalityId,
+      selectedLocalAreaId: legacySession.selectedLocalAreaId,
+
+      planningDate: legacySession.planningDate,
+
+      activityDirectionsByPeriod,
+
+      activeDayPeriod: legacySession.activeDayPeriod,
+
+      sessionSeed: legacySession.sessionSeed,
+
+      dayStops: legacySession.dayStops,
+
+      chapterRefreshStates,
+   };
+}
+
+function isStoredPlanningSession(value: unknown): value is StoredPlanningSession {
+   if (!isRecord(value)) {
+      return false;
+   }
+
+   return (
+      value.version === 5 &&
+      typeof value.selectedMetroSlug === "string" &&
+      typeof value.selectedMunicipalityId === "string" &&
+      typeof value.selectedLocalAreaId === "string" &&
+      isPlanningDate(value.planningDate) &&
       isStoredActivityDirections(value.activityDirectionsByPeriod) &&
       isDayPeriod(value.activeDayPeriod) &&
       typeof value.sessionSeed === "string" &&
       value.sessionSeed.length > 0 &&
       Array.isArray(value.dayStops) &&
-      value.dayStops.length <= 3 &&
+      value.dayStops.length <= 5 &&
       value.dayStops.every(isStoredDayStop) &&
       isStoredChapterRefreshStates(value.chapterRefreshStates)
    );
@@ -432,19 +496,35 @@ function readStoredPlanningSession(): StoredPlanningSession | null {
    try {
       const rawSession = window.sessionStorage.getItem(planningSessionStorageKey);
 
-      if (!rawSession) {
-         return null;
-      }
+      if (rawSession) {
+         const parsedSession: unknown = JSON.parse(rawSession);
 
-      const parsedSession: unknown = JSON.parse(rawSession);
+         if (isStoredPlanningSession(parsedSession)) {
+            return parsedSession;
+         }
 
-      if (!isStoredPlanningSession(parsedSession)) {
          window.sessionStorage.removeItem(planningSessionStorageKey);
+      }
+
+      const rawLegacySession = window.sessionStorage.getItem(legacyPlanningSessionStorageKey);
+
+      if (!rawLegacySession) {
+         return null;
+      }
+
+      const parsedLegacySession: unknown = JSON.parse(rawLegacySession);
+
+      if (!isLegacyStoredPlanningSessionV4(parsedLegacySession)) {
+         window.sessionStorage.removeItem(legacyPlanningSessionStorageKey);
 
          return null;
       }
 
-      return parsedSession;
+      const migratedSession = migrateLegacyPlanningSessionV4(parsedLegacySession);
+
+      window.sessionStorage.removeItem(legacyPlanningSessionStorageKey);
+
+      return migratedSession;
    } catch {
       return null;
    }
@@ -486,6 +566,10 @@ export function SidewalkPlanner() {
    const [chapterRefreshStates, setChapterRefreshStates] = useState<ChapterRefreshStates>(createInitialChapterRefreshState);
 
    const requestControllersReference = useRef<Partial<Record<DayPeriod, AbortController>>>({});
+
+   const periodPanelReference = useRef<HTMLElement | null>(null);
+
+   const shouldFocusPeriodPanelReference = useRef(false);
 
    const [dayStops, setDayStops] = useState<DayStop[]>([]);
 
@@ -568,13 +652,33 @@ export function SidewalkPlanner() {
       };
    }, []);
 
+   /**
+    * Explicit period changes, such as Continue or editing a saved stop, move
+    * keyboard focus into the newly active panel.
+    */
+   useEffect(() => {
+      if (!shouldFocusPeriodPanelReference.current) {
+         return;
+      }
+
+      shouldFocusPeriodPanelReference.current = false;
+
+      const frameId = window.requestAnimationFrame(() => {
+         periodPanelReference.current?.focus();
+      });
+
+      return () => {
+         window.cancelAnimationFrame(frameId);
+      };
+   }, [activeDayPeriod]);
+
    useEffect(() => {
       if (!isSessionReady || !sessionSeed) {
          return;
       }
 
       saveStoredPlanningSession({
-         version: 4,
+         version: 5,
 
          selectedMetroSlug,
          selectedMunicipalityId,
@@ -828,6 +932,10 @@ export function SidewalkPlanner() {
 
    const isCurrentPeriodStop = activeSelectedRecommendation !== null && activeDayStop?.placeId === activeSelectedRecommendation.place.id;
 
+   const nextUnfilledPeriod = activeDayStop ? getNextUnfilledPeriod(activeDayPeriod, dayStops) : null;
+
+   const nextUnfilledPeriodLabel = nextUnfilledPeriod ? getPeriodLabel(nextUnfilledPeriod) : null;
+
    const completedPeriods = dayStops.map((stop) => stop.dayPeriod);
 
    const chosenChapterCount = dayStops.length;
@@ -848,6 +956,8 @@ export function SidewalkPlanner() {
 
    function clearAllGeneratedPlanning(clearActivities: boolean) {
       abortAllRequests();
+
+      shouldFocusPeriodPanelReference.current = true;
 
       setActiveDayPeriod("morning");
 
@@ -1262,33 +1372,48 @@ export function SidewalkPlanner() {
       }
 
       if (nextStops.length === 1) {
-         const nextUnfilledPeriod = getNextUnfilledPeriod(period, nextStops);
-
-         if (nextUnfilledPeriod) {
-            setActiveDayPeriod(nextUnfilledPeriod);
-         }
-
-         setIsDayTrayOpen(false);
-
-         setDayPlanAnnouncement(`${nextStop.placeName} was added to ${getPeriodLabel(period)}. Choose one more stop to complete the day.`);
+         setDayPlanAnnouncement(`${nextStop.placeName} was added to ${getPeriodLabel(period)}. The recommendations will stay here while you compare. Continue when you are ready.`);
 
          return;
       }
 
       if (nextStops.length === 2) {
-         setIsDayTrayOpen(true);
-
-         setDayPlanAnnouncement(`${nextStop.placeName} completed your Sidewalk day with two stops. The day is saved, and a third stop is optional.`);
+         setDayPlanAnnouncement(`${nextStop.placeName} completed your Sidewalk day with two stops. The day is saved, and every remaining time period is optional.`);
 
          return;
       }
 
-      setIsDayTrayOpen(true);
+      if (nextStops.length === dayPeriods.length) {
+         setDayPlanAnnouncement(`${nextStop.placeName} completed all five parts of your Sidewalk day. Open Your Day when you are ready to review it.`);
 
-      setDayPlanAnnouncement(`${nextStop.placeName} completed your three-stop Sidewalk day.`);
+         return;
+      }
+
+      setDayPlanAnnouncement(`${nextStop.placeName} was added to ${getPeriodLabel(period)}. Your day remains saved, and the other time periods stay optional.`);
+   }
+
+   function handleContinueFromPeriod(period: DayPeriod) {
+      const nextPeriod = getNextUnfilledPeriod(period, dayStops);
+
+      if (!nextPeriod) {
+         setIsDayTrayOpen(true);
+
+         setDayPlanAnnouncement("Your selected time periods are ready to review.");
+
+         return;
+      }
+
+      shouldFocusPeriodPanelReference.current = true;
+
+      setActiveDayPeriod(nextPeriod);
+      setIsDayTrayOpen(false);
+
+      setDayPlanAnnouncement(`${getPeriodLabel(nextPeriod)} is ready when you are.`);
    }
 
    function handleEditPeriod(period: DayPeriod) {
+      shouldFocusPeriodPanelReference.current = true;
+
       setActiveDayPeriod(period);
 
       setIsDayTrayOpen(false);
@@ -1307,15 +1432,42 @@ export function SidewalkPlanner() {
 
       setDayStops(nextStops);
 
-      setActiveDayPeriod(removedStop.dayPeriod);
+      if (nextStops.length === 0) {
+         setIsDayTrayOpen(false);
 
-      setIsDayTrayOpen(false);
+         window.requestAnimationFrame(() => {
+            periodPanelReference.current?.focus();
+         });
+      }
 
       setDayPlanAnnouncement(
          nextStops.length >= 2
-            ? `${removedStop.placeName} was removed from ${getPeriodLabel(removedStop.dayPeriod)}. Your two-stop day is still saved.`
-            : `${removedStop.placeName} was removed from ${getPeriodLabel(removedStop.dayPeriod)}. Choose one more stop to complete the day.`,
+            ? `${removedStop.placeName} was removed from ${getPeriodLabel(removedStop.dayPeriod)}. Your two-stop day is still saved, and Your Day will remain open.`
+            : nextStops.length === 1
+              ? `${removedStop.placeName} was removed from ${getPeriodLabel(removedStop.dayPeriod)}. Your Day will remain open so you can make another change.`
+              : `${removedStop.placeName} was removed. Your day is now clear, while your area, date, and preferences remain in place.`,
       );
+   }
+
+   function handleClearDay() {
+      if (dayStops.length === 0) {
+         return;
+      }
+
+      setDayStops([]);
+      setIsDayTrayOpen(false);
+
+      setDayPlanAnnouncement("Your day was cleared. Your area, date, activity preferences, and current recommendations remain in place.");
+
+      window.requestAnimationFrame(() => {
+         periodPanelReference.current?.focus();
+      });
+   }
+
+   function handleDoneEditingDay() {
+      setIsDayTrayOpen(false);
+
+      setDayPlanAnnouncement("Your day is closed. Your selected stops remain saved in this browser session.");
    }
 
    function handleContinuePlanning() {
@@ -1324,6 +1476,8 @@ export function SidewalkPlanner() {
       if (!unfilledPeriod) {
          return;
       }
+
+      shouldFocusPeriodPanelReference.current = true;
 
       setActiveDayPeriod(unfilledPeriod);
       setIsDayTrayOpen(false);
@@ -1370,7 +1524,7 @@ export function SidewalkPlanner() {
    }
 
    if (selectedLocalArea && activeActivityDirection && activeStatus === "loading") {
-      selectionAnnouncement = `Sidewalk is finding ${activeDayPeriod} options for ${selectedLocalArea.name}.`;
+      selectionAnnouncement = `Sidewalk is finding ${getPeriodLabel(activeDayPeriod).toLowerCase()} options for ${selectedLocalArea.name}.`;
    }
 
    if (selectedLocalArea && activeSelectedRecommendation && activeStatus === "ready") {
@@ -1463,13 +1617,24 @@ export function SidewalkPlanner() {
 
                                  <PeriodSwitcher activePeriod={activeDayPeriod} completedPeriods={completedPeriods} disabled={!selectedLocalArea || !planningDate} onChange={handlePeriodChange} />
 
-                                 <section id="sidewalk-period-panel" className={plannerStyles.chapter} role="tabpanel" aria-labelledby={`sidewalk-period-tab-${activeDayPeriod}`} tabIndex={0}>
+                                 <section
+                                    ref={periodPanelReference}
+                                    id="sidewalk-period-panel"
+                                    className={plannerStyles.chapter}
+                                    role="tabpanel"
+                                    aria-labelledby={`sidewalk-period-tab-${activeDayPeriod}`}
+                                    aria-describedby="sidewalk-period-description"
+                                    aria-busy={activeStatus === "loading" || activeChapterRefreshState.isRefreshing}
+                                    tabIndex={0}
+                                 >
                                     <header className={plannerStyles.chapterHeading}>
                                        <p className={plannerStyles.chapterEyebrow}>{getPeriodLabel(activeDayPeriod)}</p>
 
                                        <h2 className={plannerStyles.chapterTitle}>What sounds worthwhile?</h2>
 
-                                       <p className={plannerStyles.chapterDescription}>Morning, afternoon, and evening can each go in a different direction.</p>
+                                       <p id="sidewalk-period-description" className={plannerStyles.chapterDescription}>
+                                          Early morning through night can each go in a different direction.
+                                       </p>
                                     </header>
 
                                     <ActivityDirectionSelector value={activeActivityDirection} disabled={!selectedLocalArea || !planningDate} onChange={handleActivityDirectionChange} />
@@ -1496,7 +1661,9 @@ export function SidewalkPlanner() {
                                              areaName={selectedLocalArea.name}
                                              hasPeriodStop={activeDayStop !== null}
                                              isCurrentPeriodStop={isCurrentPeriodStop}
+                                             nextPeriodLabel={nextUnfilledPeriodLabel}
                                              onAddToDay={(recommendation) => handleAddPeriodStop(activeDayPeriod, recommendation)}
+                                             onContinue={() => handleContinueFromPeriod(activeDayPeriod)}
                                           />
                                        ) : null}
                                     </div>
@@ -1512,7 +1679,9 @@ export function SidewalkPlanner() {
                      stops={dayStops}
                      isOpen={isDayTrayOpen}
                      onToggle={() => setIsDayTrayOpen((currentState) => !currentState)}
+                     onDone={handleDoneEditingDay}
                      onRemove={handleRemoveStop}
+                     onClearDay={handleClearDay}
                      onEditPeriod={handleEditPeriod}
                      onContinuePlanning={handleContinuePlanning}
                      onPlanAnotherDay={handlePlanAnotherDay}
