@@ -57,6 +57,7 @@
 
 .name {
    max-width: 18ch;
+   overflow-wrap: anywhere;
    color: var(--sw-color-text-primary);
    font-family: var(--sw-font-editorial);
    font-size: clamp(2.15rem, 6vw, 4rem);
@@ -143,6 +144,7 @@
 }
 
 .primaryAction,
+.continueAction,
 .secondaryAction {
    display: inline-flex;
    min-height: var(--sw-touch-target);
@@ -179,6 +181,16 @@
    cursor: default;
 }
 
+.continueAction {
+   border: var(--sw-border-width) solid var(--sw-color-olive);
+   background: transparent;
+   color: var(--sw-color-olive);
+}
+
+.continueAction:hover {
+   background: var(--sw-color-paper);
+}
+
 .secondaryAction {
    border: var(--sw-border-width) solid var(--sw-color-border);
    background: transparent;
@@ -188,6 +200,13 @@
 .secondaryAction:hover {
    border-color: var(--sw-color-stone);
    background: var(--sw-color-paper);
+}
+
+.primaryAction:focus-visible,
+.continueAction:focus-visible,
+.secondaryAction:focus-visible {
+   outline: 0.1875rem solid var(--sw-color-focus);
+   outline-offset: 0.2rem;
 }
 
 @media (max-width: 36rem) {
@@ -200,7 +219,16 @@
    }
 
    .primaryAction,
+   .continueAction,
    .secondaryAction {
       width: 100%;
+   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+   .primaryAction,
+   .continueAction,
+   .secondaryAction {
+      transition: none;
    }
 }

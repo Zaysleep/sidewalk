@@ -25,6 +25,11 @@
    cursor: pointer;
 }
 
+.summaryButton:focus-visible {
+   outline: 0.1875rem solid var(--sw-color-focus);
+   outline-offset: -0.1875rem;
+}
+
 .summaryHeading {
    color: var(--sw-color-olive);
    font-size: var(--sw-text-xs);
@@ -41,6 +46,7 @@
    font-size: var(--sw-text-lg);
    font-weight: 500;
    line-height: 1.2;
+   overflow-wrap: anywhere;
    text-overflow: ellipsis;
    white-space: nowrap;
 }
@@ -56,6 +62,8 @@
    max-height: 72svh;
    gap: var(--sw-space-6);
    overflow-y: auto;
+   overscroll-behavior: contain;
+   scrollbar-gutter: stable;
    padding: var(--sw-space-6) var(--sw-page-inline) var(--sw-space-8);
    border-top: var(--sw-border-width) solid var(--sw-color-border);
 }
@@ -88,7 +96,17 @@
    font-weight: 500;
    letter-spacing: var(--sw-tracking-tight);
    line-height: 1;
+   overflow-wrap: anywhere;
    text-wrap: balance;
+}
+
+.title:focus {
+   outline: 0;
+}
+
+.title:focus-visible {
+   outline: 0.1875rem solid var(--sw-color-focus);
+   outline-offset: 0.25rem;
 }
 
 .date {
@@ -151,6 +169,7 @@
    font-weight: 500;
    letter-spacing: var(--sw-tracking-heading);
    line-height: 1.05;
+   overflow-wrap: anywhere;
 }
 
 .location,
@@ -160,10 +179,14 @@
    color: var(--sw-color-text-secondary);
    font-size: var(--sw-text-sm);
    line-height: 1.5;
+   overflow-wrap: anywhere;
 }
 
 .locationLink {
    width: fit-content;
+   min-height: var(--sw-touch-target);
+   display: inline-flex;
+   align-items: center;
    color: var(--sw-color-olive);
    font-size: var(--sw-text-sm);
    font-weight: 750;
@@ -173,6 +196,15 @@
 
 .locationLink:hover {
    color: var(--sw-color-forest);
+}
+
+.locationLink:focus-visible,
+.editButton:focus-visible,
+.removeButton:focus-visible,
+.continueButton:focus-visible,
+.resetButton:focus-visible {
+   outline: 0.1875rem solid var(--sw-color-focus);
+   outline-offset: 0.2rem;
 }
 
 .stopActions {
@@ -314,5 +346,123 @@
 
    .footerActions {
       grid-template-columns: 1fr;
+   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+   .continueButton,
+   .resetButton {
+      transition: none;
+   }
+}
+
+.trayActions {
+   display: grid;
+   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+   gap: var(--sw-space-3);
+   padding-top: var(--sw-space-4);
+   border-top: var(--sw-border-width) solid var(--sw-color-border);
+}
+
+.clearDayButton,
+.doneButton,
+.cancelClearButton,
+.confirmClearButton {
+   min-height: var(--sw-touch-target);
+   padding: var(--sw-space-3) var(--sw-space-4);
+   border-radius: var(--sw-radius-sm);
+   font-size: var(--sw-text-sm);
+   font-weight: 750;
+   cursor: pointer;
+}
+
+.clearDayButton {
+   border: var(--sw-border-width) solid var(--sw-color-border);
+   background: transparent;
+   color: var(--sw-color-text-secondary);
+}
+
+.clearDayButton:hover {
+   border-color: var(--sw-color-terracotta);
+   background: var(--sw-color-surface-muted);
+   color: var(--sw-color-terracotta);
+}
+
+.doneButton {
+   border: var(--sw-border-width) solid var(--sw-color-ink);
+   background: var(--sw-color-ink);
+   color: var(--sw-color-warm-white);
+}
+
+.doneButton:hover {
+   border-color: var(--sw-color-forest);
+   background: var(--sw-color-forest);
+}
+
+.clearConfirmation {
+   display: grid;
+   gap: var(--sw-space-3);
+   padding: var(--sw-space-4);
+   border: var(--sw-border-width) solid var(--sw-color-terracotta);
+   border-radius: var(--sw-radius-sm);
+   background: var(--sw-color-surface-muted);
+}
+
+.clearTitle {
+   font-family: var(--sw-font-editorial);
+   font-size: var(--sw-text-xl);
+   font-weight: 500;
+   line-height: 1.1;
+}
+
+.clearDescription {
+   color: var(--sw-color-text-secondary);
+   font-size: var(--sw-text-sm);
+   line-height: 1.5;
+}
+
+.clearConfirmationActions {
+   display: grid;
+   grid-template-columns: repeat(2, minmax(0, 1fr));
+   gap: var(--sw-space-3);
+}
+
+.cancelClearButton {
+   border: var(--sw-border-width) solid var(--sw-color-border);
+   background: var(--sw-color-warm-white);
+   color: var(--sw-color-text-primary);
+}
+
+.cancelClearButton:hover {
+   border-color: var(--sw-color-stone);
+   background: var(--sw-color-warm-white);
+}
+
+.confirmClearButton {
+   border: var(--sw-border-width) solid var(--sw-color-terracotta);
+   background: var(--sw-color-terracotta);
+   color: var(--sw-color-warm-white);
+}
+
+.confirmClearButton:hover {
+   border-color: var(--sw-color-ink);
+   background: var(--sw-color-ink);
+}
+
+.clearDayButton:focus-visible,
+.doneButton:focus-visible,
+.cancelClearButton:focus-visible,
+.confirmClearButton:focus-visible {
+   outline: 0.1875rem solid var(--sw-color-focus);
+   outline-offset: 0.2rem;
+}
+
+@media (min-width: 64rem) {
+   .trayActions {
+      grid-template-columns: 1fr;
+   }
+
+   .doneButton {
+      display: none;
    }
 }

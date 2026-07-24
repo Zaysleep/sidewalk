@@ -24,8 +24,11 @@ type PeriodPickDetailProps = Readonly<{
 
    hasPeriodStop: boolean;
    isCurrentPeriodStop: boolean;
+   nextPeriodLabel: string | null;
 
    onAddToDay: (recommendation: PeriodRecommendation) => void;
+
+   onContinue: () => void;
 }>;
 
 function formatRatingCount(count: number): string {
@@ -40,7 +43,7 @@ function formatVisitDuration(minimum: number, maximum: number): string {
    return `${minimum}–${maximum} minutes`;
 }
 
-export function PeriodPickDetail({ dayPeriod, recommendation, areaName, hasPeriodStop, isCurrentPeriodStop, onAddToDay }: PeriodPickDetailProps) {
+export function PeriodPickDetail({ dayPeriod, recommendation, areaName, hasPeriodStop, isCurrentPeriodStop, nextPeriodLabel, onAddToDay, onContinue }: PeriodPickDetailProps) {
    const [imageFailed, setImageFailed] = useState(false);
 
    const { place } = recommendation;
@@ -148,8 +151,14 @@ export function PeriodPickDetail({ dayPeriod, recommendation, areaName, hasPerio
                   {actionLabel}
                </button>
 
+               {hasPeriodStop && nextPeriodLabel ? (
+                  <button type="button" className={styles.continueAction} onClick={onContinue}>
+                     Continue to {nextPeriodLabel}
+                  </button>
+               ) : null}
+
                {locationUrl ? (
-                  <a className={styles.secondaryAction} href={locationUrl} target="_blank" rel="noreferrer">
+                  <a className={styles.secondaryAction} href={locationUrl} target="_blank" rel="noreferrer" aria-label={`Open ${place.provider.name} location in a new tab`}>
                      Open location
                   </a>
                ) : null}
