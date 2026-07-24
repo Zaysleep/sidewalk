@@ -1,0 +1,123 @@
+.fieldset {
+   display: grid;
+   min-width: 0;
+   gap: var(--sw-space-3);
+   margin: 0;
+   padding: 0;
+   border: 0;
+}
+
+.controls {
+   display: grid;
+   grid-template-columns: repeat(2, minmax(0, auto)) minmax(12rem, 1fr);
+   gap: var(--sw-space-2);
+}
+
+.quickChoice,
+.dateControl {
+   min-height: var(--sw-touch-target);
+   border: var(--sw-border-width) solid var(--sw-color-border);
+   border-radius: var(--sw-radius-sm);
+   background: var(--sw-color-warm-white);
+   color: var(--sw-color-text-primary);
+}
+
+.quickChoice {
+   padding: var(--sw-space-3) var(--sw-space-4);
+   font-size: var(--sw-text-sm);
+   font-weight: 750;
+   cursor: pointer;
+   transition:
+      background-color var(--sw-duration-fast) var(--sw-ease-standard),
+      border-color var(--sw-duration-fast) var(--sw-ease-standard),
+      color var(--sw-duration-fast) var(--sw-ease-standard);
+}
+
+.quickChoice:hover:not(:disabled) {
+   border-color: var(--sw-color-stone);
+   background: var(--sw-color-paper);
+}
+
+.quickChoice[data-active="true"] {
+   border-color: var(--sw-color-olive);
+   background: var(--sw-color-olive);
+   color: var(--sw-color-warm-white);
+}
+
+.dateControl {
+   display: grid;
+   min-width: 0;
+   grid-template-columns: auto minmax(0, 1fr);
+   align-items: center;
+   gap: var(--sw-space-3);
+   padding: var(--sw-space-2) var(--sw-space-3);
+}
+
+.dateLabel {
+   color: var(--sw-color-text-secondary);
+   font-size: var(--sw-text-xs);
+   font-weight: 750;
+   letter-spacing: var(--sw-tracking-label);
+   line-height: 1.35;
+   text-transform: uppercase;
+}
+
+.dateInput {
+   min-width: 0;
+   min-height: 2.25rem;
+   border: 0;
+   background: transparent;
+   color: var(--sw-color-text-primary);
+   font: inherit;
+   font-size: var(--sw-text-sm);
+   font-weight: 700;
+   cursor: pointer;
+}
+
+.dateInput:focus {
+   outline: 0;
+}
+
+.dateControl:has(.dateInput:focus-visible),
+.quickChoice:focus-visible {
+   outline: 0.1875rem solid var(--sw-color-focus);
+   outline-offset: 0.2rem;
+}
+
+.selectedDate {
+   color: var(--sw-color-text-secondary);
+   font-size: var(--sw-text-sm);
+   font-weight: 650;
+   line-height: 1.5;
+}
+
+.fieldset:disabled {
+   opacity: 0.55;
+}
+
+.fieldset:disabled .quickChoice,
+.fieldset:disabled .dateInput {
+   cursor: not-allowed;
+}
+
+@media (max-width: 42rem) {
+   .controls {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+   }
+
+   .dateControl {
+      grid-column: 1 / -1;
+   }
+}
+
+@media (max-width: 24rem) {
+   .controls {
+      grid-template-columns: 1fr;
+   }
+
+   .dateControl {
+      grid-column: auto;
+      grid-template-columns: 1fr;
+      gap: var(--sw-space-1);
+   }
+}

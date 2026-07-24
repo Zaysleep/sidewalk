@@ -1,0 +1,127 @@
+.switcher {
+   display: grid;
+   grid-template-columns: repeat(3, minmax(0, 1fr));
+   overflow: hidden;
+   border: var(--sw-border-width) solid var(--sw-color-border);
+   border-radius: var(--sw-radius-sm);
+   background: var(--sw-color-paper);
+}
+
+.tab {
+   position: relative;
+   display: grid;
+   min-width: 0;
+   min-height: 4.75rem;
+   align-content: center;
+   gap: var(--sw-space-1);
+   padding: var(--sw-space-3);
+   border: 0;
+   border-bottom: 0.25rem solid transparent;
+   background: transparent;
+   color: var(--sw-color-text-secondary);
+   text-align: left;
+   cursor: pointer;
+   transition:
+      background-color var(--sw-duration-fast) var(--sw-ease-standard),
+      border-color var(--sw-duration-fast) var(--sw-ease-standard),
+      color var(--sw-duration-fast) var(--sw-ease-standard);
+}
+
+.tab + .tab {
+   border-left: var(--sw-border-width) solid var(--sw-color-border);
+}
+
+.tab:hover:not(:disabled) {
+   background: var(--sw-color-warm-white);
+   color: var(--sw-color-text-primary);
+}
+
+.tab[data-active="true"] {
+   border-bottom-color: var(--sw-color-olive);
+   background: var(--sw-color-warm-white);
+   color: var(--sw-color-text-primary);
+}
+
+.tab[data-complete="true"] .status {
+   color: var(--sw-color-olive);
+}
+
+.tab:disabled {
+   cursor: not-allowed;
+   opacity: 0.58;
+}
+
+.topline {
+   display: grid;
+   min-width: 0;
+   grid-template-columns: minmax(0, 1fr) auto;
+   align-items: center;
+   gap: var(--sw-space-2);
+}
+
+.label {
+   display: block;
+   min-width: 0;
+   overflow: hidden;
+   font-family: var(--sw-font-editorial);
+   font-size: clamp(1rem, 2vw, 1.35rem);
+   font-weight: 600;
+   line-height: 1.1;
+   text-overflow: ellipsis;
+   white-space: nowrap;
+}
+
+.status {
+   flex: 0 0 auto;
+   color: var(--sw-color-text-secondary);
+   font-size: var(--sw-text-sm);
+   font-weight: 800;
+   line-height: 1;
+}
+
+.range {
+   display: block;
+   min-width: 0;
+   overflow: hidden;
+   font-size: var(--sw-text-xs);
+   font-weight: 650;
+   line-height: 1.35;
+   text-overflow: ellipsis;
+   white-space: nowrap;
+}
+
+/*
+ * Mobile tabs have limited horizontal room. The completion mark is positioned
+ * independently so longer labels such as "Afternoon" receive the full row.
+ */
+@media (max-width: 38rem) {
+   .tab {
+      min-height: 4.5rem;
+      padding: var(--sw-space-3) 0.45rem;
+   }
+
+   .topline {
+      display: block;
+      padding-right: 0.9rem;
+   }
+
+   .label {
+      overflow: visible;
+      font-size: 0.78rem;
+      letter-spacing: -0.01em;
+      text-overflow: clip;
+   }
+
+   .status {
+      position: absolute;
+      top: 0.8rem;
+      right: 0.35rem;
+      font-size: 0.7rem;
+   }
+
+   .range {
+      padding-right: 0.25rem;
+      font-size: 0.59rem;
+      letter-spacing: -0.01em;
+   }
+}

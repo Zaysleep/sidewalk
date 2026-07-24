@@ -1,0 +1,160 @@
+/*
+ * Sidewalk design tokens
+ *
+ * This file contains the shared visual decisions used across the product.
+ * Components should rely on these variables instead of introducing unrelated
+ * colors, spacing values, shadows, or typography scales.
+ */
+
+:root {
+   /* ------------------------------------------------------------------------ */
+   /* Core editorial palette                                                   */
+   /* ------------------------------------------------------------------------ */
+
+   --sw-color-paper: #f8f6f1;
+   --sw-color-warm-white: #fcfbf8;
+   --sw-color-ink: #1e1e1a;
+   --sw-color-stone: #6b6b63;
+
+   --sw-color-olive: #6f7e57;
+   --sw-color-terracotta: #c86d43;
+   --sw-color-mustard: #d7b548;
+   --sw-color-dusty-blue: #7d98b8;
+   --sw-color-forest: #47644a;
+
+   --sw-color-border: #ded9cf;
+   --sw-color-surface-muted: #efebe3;
+   --sw-color-focus: #2457c5;
+
+   /* ------------------------------------------------------------------------ */
+   /* Semantic color roles                                                     */
+   /* ------------------------------------------------------------------------ */
+
+   --sw-color-background: var(--sw-color-paper);
+   --sw-color-surface: var(--sw-color-warm-white);
+   --sw-color-surface-subtle: var(--sw-color-surface-muted);
+
+   --sw-color-text-primary: var(--sw-color-ink);
+   --sw-color-text-secondary: var(--sw-color-stone);
+
+   --sw-color-accent-primary: var(--sw-color-terracotta);
+   --sw-color-accent-secondary: var(--sw-color-olive);
+
+   --sw-color-success: var(--sw-color-forest);
+   --sw-color-warning: #8a6814;
+   --sw-color-error: #a63c31;
+
+   /* ------------------------------------------------------------------------ */
+   /* Typography families                                                      */
+   /* ------------------------------------------------------------------------ */
+
+   /*
+   * The actual font variables are supplied by next/font in layout.tsx.
+   * The fallbacks keep the page readable if font loading is interrupted.
+   */
+   --sw-font-editorial: var(--font-newsreader), "Iowan Old Style", Baskerville, Georgia, "Times New Roman", serif;
+
+   --sw-font-interface: var(--font-geist), Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+   /* ------------------------------------------------------------------------ */
+   /* Fluid typography scale                                                   */
+   /* ------------------------------------------------------------------------ */
+
+   --sw-text-xs: 0.75rem;
+   --sw-text-sm: 0.875rem;
+   --sw-text-base: 1rem;
+   --sw-text-lg: clamp(1.0625rem, 1rem + 0.25vw, 1.1875rem);
+   --sw-text-xl: clamp(1.2rem, 1.05rem + 0.5vw, 1.5rem);
+
+   --sw-text-heading-sm: clamp(1.5rem, 1.25rem + 1vw, 2.25rem);
+   --sw-text-heading-md: clamp(2.25rem, 1.7rem + 2.5vw, 4rem);
+   --sw-text-heading-lg: clamp(3.25rem, 2rem + 5vw, 7rem);
+
+   --sw-leading-tight: 0.96;
+   --sw-leading-heading: 1.05;
+   --sw-leading-body: 1.7;
+
+   --sw-tracking-tight: -0.045em;
+   --sw-tracking-heading: -0.025em;
+   --sw-tracking-label: 0.12em;
+
+   /* ------------------------------------------------------------------------ */
+   /* Spacing scale                                                            */
+   /* ------------------------------------------------------------------------ */
+
+   --sw-space-0: 0;
+   --sw-space-1: 0.25rem;
+   --sw-space-2: 0.5rem;
+   --sw-space-3: 0.75rem;
+   --sw-space-4: 1rem;
+   --sw-space-5: 1.25rem;
+   --sw-space-6: 1.5rem;
+   --sw-space-8: 2rem;
+   --sw-space-10: 2.5rem;
+   --sw-space-12: 3rem;
+   --sw-space-16: 4rem;
+   --sw-space-20: 5rem;
+   --sw-space-24: 6rem;
+   --sw-space-32: 8rem;
+
+   /* Fluid section spacing used by larger editorial layouts. */
+   --sw-section-space-sm: clamp(3.5rem, 8vw, 6rem);
+   --sw-section-space-lg: clamp(4rem, 12vw, 9rem);
+
+   /* ------------------------------------------------------------------------ */
+   /* Layout                                                                   */
+   /* ------------------------------------------------------------------------ */
+
+   --sw-page-inline: clamp(1.25rem, 4vw, 4rem);
+   --sw-page-max-width: 90rem;
+
+   --sw-content-width-sm: 36rem;
+   --sw-content-width-md: 44rem;
+   --sw-content-width-lg: 58rem;
+
+   /*
+   * Interactive controls should meet or exceed this value wherever practical.
+   * It follows the project's minimum touch-target requirement.
+   */
+   --sw-touch-target: 2.75rem;
+
+   /* ------------------------------------------------------------------------ */
+   /* Borders, radii, and elevation                                            */
+   /* ------------------------------------------------------------------------ */
+
+   --sw-border-width: 1px;
+   --sw-border-strong-width: 0.25rem;
+
+   --sw-radius-sm: 0.375rem;
+   --sw-radius-md: 0.75rem;
+   --sw-radius-lg: 1.25rem;
+   --sw-radius-pill: 999px;
+
+   /*
+   * Sidewalk should remain paper-like rather than glassy or heavily elevated.
+   * Shadows are intentionally restrained.
+   */
+   --sw-shadow-soft: 0 0.5rem 1.5rem rgb(30 30 26 / 0.06), 0 0.125rem 0.375rem rgb(30 30 26 / 0.04);
+
+   --sw-shadow-overlay: 0 1.5rem 4rem rgb(30 30 26 / 0.16), 0 0.25rem 1rem rgb(30 30 26 / 0.08);
+
+   /* ------------------------------------------------------------------------ */
+   /* Motion                                                                   */
+   /* ------------------------------------------------------------------------ */
+
+   --sw-duration-fast: 140ms;
+   --sw-duration-normal: 220ms;
+   --sw-duration-slow: 360ms;
+
+   --sw-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+   --sw-ease-emphasized: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+   /* ------------------------------------------------------------------------ */
+   /* Layering                                                                 */
+   /* ------------------------------------------------------------------------ */
+
+   --sw-z-sticky: 20;
+   --sw-z-overlay: 40;
+   --sw-z-modal: 60;
+   --sw-z-skip-link: 100;
+}

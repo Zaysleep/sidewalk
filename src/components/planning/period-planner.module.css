@@ -1,0 +1,54 @@
+.shell {
+   display: grid;
+   min-width: 0;
+   gap: var(--sw-space-5);
+}
+
+.progress {
+   color: var(--sw-color-text-secondary);
+   font-size: var(--sw-text-sm);
+   font-weight: 700;
+   line-height: 1.5;
+}
+
+.chapter {
+   display: grid;
+   min-width: 0;
+   gap: var(--sw-space-8);
+}
+
+.chapterHeading {
+   display: grid;
+   gap: var(--sw-space-2);
+}
+
+.chapterEyebrow {
+   color: var(--sw-color-olive);
+   font-size: var(--sw-text-xs);
+   font-weight: 750;
+   letter-spacing: var(--sw-tracking-label);
+   line-height: 1.4;
+   text-transform: uppercase;
+}
+
+.chapterTitle {
+   color: var(--sw-color-text-primary);
+   font-family: var(--sw-font-editorial);
+   font-size: clamp(2rem, 5vw, 3.5rem);
+   font-weight: 500;
+   letter-spacing: var(--sw-tracking-tight);
+   line-height: 1;
+   text-wrap: balance;
+}
+
+.chapterDescription {
+   max-width: 40rem;
+   color: var(--sw-color-text-secondary);
+   line-height: var(--sw-leading-body);
+}
+
+.recommendationLayout {
+   display: grid;
+   min-width: 0;
+   gap: var(--sw-space-10);
+}

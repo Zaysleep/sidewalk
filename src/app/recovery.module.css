@@ -1,0 +1,119 @@
+.page {
+   min-height: 100svh;
+   display: grid;
+   place-items: center;
+   padding: clamp(1.5rem, 5vw, 4rem);
+   background: var(--sw-color-paper, #faf7f0);
+   color: var(--sw-color-text-primary, #1d2118);
+}
+
+.card {
+   width: min(100%, 42rem);
+   display: grid;
+   gap: 1.5rem;
+   padding: clamp(1.5rem, 5vw, 3rem);
+   border: 0.0625rem solid var(--sw-color-border, #ded5c6);
+   border-top: 0.25rem solid var(--sw-color-terracotta, #a65f42);
+   border-radius: var(--sw-radius-sm, 0.5rem);
+   background: var(--sw-color-warm-white, #fffdf8);
+   box-shadow: var(--sw-shadow-soft, 0 1rem 2.5rem rgb(0 0 0 / 0.08));
+}
+
+.eyebrow {
+   color: var(--sw-color-olive, #64734f);
+   font-size: 0.75rem;
+   font-weight: 800;
+   letter-spacing: 0.16em;
+   line-height: 1.4;
+   text-transform: uppercase;
+}
+
+.title {
+   max-width: 12ch;
+   font-family: var(--sw-font-editorial, Georgia, serif);
+   font-size: clamp(2.35rem, 8vw, 4.75rem);
+   font-weight: 500;
+   letter-spacing: -0.045em;
+   line-height: 0.98;
+   text-wrap: balance;
+}
+
+.copy {
+   max-width: 38rem;
+   color: var(--sw-color-text-secondary, #62645d);
+   font-size: 1rem;
+   line-height: 1.65;
+}
+
+.actions {
+   display: flex;
+   flex-wrap: wrap;
+   gap: 0.75rem;
+}
+
+.primaryAction,
+.secondaryAction {
+   min-height: 2.75rem;
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   padding: 0.75rem 1.1rem;
+   border-radius: var(--sw-radius-sm, 0.5rem);
+   font-size: 0.95rem;
+   font-weight: 750;
+   line-height: 1.2;
+   text-decoration: none;
+   cursor: pointer;
+}
+
+.primaryAction {
+   border: 0.0625rem solid var(--sw-color-ink, #1d2118);
+   background: var(--sw-color-ink, #1d2118);
+   color: var(--sw-color-warm-white, #fffdf8);
+}
+
+.secondaryAction {
+   border: 0.0625rem solid var(--sw-color-border, #ded5c6);
+   background: transparent;
+   color: var(--sw-color-text-primary, #1d2118);
+}
+
+.primaryAction:hover {
+   border-color: var(--sw-color-forest, #35432f);
+   background: var(--sw-color-forest, #35432f);
+}
+
+.secondaryAction:hover {
+   border-color: var(--sw-color-stone, #9f9687);
+   background: var(--sw-color-paper, #faf7f0);
+}
+
+.primaryAction:focus-visible,
+.secondaryAction:focus-visible {
+   outline: 0.1875rem solid var(--sw-color-focus, #315caa);
+   outline-offset: 0.2rem;
+}
+
+.support {
+   color: var(--sw-color-text-secondary, #62645d);
+   font-size: 0.82rem;
+   line-height: 1.5;
+}
+
+@media (max-width: 32rem) {
+   .actions {
+      display: grid;
+   }
+
+   .primaryAction,
+   .secondaryAction {
+      width: 100%;
+   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+   .primaryAction,
+   .secondaryAction {
+      transition: none;
+   }
+}

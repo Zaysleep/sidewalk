@@ -1,0 +1,99 @@
+.options {
+   display: grid;
+   min-width: 0;
+   grid-template-columns: repeat(2, minmax(0, 1fr));
+   gap: var(--sw-space-3);
+}
+
+.option {
+   min-width: 0;
+   min-height: 3.75rem;
+   padding: var(--sw-space-3) var(--sw-space-4);
+   border: var(--sw-border-width) solid var(--sw-color-border);
+   border-radius: var(--sw-radius-sm);
+   background: var(--sw-color-warm-white);
+   color: var(--sw-color-text-primary);
+   font-size: var(--sw-text-sm);
+   font-weight: 750;
+   line-height: 1.25;
+   text-align: left;
+
+   /*
+    * planning-step is an <li>, and the global stylesheet allows list-item
+    * text to wrap anywhere. Override that behavior here so activity labels
+    * only wrap naturally between words.
+    */
+   overflow-wrap: normal;
+   word-break: normal;
+   hyphens: none;
+   white-space: normal;
+   text-wrap: balance;
+
+   cursor: pointer;
+   transition:
+      border-color var(--sw-duration-fast) var(--sw-ease-standard),
+      background-color var(--sw-duration-fast) var(--sw-ease-standard),
+      box-shadow var(--sw-duration-fast) var(--sw-ease-standard);
+}
+
+.option:last-child {
+   grid-column: 1 / -1;
+}
+
+.option:hover:not(:disabled) {
+   border-color: var(--sw-color-stone);
+   background: var(--sw-color-surface-muted);
+}
+
+.option[aria-pressed="true"] {
+   border-color: var(--sw-color-olive);
+   background: var(--sw-color-paper);
+   box-shadow: inset 0 -0.1875rem 0 var(--sw-color-olive);
+}
+
+.option:disabled {
+   background: var(--sw-color-surface-muted);
+   color: var(--sw-color-text-secondary);
+   cursor: not-allowed;
+   opacity: 0.72;
+}
+
+/*
+ * Tablet layout remains unchanged:
+ * three compact choices across, followed by the remaining options.
+ */
+@media (min-width: 40rem) {
+   .options {
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+   }
+
+   .option {
+      grid-column: span 2;
+   }
+
+   .option:last-child {
+      grid-column: 2 / span 4;
+   }
+}
+
+/*
+ * Desktop uses a deliberate 3-over-2 editorial arrangement instead of
+ * squeezing five choices into one narrow row.
+ */
+@media (min-width: 64rem) {
+   .options {
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+   }
+
+   .option,
+   .option:last-child {
+      grid-column: span 2;
+      min-height: 4.25rem;
+      padding-inline: var(--sw-space-5);
+   }
+
+   .option:nth-child(4),
+   .option:nth-child(5) {
+      grid-column: span 3;
+   }
+}

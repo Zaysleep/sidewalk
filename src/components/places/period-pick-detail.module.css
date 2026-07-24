@@ -1,0 +1,206 @@
+.card {
+   display: grid;
+   min-width: 0;
+   overflow: hidden;
+   border: var(--sw-border-width) solid var(--sw-color-border);
+   border-top: var(--sw-border-strong-width) solid var(--sw-color-terracotta);
+   border-radius: var(--sw-radius-sm);
+   background: var(--sw-color-warm-white);
+   box-shadow: var(--sw-shadow-soft);
+}
+
+.imageFrame {
+   position: relative;
+   width: 100%;
+   aspect-ratio: 16 / 10;
+   overflow: hidden;
+   background: var(--sw-color-surface-muted);
+}
+
+.image {
+   object-fit: cover;
+}
+
+.imageFallback {
+   display: grid;
+   width: 100%;
+   height: 100%;
+   place-items: center;
+   padding: var(--sw-space-6);
+   color: var(--sw-color-text-secondary);
+   font-size: var(--sw-text-sm);
+   font-weight: 650;
+   text-align: center;
+}
+
+.content {
+   display: grid;
+   gap: var(--sw-space-6);
+   padding: clamp(var(--sw-space-5), 5vw, var(--sw-space-8));
+}
+
+.heading {
+   display: grid;
+   min-width: 0;
+   gap: var(--sw-space-3);
+}
+
+.eyebrow,
+.whyLabel {
+   color: var(--sw-color-terracotta);
+   font-size: var(--sw-text-xs);
+   font-weight: 750;
+   letter-spacing: var(--sw-tracking-label);
+   line-height: 1.4;
+   text-transform: uppercase;
+}
+
+.name {
+   max-width: 18ch;
+   color: var(--sw-color-text-primary);
+   font-family: var(--sw-font-editorial);
+   font-size: clamp(2.15rem, 6vw, 4rem);
+   font-weight: 500;
+   letter-spacing: var(--sw-tracking-tight);
+   line-height: 0.98;
+   text-wrap: balance;
+}
+
+.summary {
+   max-width: 42rem;
+   color: var(--sw-color-text-primary);
+   font-size: var(--sw-text-lg);
+   line-height: 1.55;
+}
+
+.facts {
+   display: grid;
+   grid-template-columns: repeat(2, minmax(0, 1fr));
+   gap: var(--sw-space-4);
+   margin: 0;
+   padding-block: var(--sw-space-5);
+   border-block: var(--sw-border-width) solid var(--sw-color-border);
+}
+
+.fact {
+   display: grid;
+   min-width: 0;
+   gap: var(--sw-space-1);
+}
+
+.fact dt {
+   color: var(--sw-color-text-secondary);
+   font-size: var(--sw-text-xs);
+   font-weight: 750;
+   letter-spacing: var(--sw-tracking-label);
+   line-height: 1.4;
+   text-transform: uppercase;
+}
+
+.fact dd {
+   margin: 0;
+   color: var(--sw-color-text-primary);
+   font-size: var(--sw-text-sm);
+   font-weight: 650;
+   line-height: 1.5;
+}
+
+.availability {
+   width: fit-content;
+}
+
+.availability[data-status="open-through-window"] {
+   color: var(--sw-color-olive);
+}
+
+.availability[data-status="open-part-of-window"] {
+   color: var(--sw-color-terracotta);
+}
+
+.availability[data-status="hours-unavailable"] {
+   color: var(--sw-color-text-secondary);
+}
+
+.availability[data-status="closed-during-window"] {
+   color: var(--sw-color-text-secondary);
+}
+
+.why {
+   display: grid;
+   gap: var(--sw-space-2);
+}
+
+.whyCopy {
+   max-width: 40rem;
+   color: var(--sw-color-text-secondary);
+   line-height: var(--sw-leading-body);
+}
+
+.actions {
+   display: flex;
+   flex-wrap: wrap;
+   gap: var(--sw-space-3);
+}
+
+.primaryAction,
+.secondaryAction {
+   display: inline-flex;
+   min-height: var(--sw-touch-target);
+   align-items: center;
+   justify-content: center;
+   padding: var(--sw-space-3) var(--sw-space-5);
+   border-radius: var(--sw-radius-sm);
+   font-size: var(--sw-text-sm);
+   font-weight: 750;
+   line-height: 1.2;
+   text-decoration: none;
+   cursor: pointer;
+   transition:
+      background-color var(--sw-duration-fast) var(--sw-ease-standard),
+      border-color var(--sw-duration-fast) var(--sw-ease-standard),
+      color var(--sw-duration-fast) var(--sw-ease-standard);
+}
+
+.primaryAction {
+   border: var(--sw-border-width) solid var(--sw-color-ink);
+   background: var(--sw-color-ink);
+   color: var(--sw-color-warm-white);
+}
+
+.primaryAction:hover:not(:disabled) {
+   border-color: var(--sw-color-forest);
+   background: var(--sw-color-forest);
+}
+
+.primaryAction:disabled {
+   border-color: var(--sw-color-border);
+   background: var(--sw-color-surface-muted);
+   color: var(--sw-color-text-secondary);
+   cursor: default;
+}
+
+.secondaryAction {
+   border: var(--sw-border-width) solid var(--sw-color-border);
+   background: transparent;
+   color: var(--sw-color-text-primary);
+}
+
+.secondaryAction:hover {
+   border-color: var(--sw-color-stone);
+   background: var(--sw-color-paper);
+}
+
+@media (max-width: 36rem) {
+   .facts {
+      grid-template-columns: 1fr;
+   }
+
+   .actions {
+      display: grid;
+   }
+
+   .primaryAction,
+   .secondaryAction {
+      width: 100%;
+   }
+}

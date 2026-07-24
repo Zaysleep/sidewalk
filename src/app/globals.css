@@ -1,26 +1,611 @@
 @import "tailwindcss";
+@import "../styles/tokens.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
+/*
+ * Expose Sidewalk's primary design tokens to Tailwind while keeping their
+ * source values centralized in tokens.css.
+ */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+   --color-paper: var(--sw-color-paper);
+   --color-warm-white: var(--sw-color-warm-white);
+   --color-ink: var(--sw-color-ink);
+   --color-stone: var(--sw-color-stone);
+
+   --color-olive: var(--sw-color-olive);
+   --color-terracotta: var(--sw-color-terracotta);
+   --color-mustard: var(--sw-color-mustard);
+   --color-dusty-blue: var(--sw-color-dusty-blue);
+   --color-forest: var(--sw-color-forest);
+
+   --color-border: var(--sw-color-border);
+   --color-surface-muted: var(--sw-color-surface-muted);
+   --color-focus: var(--sw-color-focus);
+
+   --font-sans: var(--sw-font-interface);
+   --font-serif: var(--sw-font-editorial);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* -------------------------------------------------------------------------- */
+/* Global document behavior                                                   */
+/* -------------------------------------------------------------------------- */
+
+* {
+   box-sizing: border-box;
+}
+
+html {
+   min-width: 20rem;
+   scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+   min-height: 100vh;
+   margin: 0;
+   overflow-x: hidden;
+   background: var(--sw-color-background);
+   color: var(--sw-color-text-primary);
+   font-family: var(--sw-font-interface);
+   font-size: var(--sw-text-base);
+   line-height: var(--sw-leading-body);
+   text-rendering: optimizeLegibility;
+   -webkit-font-smoothing: antialiased;
+}
+
+a {
+   color: inherit;
+}
+
+button,
+input,
+select,
+textarea {
+   font: inherit;
+}
+
+p,
+h1,
+h2,
+h3 {
+   margin: 0;
+}
+
+ol,
+ul {
+   margin: 0;
+   padding: 0;
+}
+
+p,
+li,
+dd {
+   overflow-wrap: anywhere;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Reduced-motion behavior                                                    */
+/* -------------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+   html {
+      scroll-behavior: auto;
+   }
+
+   *,
+   *::before,
+   *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+   }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Keyboard and assistive-technology helpers                                  */
+/* -------------------------------------------------------------------------- */
+
+.sr-only {
+   position: absolute;
+   width: 1px;
+   height: 1px;
+   padding: 0;
+   margin: -1px;
+   overflow: hidden;
+   white-space: nowrap;
+   border: 0;
+   clip: rect(0, 0, 0, 0);
+}
+
+.skip-link {
+   position: fixed;
+   top: var(--sw-space-3);
+   left: var(--sw-space-3);
+   z-index: var(--sw-z-skip-link);
+   display: inline-flex;
+   min-height: var(--sw-touch-target);
+   align-items: center;
+   padding: var(--sw-space-3) var(--sw-space-4);
+   border: 0.125rem solid var(--sw-color-focus);
+   border-radius: var(--sw-radius-pill);
+   background: var(--sw-color-surface);
+   color: var(--sw-color-text-primary);
+   font-size: var(--sw-text-sm);
+   font-weight: 700;
+   line-height: 1;
+   text-decoration: none;
+   transform: translateY(-200%);
+   transition: transform var(--sw-duration-fast) var(--sw-ease-standard);
+}
+
+.skip-link:focus {
+   outline: none;
+   transform: translateY(0);
+}
+
+:focus-visible {
+   outline: 0.1875rem solid var(--sw-color-focus);
+   outline-offset: 0.25rem;
+}
+
+.home-main:focus,
+.empty-product-state:focus {
+   outline: none;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Shared application frame                                                   */
+/* -------------------------------------------------------------------------- */
+
+.site-frame {
+   display: grid;
+   grid-template-rows: auto 1fr auto;
+   width: min(100%, var(--sw-page-max-width));
+   min-height: 100vh;
+   margin-inline: auto;
+   border-inline: var(--sw-border-width) solid transparent;
+}
+
+.editorial-container {
+   width: 100%;
+   max-width: var(--sw-page-max-width);
+   margin-inline: auto;
+   padding-inline: var(--sw-page-inline);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Header                                                                     */
+/* -------------------------------------------------------------------------- */
+
+.site-header {
+   display: flex;
+   align-items: flex-start;
+   justify-content: space-between;
+   gap: var(--sw-space-4);
+   padding: var(--sw-space-5) var(--sw-page-inline);
+   border-bottom: var(--sw-border-width) solid var(--sw-color-border);
+   background: var(--sw-color-paper);
+}
+
+.site-header__brand-group {
+   display: grid;
+   width: fit-content;
+   flex: 0 0 auto;
+   gap: var(--sw-space-1);
+   text-decoration: none;
+}
+
+.site-header__brand {
+   font-family: var(--sw-font-editorial);
+   font-size: clamp(1.65rem, 4vw, 2.1rem);
+   font-weight: 600;
+   letter-spacing: var(--sw-tracking-tight);
+   line-height: 1;
+}
+
+.site-header__edition,
+.metro-control__label {
+   color: var(--sw-color-text-secondary);
+   font-size: var(--sw-text-xs);
+   font-weight: 650;
+   letter-spacing: 0.08em;
+   line-height: 1.4;
+   text-transform: uppercase;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Header metro selector                                                      */
+/* -------------------------------------------------------------------------- */
+
+.metro-control {
+   display: grid;
+   min-width: 0;
+   width: min(12rem, 50vw);
+   gap: var(--sw-space-1);
+}
+
+.metro-control__label {
+   text-align: right;
+}
+
+.metro-control__field,
+.location-select__field {
+   position: relative;
+   min-width: 0;
+}
+
+.metro-control__select {
+   width: 100%;
+   min-height: 3.25rem;
+   appearance: none;
+   padding: var(--sw-space-3) 3rem var(--sw-space-3) var(--sw-space-4);
+   overflow: hidden;
+   border: var(--sw-border-width) solid var(--sw-color-border);
+   border-radius: var(--sw-radius-sm);
+   background: var(--sw-color-warm-white);
+   box-shadow: inset 0 -0.1875rem 0 var(--sw-color-olive);
+   color: var(--sw-color-text-primary);
+   font-size: var(--sw-text-sm);
+   font-weight: 700;
+   line-height: 1.2;
+   text-overflow: ellipsis;
+   white-space: nowrap;
+   cursor: pointer;
+   transition:
+      border-color var(--sw-duration-fast) var(--sw-ease-standard),
+      background-color var(--sw-duration-fast) var(--sw-ease-standard),
+      box-shadow var(--sw-duration-fast) var(--sw-ease-standard);
+}
+
+.metro-control__select:hover {
+   border-color: var(--sw-color-stone);
+   background: var(--sw-color-paper);
+}
+
+.metro-control__select:focus-visible {
+   border-color: var(--sw-color-focus);
+   box-shadow: inset 0 -0.1875rem 0 var(--sw-color-focus);
+}
+
+.metro-control__icon {
+   position: absolute;
+   top: 50%;
+   right: var(--sw-space-4);
+   color: var(--sw-color-text-secondary);
+   font-family: var(--sw-font-editorial);
+   font-size: 1.25rem;
+   line-height: 1;
+   pointer-events: none;
+   transform: translateY(-55%);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Selected metro opening                                                     */
+/* -------------------------------------------------------------------------- */
+
+.home-main {
+   display: grid;
+}
+
+.home-main--with-day-tray {
+   padding-bottom: 5rem;
+}
+
+.planning-view {
+   display: grid;
+   min-height: calc(100svh - 10rem);
+   align-items: center;
+   padding-block: clamp(var(--sw-space-16), 9vw, var(--sw-space-32));
+}
+
+.planning-view__layout {
+   display: grid;
+   max-width: 64rem;
+   gap: var(--sw-space-10);
+}
+
+.planning-view__content {
+   display: grid;
+   min-width: 0;
+   gap: clamp(var(--sw-space-12), 8vw, var(--sw-space-20));
+}
+
+.planning-view__heading {
+   display: grid;
+   min-width: 0;
+   gap: var(--sw-space-3);
+}
+
+.planning-view__title {
+   max-width: 14ch;
+   font-family: var(--sw-font-editorial);
+   font-size: clamp(4rem, 13vw, 8.5rem);
+   font-weight: 500;
+   letter-spacing: -0.06em;
+   line-height: 0.9;
+   text-wrap: balance;
+}
+
+.planning-view__region {
+   color: var(--sw-color-text-secondary);
+   font-size: var(--sw-text-sm);
+   font-weight: 650;
+   letter-spacing: 0.08em;
+   line-height: 1.4;
+   text-transform: uppercase;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Linear planning sequence                                                   */
+/* -------------------------------------------------------------------------- */
+
+.planning-sequence {
+   display: grid;
+   width: 100%;
+   border-top: var(--sw-border-width) solid var(--sw-color-border);
+   list-style: none;
+}
+
+.planning-step {
+   display: grid;
+   min-width: 0;
+   gap: var(--sw-space-3);
+   padding-block: clamp(var(--sw-space-5), 4vw, var(--sw-space-8));
+   border-bottom: var(--sw-border-width) solid var(--sw-color-border);
+}
+
+.planning-step__label {
+   color: var(--sw-color-text-secondary);
+   font-size: var(--sw-text-xs);
+   font-weight: 750;
+   letter-spacing: var(--sw-tracking-label);
+   line-height: 1.4;
+   text-transform: uppercase;
+}
+
+.planning-step[data-state="active"] .planning-step__label,
+.planning-step[data-state="complete"] .planning-step__label {
+   color: var(--sw-color-olive);
+}
+
+.planning-step__control {
+   min-width: 0;
+}
+
+.planning-step__value {
+   color: var(--sw-color-text-primary);
+   font-family: var(--sw-font-editorial);
+   font-size: clamp(1.75rem, 4vw, 3rem);
+   font-weight: 500;
+   letter-spacing: var(--sw-tracking-heading);
+   line-height: 1.1;
+   text-wrap: balance;
+}
+
+.planning-step[data-state="waiting"] .planning-step__value {
+   color: var(--sw-color-text-secondary);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Municipality and local-area selectors                                      */
+/* -------------------------------------------------------------------------- */
+
+.location-select {
+   width: 100%;
+   min-width: 0;
+}
+
+.location-select__select {
+   width: 100%;
+   min-height: 4rem;
+   appearance: none;
+   padding: var(--sw-space-3) 3.5rem var(--sw-space-3) var(--sw-space-4);
+   overflow: hidden;
+   border: var(--sw-border-width) solid var(--sw-color-border);
+   border-radius: var(--sw-radius-sm);
+   background: var(--sw-color-warm-white);
+   box-shadow: inset 0 -0.1875rem 0 var(--sw-color-olive);
+   color: var(--sw-color-text-primary);
+   font-family: var(--sw-font-editorial);
+   font-size: clamp(1.35rem, 3vw, 2rem);
+   font-weight: 500;
+   letter-spacing: var(--sw-tracking-heading);
+   line-height: 1.2;
+   text-overflow: ellipsis;
+   white-space: nowrap;
+   cursor: pointer;
+   transition:
+      border-color var(--sw-duration-fast) var(--sw-ease-standard),
+      background-color var(--sw-duration-fast) var(--sw-ease-standard),
+      box-shadow var(--sw-duration-fast) var(--sw-ease-standard);
+}
+
+.location-select__select:hover:not(:disabled) {
+   border-color: var(--sw-color-stone);
+   background: var(--sw-color-paper);
+}
+
+.location-select__select:focus-visible {
+   border-color: var(--sw-color-focus);
+   box-shadow: inset 0 -0.1875rem 0 var(--sw-color-focus);
+}
+
+.location-select__select:disabled {
+   border-color: var(--sw-color-border);
+   background: var(--sw-color-surface-muted);
+   box-shadow: none;
+   color: var(--sw-color-text-secondary);
+   cursor: not-allowed;
+   opacity: 0.78;
+}
+
+.location-select__icon {
+   position: absolute;
+   top: 50%;
+   right: var(--sw-space-4);
+   color: var(--sw-color-text-secondary);
+   font-family: var(--sw-font-editorial);
+   font-size: 1.4rem;
+   line-height: 1;
+   pointer-events: none;
+   transform: translateY(-55%);
+}
+
+.location-select:has(.location-select__select:disabled) .location-select__icon {
+   opacity: 0.55;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Recommendation                                                            */
+/* -------------------------------------------------------------------------- */
+
+.planning-step--recommendation {
+   margin-top: var(--sw-space-8);
+   padding: clamp(var(--sw-space-6), 5vw, var(--sw-space-10));
+   border: 0;
+   border-top: var(--sw-border-strong-width) solid var(--sw-color-olive);
+   background: var(--sw-color-surface-muted);
+}
+
+.planning-step--recommendation .planning-step__label {
+   color: var(--sw-color-olive);
+}
+
+.planning-step--recommendation[data-state="ready"] {
+   background: var(--sw-color-warm-white);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Continue-or-finish planning step                                           */
+/* -------------------------------------------------------------------------- */
+
+.planning-step--next {
+   margin-top: var(--sw-space-8);
+   padding: clamp(var(--sw-space-6), 5vw, var(--sw-space-10));
+   border: 0;
+   border-top: var(--sw-border-strong-width) solid var(--sw-color-terracotta);
+   background: var(--sw-color-paper);
+}
+
+.planning-step--next .planning-step__label {
+   color: var(--sw-color-terracotta);
+}
+
+@media (min-width: 64rem) {
+   .planning-step--next {
+      margin-top: var(--sw-space-12);
+   }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Explicit data error state                                                  */
+/* -------------------------------------------------------------------------- */
+
+.empty-product-state {
+   display: grid;
+   max-width: var(--sw-content-width-sm);
+   min-height: 80vh;
+   align-content: center;
+   gap: var(--sw-space-4);
+   margin-inline: auto;
+   padding: var(--sw-page-inline);
+}
+
+.empty-product-state h1 {
+   font-family: var(--sw-font-editorial);
+   font-size: var(--sw-text-heading-md);
+   font-weight: 500;
+   letter-spacing: var(--sw-tracking-tight);
+   line-height: 1;
+}
+
+.empty-product-state p {
+   color: var(--sw-color-text-secondary);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Footer                                                                     */
+/* -------------------------------------------------------------------------- */
+
+.site-footer {
+   display: flex;
+   flex-wrap: wrap;
+   justify-content: space-between;
+   gap: var(--sw-space-3) var(--sw-space-8);
+   padding: var(--sw-space-6) var(--sw-page-inline);
+   border-top: var(--sw-border-width) solid var(--sw-color-border);
+   color: var(--sw-color-text-secondary);
+   font-size: var(--sw-text-sm);
+   line-height: 1.5;
+}
+
+.site-footer--with-day-tray {
+   padding-bottom: calc(var(--sw-space-6) + 5rem + env(safe-area-inset-bottom));
+}
+
+.site-footer__brand {
+   color: var(--sw-color-text-primary);
+   font-family: var(--sw-font-editorial);
+   font-weight: 600;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Tablet refinements                                                         */
+/* -------------------------------------------------------------------------- */
+
+@media (min-width: 48rem) {
+   .site-header {
+      align-items: center;
+   }
+
+   .metro-control {
+      width: 18rem;
+   }
+
+   .planning-step {
+      grid-template-columns: minmax(11rem, 0.32fr) minmax(0, 0.68fr);
+      align-items: center;
+      gap: var(--sw-space-8);
+   }
+
+   .planning-step--recommendation {
+      align-items: start;
+   }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Desktop planning layout                                                    */
+/* -------------------------------------------------------------------------- */
+
+@media (min-width: 64rem) {
+   .home-main--with-day-tray {
+      padding-bottom: 0;
+   }
+
+   .planning-view__layout--with-tray {
+      max-width: var(--sw-page-max-width);
+      grid-template-columns: minmax(0, 1fr) minmax(18rem, 21rem);
+      align-items: start;
+      gap: clamp(var(--sw-space-10), 5vw, var(--sw-space-20));
+   }
+
+   .planning-view__content {
+      max-width: 64rem;
+   }
+
+   .planning-step--recommendation {
+      margin-top: var(--sw-space-12);
+   }
+
+   .site-footer--with-day-tray {
+      padding-bottom: var(--sw-space-6);
+   }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Large desktop frame                                                        */
+/* -------------------------------------------------------------------------- */
+
+@media (min-width: 90rem) {
+   .site-frame {
+      border-color: var(--sw-color-border);
+   }
 }
