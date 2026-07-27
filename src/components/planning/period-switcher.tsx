@@ -32,6 +32,10 @@ export function PeriodSwitcher({ activePeriod, completedPeriods, disabled = fals
       });
    }
 
+   /**
+    * The period rail follows the standard horizontal tab pattern. Arrow keys
+    * wrap through all five periods, while Home and End jump to the edges.
+    */
    function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>, currentIndex: number) {
       const finalIndex = dayPeriodDefinitions.length - 1;
 
@@ -82,7 +86,7 @@ export function PeriodSwitcher({ activePeriod, completedPeriods, disabled = fals
                   className={styles.tab}
                   aria-selected={isActive}
                   aria-controls="sidewalk-period-panel"
-                  aria-label={`${period.label}${isComplete ? ", chosen" : ", not chosen"}`}
+                  aria-label={`${period.label}, ${period.rangeLabel}${isComplete ? ", chosen" : ", not chosen"}`}
                   tabIndex={isActive ? 0 : -1}
                   disabled={disabled}
                   data-active={isActive}
@@ -90,15 +94,13 @@ export function PeriodSwitcher({ activePeriod, completedPeriods, disabled = fals
                   onClick={() => onChange(period.id)}
                   onKeyDown={(event) => handleKeyDown(event, index)}
                >
-                  <span className={styles.topline}>
-                     <span className={styles.label}>{period.label}</span>
+                  <span className={styles.label}>{period.label}</span>
 
+                  {isComplete ? (
                      <span className={styles.status} aria-hidden="true">
-                        {isComplete ? "✓" : "—"}
+                        ✓
                      </span>
-                  </span>
-
-                  <span className={styles.range}>{period.rangeLabel}</span>
+                  ) : null}
                </button>
             );
          })}

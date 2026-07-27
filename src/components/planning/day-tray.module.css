@@ -14,7 +14,7 @@
    display: grid;
    grid-template-columns: auto minmax(0, 1fr) auto;
    width: 100%;
-   min-height: 4.75rem;
+   min-height: 4.5rem;
    align-items: center;
    gap: var(--sw-space-3);
    padding: var(--sw-space-3) var(--sw-page-inline);
@@ -46,7 +46,6 @@
    font-size: var(--sw-text-lg);
    font-weight: 500;
    line-height: 1.2;
-   overflow-wrap: anywhere;
    text-overflow: ellipsis;
    white-space: nowrap;
 }
@@ -60,11 +59,11 @@
 .content {
    display: none;
    max-height: 72svh;
-   gap: var(--sw-space-6);
+   gap: var(--sw-space-5);
    overflow-y: auto;
    overscroll-behavior: contain;
    scrollbar-gutter: stable;
-   padding: var(--sw-space-6) var(--sw-page-inline) var(--sw-space-8);
+   padding: var(--sw-space-5) var(--sw-page-inline) var(--sw-space-7);
    border-top: var(--sw-border-width) solid var(--sw-color-border);
 }
 
@@ -89,15 +88,12 @@
 }
 
 .title {
-   max-width: 14ch;
-   margin-top: var(--sw-space-2);
+   margin-top: var(--sw-space-1);
    font-family: var(--sw-font-editorial);
    font-size: var(--sw-text-heading-sm);
    font-weight: 500;
    letter-spacing: var(--sw-tracking-tight);
    line-height: 1;
-   overflow-wrap: anywhere;
-   text-wrap: balance;
 }
 
 .title:focus {
@@ -132,7 +128,7 @@
 .stop {
    display: grid;
    gap: var(--sw-space-2);
-   padding-block: var(--sw-space-5);
+   padding-block: var(--sw-space-4);
 }
 
 .stop + .stop {
@@ -165,15 +161,14 @@
 
 .stopName {
    font-family: var(--sw-font-editorial);
-   font-size: clamp(1.6rem, 6vw, 2.25rem);
+   font-size: clamp(1.45rem, 5vw, 1.9rem);
    font-weight: 500;
    letter-spacing: var(--sw-tracking-heading);
-   line-height: 1.05;
+   line-height: 1.08;
    overflow-wrap: anywhere;
 }
 
-.location,
-.duration,
+.stopMeta,
 .total,
 .completionNote {
    color: var(--sw-color-text-secondary);
@@ -182,15 +177,32 @@
    overflow-wrap: anywhere;
 }
 
-.locationLink {
-   width: fit-content;
-   min-height: var(--sw-touch-target);
-   display: inline-flex;
+.stopActions {
+   display: flex;
+   flex-wrap: wrap;
    align-items: center;
-   color: var(--sw-color-olive);
+   gap: var(--sw-space-2);
+   margin-top: var(--sw-space-1);
+}
+
+.locationLink,
+.editButton,
+.removeButton {
+   display: inline-flex;
+   min-height: var(--sw-touch-target);
+   align-items: center;
+   justify-content: center;
+   padding: var(--sw-space-2) var(--sw-space-3);
+   border-radius: var(--sw-radius-sm);
    font-size: var(--sw-text-sm);
-   font-weight: 750;
-   line-height: 1.5;
+   font-weight: 700;
+   line-height: 1.2;
+   cursor: pointer;
+}
+
+.locationLink {
+   color: var(--sw-color-olive);
+   text-decoration: underline;
    text-underline-offset: 0.2em;
 }
 
@@ -198,59 +210,44 @@
    color: var(--sw-color-forest);
 }
 
+.editButton,
+.removeButton {
+   border: var(--sw-border-width) solid var(--sw-color-border);
+   background: transparent;
+}
+
+.editButton {
+   color: var(--sw-color-text-primary);
+}
+
+.removeButton {
+   color: var(--sw-color-text-secondary);
+}
+
+.editButton:hover,
+.removeButton:hover {
+   border-color: var(--sw-color-stone);
+   background: var(--sw-color-surface-muted);
+}
+
 .locationLink:focus-visible,
 .editButton:focus-visible,
 .removeButton:focus-visible,
 .continueButton:focus-visible,
+.optionalButton:focus-visible,
 .resetButton:focus-visible {
    outline: 0.1875rem solid var(--sw-color-focus);
    outline-offset: 0.2rem;
 }
 
-.stopActions {
-   display: flex;
-   flex-wrap: wrap;
-   gap: var(--sw-space-2);
-   margin-top: var(--sw-space-2);
-}
-
-.editButton,
-.removeButton {
-   width: fit-content;
-   min-height: var(--sw-touch-target);
-   padding: var(--sw-space-2) var(--sw-space-3);
-   border-radius: var(--sw-radius-sm);
-   font-size: var(--sw-text-sm);
-   font-weight: 700;
-   cursor: pointer;
-}
-
-.editButton {
-   border: var(--sw-border-width) solid var(--sw-color-ink);
-   background: var(--sw-color-ink);
-   color: var(--sw-color-warm-white);
-}
-
-.editButton:hover {
-   border-color: var(--sw-color-forest);
-   background: var(--sw-color-forest);
-}
-
-.removeButton {
-   border: var(--sw-border-width) solid var(--sw-color-border);
-   background: transparent;
-   color: var(--sw-color-text-secondary);
-}
-
-.removeButton:hover {
-   border-color: var(--sw-color-stone);
-   background: var(--sw-color-surface-muted);
-   color: var(--sw-color-text-primary);
-}
-
 .footer {
    display: grid;
    gap: var(--sw-space-4);
+}
+
+.footerSummary {
+   display: grid;
+   gap: var(--sw-space-1);
 }
 
 .total {
@@ -263,10 +260,11 @@
 
 .footerActions {
    display: grid;
-   gap: var(--sw-space-3);
+   gap: var(--sw-space-2);
 }
 
 .continueButton,
+.optionalButton,
 .resetButton {
    width: 100%;
    min-height: var(--sw-touch-target);
@@ -292,68 +290,17 @@
    background: var(--sw-color-forest);
 }
 
+.optionalButton,
 .resetButton {
-   border: var(--sw-border-width) solid var(--sw-color-olive);
+   border: var(--sw-border-width) solid var(--sw-color-border);
    background: transparent;
-   color: var(--sw-color-olive);
+   color: var(--sw-color-text-primary);
 }
 
+.optionalButton:hover,
 .resetButton:hover {
-   background: var(--sw-color-olive);
-   color: var(--sw-color-warm-white);
-}
-
-@media (min-width: 40rem) {
-   .footerActions {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-   }
-
-   .footerActions > :only-child {
-      grid-column: 1 / -1;
-   }
-}
-
-@media (min-width: 64rem) {
-   .tray {
-      position: sticky;
-      top: var(--sw-space-8);
-      right: auto;
-      bottom: auto;
-      left: auto;
-      align-self: start;
-      border: var(--sw-border-width) solid var(--sw-color-border);
-      border-top: var(--sw-border-strong-width) solid var(--sw-color-olive);
-      box-shadow: var(--sw-shadow-soft);
-      padding-bottom: 0;
-   }
-
-   .summaryButton {
-      display: none;
-   }
-
-   .content,
-   .tray[data-open="true"] .content {
-      display: grid;
-      max-height: none;
-      overflow: visible;
-      padding: var(--sw-space-6);
-      border-top: 0;
-   }
-
-   .stopName {
-      font-size: 1.85rem;
-   }
-
-   .footerActions {
-      grid-template-columns: 1fr;
-   }
-}
-
-@media (prefers-reduced-motion: reduce) {
-   .continueButton,
-   .resetButton {
-      transition: none;
-   }
+   border-color: var(--sw-color-olive);
+   background: var(--sw-color-paper);
 }
 
 .trayActions {
@@ -435,7 +382,6 @@
 
 .cancelClearButton:hover {
    border-color: var(--sw-color-stone);
-   background: var(--sw-color-warm-white);
 }
 
 .confirmClearButton {
@@ -457,12 +403,64 @@
    outline-offset: 0.2rem;
 }
 
+@media (min-width: 40rem) {
+   .footerActions {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+   }
+
+   .footerActions > :only-child {
+      grid-column: 1 / -1;
+   }
+}
+
 @media (min-width: 64rem) {
+   .tray {
+      position: sticky;
+      top: var(--sw-space-8);
+      right: auto;
+      bottom: auto;
+      left: auto;
+      align-self: start;
+      border: var(--sw-border-width) solid var(--sw-color-border);
+      border-top: var(--sw-border-strong-width) solid var(--sw-color-olive);
+      box-shadow: var(--sw-shadow-soft);
+      padding-bottom: 0;
+   }
+
+   .summaryButton {
+      display: none;
+   }
+
+   .content,
+   .tray[data-open="true"] .content {
+      display: grid;
+      max-height: none;
+      overflow: visible;
+      padding: var(--sw-space-5);
+      border-top: 0;
+   }
+
+   .stopName {
+      font-size: 1.55rem;
+   }
+
+   .footerActions {
+      grid-template-columns: 1fr;
+   }
+
    .trayActions {
       grid-template-columns: 1fr;
    }
 
    .doneButton {
       display: none;
+   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+   .continueButton,
+   .optionalButton,
+   .resetButton {
+      transition: none;
    }
 }

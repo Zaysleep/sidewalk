@@ -14,11 +14,13 @@
 .chapter {
    display: grid;
    min-width: 0;
-   gap: var(--sw-space-8);
+   gap: clamp(var(--sw-space-6), 5vw, var(--sw-space-8));
 }
 
 .chapterHeading {
    display: grid;
+   min-width: 0;
+   max-width: 46rem;
    gap: var(--sw-space-2);
 }
 
@@ -32,12 +34,14 @@
 }
 
 .chapterTitle {
+   max-width: 17ch;
    color: var(--sw-color-text-primary);
    font-family: var(--sw-font-editorial);
-   font-size: clamp(2rem, 5vw, 3.5rem);
+   font-size: clamp(2rem, 4.25vw, 3.25rem);
    font-weight: 500;
    letter-spacing: var(--sw-tracking-tight);
    line-height: 1;
+   overflow-wrap: normal;
    text-wrap: balance;
 }
 

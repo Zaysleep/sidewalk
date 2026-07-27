@@ -7,21 +7,20 @@
 
 .option {
    min-width: 0;
-   min-height: 3.75rem;
-   padding: var(--sw-space-3) var(--sw-space-4);
+   min-height: 4rem;
+   padding: var(--sw-space-3) clamp(var(--sw-space-3), 2vw, var(--sw-space-4));
    border: var(--sw-border-width) solid var(--sw-color-border);
    border-radius: var(--sw-radius-sm);
    background: var(--sw-color-warm-white);
    color: var(--sw-color-text-primary);
-   font-size: var(--sw-text-sm);
+   font-size: clamp(0.875rem, 1.4vw, var(--sw-text-sm));
    font-weight: 750;
-   line-height: 1.25;
+   line-height: 1.3;
    text-align: left;
 
    /*
-    * planning-step is an <li>, and the global stylesheet allows list-item
-    * text to wrap anywhere. Override that behavior here so activity labels
-    * only wrap naturally between words.
+    * Keep labels wrapping only between words. This prevents longer choices
+    * from spilling outside their button when the day tray narrows the planner.
     */
    overflow-wrap: normal;
    word-break: normal;
@@ -51,6 +50,11 @@
    box-shadow: inset 0 -0.1875rem 0 var(--sw-color-olive);
 }
 
+.option:focus-visible {
+   outline: 0.1875rem solid var(--sw-color-focus);
+   outline-offset: 0.2rem;
+}
+
 .option:disabled {
    background: var(--sw-color-surface-muted);
    color: var(--sw-color-text-secondary);
@@ -59,41 +63,29 @@
 }
 
 /*
- * Tablet layout remains unchanged:
- * three compact choices across, followed by the remaining options.
+ * Keep the same calm two-column arrangement at tablet and desktop widths.
+ * The planner shares space with the day tray, so forcing three options across
+ * makes the longer labels feel cramped even on a large viewport.
  */
 @media (min-width: 40rem) {
-   .options {
-      grid-template-columns: repeat(6, minmax(0, 1fr));
-   }
-
    .option {
-      grid-column: span 2;
-   }
-
-   .option:last-child {
-      grid-column: 2 / span 4;
-   }
-}
-
-/*
- * Desktop uses a deliberate 3-over-2 editorial arrangement instead of
- * squeezing five choices into one narrow row.
- */
-@media (min-width: 64rem) {
-   .options {
-      grid-template-columns: repeat(6, minmax(0, 1fr));
-   }
-
-   .option,
-   .option:last-child {
-      grid-column: span 2;
       min-height: 4.25rem;
       padding-inline: var(--sw-space-5);
    }
+}
 
-   .option:nth-child(4),
-   .option:nth-child(5) {
-      grid-column: span 3;
+@media (max-width: 28rem) {
+   .options {
+      grid-template-columns: 1fr;
+   }
+
+   .option:last-child {
+      grid-column: auto;
+   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+   .option {
+      transition: none;
    }
 }

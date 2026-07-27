@@ -1,56 +1,54 @@
 .switcher {
-   display: grid;
-   grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+   display: flex;
+   width: 100%;
+   min-width: 0;
    gap: var(--sw-space-2);
-   overflow: visible;
-   border: 0;
-   background: transparent;
+   overflow-x: auto;
+   padding: 0 0 var(--sw-space-2);
+   border-bottom: var(--sw-border-width) solid var(--sw-color-border);
+   scrollbar-width: thin;
+   scroll-snap-type: x proximity;
 }
 
 .tab {
    position: relative;
-   display: grid;
-   min-width: 0;
-   min-height: 5.25rem;
-   align-content: center;
-   gap: var(--sw-space-2);
-   padding: var(--sw-space-3) var(--sw-space-4);
-   border: var(--sw-border-width) solid var(--sw-color-border);
-   border-bottom-width: 0.25rem;
-   border-radius: var(--sw-radius-sm);
-   background: var(--sw-color-paper);
+   display: inline-flex;
+   flex: 1 1 0;
+   min-width: 6.75rem;
+   min-height: 3.75rem;
+   align-items: center;
+   justify-content: center;
+   padding: var(--sw-space-2) var(--sw-space-3);
+   border: 0;
+   border-bottom: 0.1875rem solid transparent;
+   background: transparent;
    color: var(--sw-color-text-secondary);
-   text-align: left;
+   font-family: var(--sw-font-editorial);
+   font-size: clamp(0.9rem, 1.2vw, 1rem);
+   font-weight: 600;
+   line-height: 1.2;
+   text-align: center;
+   white-space: normal;
    cursor: pointer;
+   scroll-snap-align: start;
    transition:
-      background-color var(--sw-duration-fast) var(--sw-ease-standard),
       border-color var(--sw-duration-fast) var(--sw-ease-standard),
-      color var(--sw-duration-fast) var(--sw-ease-standard),
-      transform var(--sw-duration-fast) var(--sw-ease-standard);
+      color var(--sw-duration-fast) var(--sw-ease-standard);
 }
 
 .tab:hover:not(:disabled) {
-   border-color: var(--sw-color-olive);
-   background: var(--sw-color-warm-white);
    color: var(--sw-color-text-primary);
-   transform: translateY(-0.0625rem);
 }
 
 .tab[data-active="true"] {
-   border-color: var(--sw-color-border);
    border-bottom-color: var(--sw-color-olive);
-   background: var(--sw-color-warm-white);
    color: var(--sw-color-text-primary);
-}
-
-.tab[data-complete="true"] .status {
-   color: var(--sw-color-olive);
 }
 
 .tab:focus-visible {
    z-index: 1;
    outline: 0.1875rem solid var(--sw-color-focus);
-   outline-offset: 0.125rem;
+   outline-offset: 0.1875rem;
 }
 
 .tab:disabled {
@@ -58,64 +56,41 @@
    opacity: 0.58;
 }
 
-.topline {
-   display: grid;
-   min-width: 0;
-   grid-template-columns: minmax(0, 1fr) auto;
-   align-items: start;
-   gap: var(--sw-space-2);
-}
-
 .label {
    display: block;
-   min-width: 0;
-   font-family: var(--sw-font-editorial);
-   font-size: clamp(1rem, 1.4vw, 1.2rem);
-   font-weight: 600;
-   line-height: 1.08;
-   overflow-wrap: anywhere;
+   max-width: 100%;
+   text-wrap: balance;
 }
 
 .status {
-   flex: 0 0 auto;
-   color: var(--sw-color-text-secondary);
-   font-size: var(--sw-text-sm);
+   position: absolute;
+   top: 0.35rem;
+   right: 0.35rem;
+   display: inline-grid;
+   width: 1.05rem;
+   height: 1.05rem;
+   place-items: center;
+   border-radius: 999px;
+   background: var(--sw-color-olive);
+   color: var(--sw-color-warm-white);
+   font-family: var(--sw-font-interface);
+   font-size: 0.66rem;
    font-weight: 800;
    line-height: 1;
 }
 
-.range {
-   display: block;
-   min-width: 0;
-   font-size: var(--sw-text-xs);
-   font-weight: 650;
-   line-height: 1.35;
-   white-space: normal;
-}
-
-@media (max-width: 44rem) {
-   .switcher {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-   }
-
+/*
+ * At very narrow widths the equal-width tabs keep their minimum size and the
+ * rail scrolls instead of squeezing or clipping Night.
+ */
+@media (max-width: 34rem) {
    .tab {
-      min-height: 5rem;
-      padding: var(--sw-space-3);
-   }
-}
-
-@media (max-width: 25rem) {
-   .switcher {
-      grid-template-columns: 1fr;
+      flex: 0 0 7.5rem;
    }
 }
 
 @media (prefers-reduced-motion: reduce) {
    .tab {
       transition: none;
-   }
-
-   .tab:hover:not(:disabled) {
-      transform: none;
    }
 }

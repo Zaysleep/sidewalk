@@ -76,18 +76,18 @@ function getSummaryLabel(stops: readonly DayStop[]): string {
    if (stops.length === 1) {
       const stop = stops[0];
 
-      return `${getPeriodLabel(stop.dayPeriod)}: ${stop.placeName}`;
+      return `${getPeriodLabel(stop.dayPeriod)} · ${stop.placeName}`;
    }
 
-   return stops.map((stop) => getPeriodLabel(stop.dayPeriod)).join(" + ");
-}
+   const firstPeriod = getPeriodLabel(stops[0].dayPeriod);
 
-function getTitle(stopCount: number): string {
-   if (stopCount === 1) {
-      return "One stop chosen.";
+   const finalPeriod = getPeriodLabel(stops[stops.length - 1].dayPeriod);
+
+   if (stops.length >= 4) {
+      return `${stops.length} stops · ${firstPeriod} to ${finalPeriod}`;
    }
 
-   return "Your Sidewalk Day";
+   return `${stops.length} stops · ${stops.map((stop) => getPeriodLabel(stop.dayPeriod)).join(" · ")}`;
 }
 
 function isCompactTrayLayout(): boolean {
@@ -151,9 +151,8 @@ export function DayTray({ planningDate, stops, isOpen, onToggle, onDone, onRemov
    }, [isOpen]);
 
    /**
-    * Escape closes the compact tray without affecting the always-visible
-    * desktop itinerary. When the clear confirmation is open, Escape cancels
-    * that confirmation first.
+    * Escape closes the compact tray. When the clear confirmation is open,
+    * Escape cancels that confirmation before affecting the tray itself.
     */
    useEffect(() => {
       if (!isOpen) {
@@ -263,7 +262,7 @@ export function DayTray({ planningDate, stops, isOpen, onToggle, onDone, onRemov
                onToggle();
             }}
          >
-            <span className={styles.summaryHeading}>{isComplete ? "Saved Day" : "Your Day"}</span>
+            <span className={styles.summaryHeading}>{isComplete ? "Day saved" : "Your day"}</span>
 
             <span className={styles.summaryPlace}>{getSummaryLabel(orderedStops)}</span>
 
@@ -273,10 +272,10 @@ export function DayTray({ planningDate, stops, isOpen, onToggle, onDone, onRemov
          <div ref={trayContentReference} id="sidewalk-day-tray-content" className={styles.content} role="region" aria-labelledby={trayTitleId}>
             <header className={styles.heading}>
                <div>
-                  <p className={styles.eyebrow}>{isComplete ? "Day saved" : "Your Day"}</p>
+                  <p className={styles.eyebrow}>{isComplete ? "Day saved" : "In progress"}</p>
 
                   <h2 ref={trayHeadingReference} id={trayTitleId} className={styles.title} tabIndex={-1}>
-                     {getTitle(orderedStops.length)}
+                     Your Day
                   </h2>
 
                   {formattedPlanningDate ? <p className={styles.date}>{formattedPlanningDate}</p> : null}
@@ -303,21 +302,19 @@ export function DayTray({ planningDate, stops, isOpen, onToggle, onDone, onRemov
                            {stop.placeName}
                         </h3>
 
-                        <p className={styles.location}>
-                           {stop.localAreaName}, {stop.municipalityName}
+                        <p className={styles.stopMeta}>
+                           {stop.localAreaName}, {stop.municipalityName} · {formatDuration(stop.visitDurationMinutes.minimum, stop.visitDurationMinutes.maximum)}
                         </p>
 
-                        <p className={styles.duration}>{formatDuration(stop.visitDurationMinutes.minimum, stop.visitDurationMinutes.maximum)}</p>
-
-                        {stop.locationUrl ? (
-                           <a className={styles.locationLink} href={stop.locationUrl} target="_blank" rel="noreferrer" aria-label={`Open ${stop.placeName} location in a new tab`}>
-                              Open location
-                           </a>
-                        ) : null}
-
                         <div className={styles.stopActions}>
-                           <button type="button" className={styles.editButton} onClick={() => onEditPeriod(stop.dayPeriod)}>
-                              Change {periodLabel}
+                           {stop.locationUrl ? (
+                              <a className={styles.locationLink} href={stop.locationUrl} target="_blank" rel="noreferrer" aria-label={`Open ${stop.placeName} location in a new tab`}>
+                                 Open location
+                              </a>
+                           ) : null}
+
+                           <button type="button" className={styles.editButton} aria-label={`Change the ${periodLabel} stop`} onClick={() => onEditPeriod(stop.dayPeriod)}>
+                              Change
                            </button>
 
                            <button
@@ -337,27 +334,25 @@ export function DayTray({ planningDate, stops, isOpen, onToggle, onDone, onRemov
             </div>
 
             <div className={styles.footer}>
-               <p className={styles.total}>{formatTotalDuration(orderedStops)}</p>
+               <div className={styles.footerSummary}>
+                  <p className={styles.total}>{formatTotalDuration(orderedStops)}</p>
 
-               {!isComplete ? (
-                  <p className={styles.completionNote}>Choose one more stop to save this day.</p>
-               ) : (
-                  <>
-                     <p className={styles.completionNote}>{canAddAnotherStop ? "Two stops are enough. Add more only if they improve the day." : "Your day is fully planned from early morning through night."}</p>
+                  <p className={styles.completionNote}>{!isComplete ? "One more stop saves this day." : canAddAnotherStop ? "Saved. Add another stop only if it improves the day." : "All five time periods are planned."}</p>
+               </div>
 
-                     <div className={styles.footerActions}>
-                        {canAddAnotherStop ? (
-                           <button type="button" className={styles.continueButton} onClick={onContinuePlanning}>
-                              Add another stop
-                           </button>
-                        ) : null}
+               <div className={styles.footerActions}>
+                  {canAddAnotherStop ? (
+                     <button type="button" className={isComplete ? styles.optionalButton : styles.continueButton} onClick={onContinuePlanning}>
+                        {isComplete ? "Add another stop" : "Choose another stop"}
+                     </button>
+                  ) : null}
 
-                        <button type="button" className={styles.resetButton} onClick={onPlanAnotherDay}>
-                           Plan another day
-                        </button>
-                     </div>
-                  </>
-               )}
+                  {isComplete ? (
+                     <button type="button" className={styles.resetButton} onClick={onPlanAnotherDay}>
+                        Plan another day
+                     </button>
+                  ) : null}
+               </div>
 
                <div className={styles.trayActions}>
                   <button ref={clearDayButtonReference} type="button" className={styles.clearDayButton} aria-expanded={isClearConfirmationOpen} aria-controls="sidewalk-clear-day-confirmation" onClick={() => setIsClearConfirmationOpen(true)}>

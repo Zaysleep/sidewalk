@@ -246,6 +246,10 @@ function getPeriodLabel(period: DayPeriod): string {
    return dayPeriodDefinitions.find((definition) => definition.id === period)?.label ?? period;
 }
 
+function getPeriodRangeLabel(period: DayPeriod): string {
+   return dayPeriodDefinitions.find((definition) => definition.id === period)?.rangeLabel ?? "";
+}
+
 function sortDayStops(stops: readonly DayStop[]): DayStop[] {
    return dayPeriods.flatMap((period) => {
       const stop = stops.find((candidate) => candidate.dayPeriod === period);
@@ -296,14 +300,14 @@ function getFirstUnfilledPeriod(stops: readonly DayStop[]): DayPeriod | null {
 
 function getPlanProgressCopy(stopCount: number): string {
    if (stopCount === 0) {
-      return "Choose two or more stops";
+      return "Two stops make a saved day.";
    }
 
    if (stopCount === 1) {
-      return "1 stop chosen · choose one more to complete the day";
+      return "One more stop saves the day.";
    }
 
-   return `${stopCount} stops chosen · day saved`;
+   return `Day saved · ${stopCount} ${stopCount === 1 ? "stop" : "stops"}`;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -1633,7 +1637,7 @@ export function SidewalkPlanner() {
                                        <h2 className={plannerStyles.chapterTitle}>What sounds worthwhile?</h2>
 
                                        <p id="sidewalk-period-description" className={plannerStyles.chapterDescription}>
-                                          Early morning through night can each go in a different direction.
+                                          {getPeriodRangeLabel(activeDayPeriod)}
                                        </p>
                                     </header>
 

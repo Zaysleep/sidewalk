@@ -5,17 +5,8 @@ import { useEffect, useState } from "react";
 
 import { dayPeriodDefinitions, type DayPeriod } from "@/types/day-period";
 import type { PeriodRecommendation } from "@/types/period-recommendation";
-import type { PlaceCategory } from "@/types/place";
 
 import styles from "./period-pick-detail.module.css";
-
-const categoryLabels: Readonly<Record<PlaceCategory, string>> = {
-   coffee: "Coffee",
-   food: "Food",
-   shopping: "Shopping",
-   culture: "Culture",
-   "parks-outdoors": "Parks and outdoors",
-};
 
 type PeriodPickDetailProps = Readonly<{
    dayPeriod: DayPeriod;
@@ -66,7 +57,7 @@ export function PeriodPickDetail({ dayPeriod, recommendation, areaName, hasPerio
 
    const availability = place.provider.periodAvailability ?? null;
 
-   const actionLabel = isCurrentPeriodStop ? `Added to ${periodLabel}` : hasPeriodStop ? `Replace ${periodLabel} choice` : "Add to day";
+   const addOrReplaceLabel = hasPeriodStop ? `Replace ${periodLabel} choice` : "Add to day";
 
    return (
       <article className={styles.card} aria-labelledby={`period-pick-${place.slug}`}>
@@ -93,7 +84,7 @@ export function PeriodPickDetail({ dayPeriod, recommendation, areaName, hasPerio
 
             <dl className={styles.facts}>
                {place.provider.formattedAddress ? (
-                  <div className={styles.fact}>
+                  <div className={`${styles.fact} ${styles.addressFact}`}>
                      <dt>Address</dt>
 
                      <dd>{place.provider.formattedAddress}</dd>
@@ -132,12 +123,6 @@ export function PeriodPickDetail({ dayPeriod, recommendation, areaName, hasPerio
 
                   <dd>{duration}</dd>
                </div>
-
-               <div className={styles.fact}>
-                  <dt>Category</dt>
-
-                  <dd>{categoryLabels[place.editorial.category]}</dd>
-               </div>
             </dl>
 
             <div className={styles.why}>
@@ -147,15 +132,23 @@ export function PeriodPickDetail({ dayPeriod, recommendation, areaName, hasPerio
             </div>
 
             <div className={styles.actions}>
-               <button type="button" className={styles.primaryAction} disabled={isCurrentPeriodStop} onClick={() => onAddToDay(recommendation)}>
-                  {actionLabel}
-               </button>
+               {isCurrentPeriodStop ? (
+                  <>
+                     <p className={styles.addedStatus} role="status">
+                        <span aria-hidden="true">✓</span> In your {periodLabel.toLowerCase()} plan
+                     </p>
 
-               {hasPeriodStop && nextPeriodLabel ? (
-                  <button type="button" className={styles.continueAction} onClick={onContinue}>
-                     Continue to {nextPeriodLabel}
+                     {nextPeriodLabel ? (
+                        <button type="button" className={styles.primaryAction} onClick={onContinue}>
+                           Continue to {nextPeriodLabel}
+                        </button>
+                     ) : null}
+                  </>
+               ) : (
+                  <button type="button" className={styles.primaryAction} onClick={() => onAddToDay(recommendation)}>
+                     {addOrReplaceLabel}
                   </button>
-               ) : null}
+               )}
 
                {locationUrl ? (
                   <a className={styles.secondaryAction} href={locationUrl} target="_blank" rel="noreferrer" aria-label={`Open ${place.provider.name} location in a new tab`}>
