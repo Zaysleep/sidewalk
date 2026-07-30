@@ -341,6 +341,88 @@ export const localAreas = [
    },
 
    /* ------------------------------------------------------------------------ */
+   /* Palm Springs                                                            */
+   /* ------------------------------------------------------------------------ */
+
+   {
+      id: "area-palm-springs-downtown",
+      municipalityId: "municipality-palm-springs-palm-springs",
+      name: "Downtown Palm Springs",
+      slug: "downtown-palm-springs",
+      kind: "downtown",
+   },
+   {
+      id: "area-palm-springs-uptown-design-district",
+      municipalityId: "municipality-palm-springs-palm-springs",
+      name: "Uptown Design District",
+      slug: "uptown-design-district",
+      kind: "district",
+   },
+   {
+      id: "area-palm-springs-south-palm-canyon",
+      municipalityId: "municipality-palm-springs-palm-springs",
+      name: "South Palm Canyon",
+      slug: "south-palm-canyon",
+      kind: "district",
+   },
+   {
+      id: "area-palm-springs-indian-canyons",
+      municipalityId: "municipality-palm-springs-palm-springs",
+      name: "Indian Canyons",
+      slug: "indian-canyons",
+      kind: "area",
+   },
+   {
+      id: "area-palm-desert-el-paseo",
+      municipalityId: "municipality-palm-springs-palm-desert",
+      name: "El Paseo",
+      slug: "el-paseo",
+      kind: "district",
+   },
+   {
+      id: "area-palm-desert-san-pablo-avenue",
+      municipalityId: "municipality-palm-springs-palm-desert",
+      name: "San Pablo Avenue",
+      slug: "san-pablo-avenue",
+      kind: "district",
+   },
+   {
+      id: "area-palm-desert-civic-center",
+      municipalityId: "municipality-palm-springs-palm-desert",
+      name: "Palm Desert Civic Center",
+      slug: "palm-desert-civic-center",
+      kind: "area",
+   },
+   {
+      id: "area-rancho-mirage-the-river",
+      municipalityId: "municipality-palm-springs-rancho-mirage",
+      name: "The River at Rancho Mirage",
+      slug: "the-river-at-rancho-mirage",
+      kind: "district",
+   },
+   {
+      id: "area-rancho-mirage-rancho-las-palmas",
+      municipalityId: "municipality-palm-springs-rancho-mirage",
+      name: "Rancho Las Palmas",
+      slug: "rancho-las-palmas",
+      kind: "area",
+   },
+   {
+      id: "area-cathedral-city-downtown",
+      municipalityId: "municipality-palm-springs-cathedral-city",
+      name: "Downtown Cathedral City",
+      slug: "downtown-cathedral-city",
+      kind: "downtown",
+   },
+   {
+      id: "area-cathedral-city-cathedral-canyon",
+      municipalityId: "municipality-palm-springs-cathedral-city",
+      name: "Cathedral Canyon",
+      slug: "cathedral-canyon",
+      kind: "area",
+   },
+
+   /* ------------------------------------------------------------------------ */
    /* Los Angeles                                                             */
    /* ------------------------------------------------------------------------ */
 

@@ -11,6 +11,51 @@
    line-height: 1.5;
 }
 
+.sharedShape {
+   display: grid;
+   gap: var(--sw-space-3);
+   padding: clamp(var(--sw-space-4), 4vw, var(--sw-space-6));
+   border: var(--sw-border-width) solid var(--sw-color-border);
+   border-top: var(--sw-border-strong-width) solid var(--sw-color-dusty-blue);
+   border-radius: var(--sw-radius-sm);
+   background: var(--sw-color-paper);
+}
+
+.sharedShapeEyebrow {
+   margin-bottom: var(--sw-space-2);
+   color: var(--sw-color-dusty-blue);
+   font-size: var(--sw-text-xs);
+   font-weight: 750;
+   letter-spacing: var(--sw-tracking-label);
+   line-height: 1.4;
+   text-transform: uppercase;
+}
+
+.sharedShapeTitle {
+   max-width: 24ch;
+   color: var(--sw-color-text-primary);
+   font-family: var(--sw-font-editorial);
+   font-size: clamp(1.45rem, 3.75vw, 2.05rem);
+   font-weight: 500;
+   letter-spacing: var(--sw-tracking-heading);
+   line-height: 1.1;
+   text-wrap: balance;
+}
+
+.sharedShapePeriods {
+   color: var(--sw-color-olive);
+   font-size: var(--sw-text-sm);
+   font-weight: 750;
+   line-height: 1.5;
+}
+
+.sharedShapeDescription {
+   max-width: 42rem;
+   color: var(--sw-color-text-secondary);
+   font-size: var(--sw-text-sm);
+   line-height: 1.65;
+}
+
 .chapter {
    display: grid;
    min-width: 0;
@@ -55,4 +100,33 @@
    display: grid;
    min-width: 0;
    gap: var(--sw-space-10);
+}
+
+@media (min-width: 48rem) {
+   .sharedShape {
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: start;
+      gap: var(--sw-space-4) var(--sw-space-8);
+   }
+
+   .sharedShapePeriods {
+      padding-top: var(--sw-space-1);
+      text-align: right;
+      white-space: nowrap;
+   }
+
+   .sharedShapeDescription {
+      grid-column: 1 / -1;
+   }
+}
+
+@media (max-width: 26rem) {
+   .sharedShape {
+      padding: var(--sw-space-4);
+   }
+
+   .sharedShapePeriods {
+      display: grid;
+      gap: var(--sw-space-1);
+   }
 }

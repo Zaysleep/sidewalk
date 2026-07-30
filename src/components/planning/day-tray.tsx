@@ -7,10 +7,16 @@ import type { DayStop } from "@/types/day-plan";
 
 import styles from "./day-tray.module.css";
 
+type DayShareStatus = "idle" | "loading" | "ready" | "error";
+
 type DayTrayProps = Readonly<{
    planningDate: string;
    stops: readonly DayStop[];
    isOpen: boolean;
+
+   shareStatus: DayShareStatus;
+   shareUrl: string | null;
+   shareMessage: string;
 
    onToggle: () => void;
    onDone: () => void;
@@ -19,6 +25,7 @@ type DayTrayProps = Readonly<{
    onEditPeriod: (period: DayPeriod) => void;
    onContinuePlanning: () => void;
    onPlanAnotherDay: () => void;
+   onCreateShare: () => void;
 }>;
 
 function formatDuration(minimumMinutes: number, maximumMinutes: number): string {
@@ -94,8 +101,14 @@ function isCompactTrayLayout(): boolean {
    return window.matchMedia("(max-width: 63.99rem)").matches;
 }
 
-export function DayTray({ planningDate, stops, isOpen, onToggle, onDone, onRemove, onClearDay, onEditPeriod, onContinuePlanning, onPlanAnotherDay }: DayTrayProps) {
+export function DayTray({ planningDate, stops, isOpen, shareStatus, shareUrl, shareMessage, onToggle, onDone, onRemove, onClearDay, onEditPeriod, onContinuePlanning, onPlanAnotherDay, onCreateShare }: DayTrayProps) {
+   const isComplete = stops.length >= 2;
+
    const [isClearConfirmationOpen, setIsClearConfirmationOpen] = useState(false);
+
+   const [isSharePanelOpen, setIsSharePanelOpen] = useState(false);
+
+   const [copyMessage, setCopyMessage] = useState("");
 
    const summaryButtonReference = useRef<HTMLButtonElement | null>(null);
 
@@ -106,6 +119,10 @@ export function DayTray({ planningDate, stops, isOpen, onToggle, onDone, onRemov
    const clearDayButtonReference = useRef<HTMLButtonElement | null>(null);
 
    const cancelClearButtonReference = useRef<HTMLButtonElement | null>(null);
+
+   const shareDayButtonReference = useRef<HTMLButtonElement | null>(null);
+
+   const sharePanelHeadingReference = useRef<HTMLHeadingElement | null>(null);
 
    const hasMountedReference = useRef(false);
 
@@ -164,6 +181,18 @@ export function DayTray({ planningDate, stops, isOpen, onToggle, onDone, onRemov
             return;
          }
 
+         if (isSharePanelOpen) {
+            event.preventDefault();
+            setIsSharePanelOpen(false);
+            setCopyMessage("");
+
+            window.requestAnimationFrame(() => {
+               shareDayButtonReference.current?.focus();
+            });
+
+            return;
+         }
+
          if (isClearConfirmationOpen) {
             event.preventDefault();
             setIsClearConfirmationOpen(false);
@@ -189,7 +218,7 @@ export function DayTray({ planningDate, stops, isOpen, onToggle, onDone, onRemov
       return () => {
          document.removeEventListener("keydown", handleKeyDown);
       };
-   }, [isClearConfirmationOpen, isOpen, onDone]);
+   }, [isClearConfirmationOpen, isOpen, isSharePanelOpen, onDone]);
 
    useEffect(() => {
       if (!isClearConfirmationOpen) {
@@ -205,13 +234,34 @@ export function DayTray({ planningDate, stops, isOpen, onToggle, onDone, onRemov
       };
    }, [isClearConfirmationOpen]);
 
+   useEffect(() => {
+      if (!isSharePanelOpen) {
+         return;
+      }
+
+      const frameId = window.requestAnimationFrame(() => {
+         sharePanelHeadingReference.current?.focus();
+      });
+
+      return () => {
+         window.cancelAnimationFrame(frameId);
+      };
+   }, [isSharePanelOpen]);
+
+   useEffect(() => {
+      if (isOpen && isComplete) {
+         return;
+      }
+
+      setIsSharePanelOpen(false);
+      setCopyMessage("");
+   }, [isComplete, isOpen]);
+
    if (stops.length === 0) {
       return null;
    }
 
    const orderedStops = sortStops(stops);
-
-   const isComplete = orderedStops.length >= 2;
 
    const canAddAnotherStop = orderedStops.length < dayPeriods.length;
 
@@ -222,6 +272,10 @@ export function DayTray({ planningDate, stops, isOpen, onToggle, onDone, onRemov
    const clearConfirmationTitleId = "sidewalk-clear-day-title";
 
    const clearConfirmationDescriptionId = "sidewalk-clear-day-description";
+
+   const sharePanelTitleId = "sidewalk-share-day-title";
+
+   const sharePanelDescriptionId = "sidewalk-share-day-description";
 
    function preserveTrayScroll(action: () => void) {
       const currentScrollTop = trayContentReference.current?.scrollTop ?? 0;
@@ -243,6 +297,56 @@ export function DayTray({ planningDate, stops, isOpen, onToggle, onDone, onRemov
       window.requestAnimationFrame(() => {
          clearDayButtonReference.current?.focus();
       });
+   }
+
+   function handleOpenSharePanel() {
+      setIsClearConfirmationOpen(false);
+      setCopyMessage("");
+      setIsSharePanelOpen(true);
+   }
+
+   function handleCloseSharePanel() {
+      setIsSharePanelOpen(false);
+      setCopyMessage("");
+
+      window.requestAnimationFrame(() => {
+         shareDayButtonReference.current?.focus();
+      });
+   }
+
+   async function handleCopyShareLink() {
+      if (!shareUrl) {
+         return;
+      }
+
+      try {
+         if (navigator.clipboard?.writeText) {
+            await navigator.clipboard.writeText(shareUrl);
+         } else {
+            const temporaryInput = document.createElement("textarea");
+
+            temporaryInput.value = shareUrl;
+            temporaryInput.setAttribute("readonly", "");
+            temporaryInput.style.position = "fixed";
+            temporaryInput.style.opacity = "0";
+
+            document.body.appendChild(temporaryInput);
+
+            temporaryInput.select();
+
+            const copied = document.execCommand("copy");
+
+            temporaryInput.remove();
+
+            if (!copied) {
+               throw new Error("Copy command was unavailable.");
+            }
+         }
+
+         setCopyMessage("Link copied.");
+      } catch {
+         setCopyMessage("Sidewalk could not copy the link. Open the shared page and copy it from the address bar.");
+      }
    }
 
    return (
@@ -348,14 +452,105 @@ export function DayTray({ planningDate, stops, isOpen, onToggle, onDone, onRemov
                   ) : null}
 
                   {isComplete ? (
+                     <button ref={shareDayButtonReference} type="button" className={styles.shareButton} aria-expanded={isSharePanelOpen} aria-controls="sidewalk-share-day-panel" onClick={handleOpenSharePanel}>
+                        Share day
+                     </button>
+                  ) : null}
+
+                  {isComplete ? (
                      <button type="button" className={styles.resetButton} onClick={onPlanAnotherDay}>
                         Plan another day
                      </button>
                   ) : null}
                </div>
 
+               {isSharePanelOpen ? (
+                  <section id="sidewalk-share-day-panel" className={styles.sharePanel} aria-labelledby={sharePanelTitleId} aria-describedby={sharePanelDescriptionId}>
+                     <div className={styles.sharePanelHeading}>
+                        <p className={styles.shareEyebrow}>Share this day</p>
+
+                        <h3 ref={sharePanelHeadingReference} id={sharePanelTitleId} className={styles.shareTitle} tabIndex={-1}>
+                           Send the shape of a worthwhile day.
+                        </h3>
+                     </div>
+
+                     <p id={sharePanelDescriptionId} className={styles.shareDescription}>
+                        Anyone with the link can view this itinerary. They cannot edit your original day.
+                     </p>
+
+                     {shareStatus === "loading" ? (
+                        <p className={styles.shareStatus} role="status">
+                           Creating a private link…
+                        </p>
+                     ) : null}
+
+                     {shareStatus === "error" ? (
+                        <p className={styles.shareError} role="alert">
+                           {shareMessage || "Sidewalk could not create the link right now."}
+                        </p>
+                     ) : null}
+
+                     {shareStatus === "ready" && shareUrl ? (
+                        <>
+                           <p className={styles.shareStatus} role="status">
+                              Your read-only link is ready. It will remain available for 30 days.
+                           </p>
+
+                           <div className={styles.shareReadyActions}>
+                              <button type="button" className={styles.copyLinkButton} onClick={() => void handleCopyShareLink()}>
+                                 Copy link
+                              </button>
+
+                              <a className={styles.viewSharedDayLink} href={shareUrl} target="_blank" rel="noreferrer noopener" referrerPolicy="no-referrer">
+                                 View shared page
+                              </a>
+                           </div>
+                        </>
+                     ) : null}
+
+                     {shareStatus === "idle" || shareStatus === "error" ? (
+                        <div className={styles.shareConfirmationActions}>
+                           <button type="button" className={styles.createShareButton} onClick={onCreateShare}>
+                              {shareStatus === "error" ? "Try again" : "Create link"}
+                           </button>
+
+                           <button type="button" className={styles.cancelShareButton} onClick={handleCloseSharePanel}>
+                              Cancel
+                           </button>
+                        </div>
+                     ) : null}
+
+                     {shareStatus === "loading" ? (
+                        <button type="button" className={styles.cancelShareButton} onClick={handleCloseSharePanel}>
+                           Cancel
+                        </button>
+                     ) : null}
+
+                     {shareStatus === "ready" ? (
+                        <button type="button" className={styles.cancelShareButton} onClick={handleCloseSharePanel}>
+                           Done
+                        </button>
+                     ) : null}
+
+                     <p className={styles.copyMessage} aria-live="polite">
+                        {copyMessage}
+                     </p>
+                  </section>
+               ) : null}
+
                <div className={styles.trayActions}>
-                  <button ref={clearDayButtonReference} type="button" className={styles.clearDayButton} aria-expanded={isClearConfirmationOpen} aria-controls="sidewalk-clear-day-confirmation" onClick={() => setIsClearConfirmationOpen(true)}>
+                  <button
+                     ref={clearDayButtonReference}
+                     type="button"
+                     className={styles.clearDayButton}
+                     aria-expanded={isClearConfirmationOpen}
+                     aria-controls="sidewalk-clear-day-confirmation"
+                     onClick={() => {
+                        setIsSharePanelOpen(false);
+                        setCopyMessage("");
+                        setIsClearConfirmationOpen(true);
+                     }}
+                  >
                      Clear day
                   </button>
 

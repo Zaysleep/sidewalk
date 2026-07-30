@@ -218,7 +218,7 @@ dd {
 .metro-control {
    display: grid;
    min-width: 0;
-   width: min(12rem, 50vw);
+   width: min(15rem, 54vw);
    gap: var(--sw-space-1);
 }
 
@@ -275,6 +275,92 @@ dd {
    line-height: 1;
    pointer-events: none;
    transform: translateY(-55%);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Recently planned metro shortcuts                                           */
+/* -------------------------------------------------------------------------- */
+
+.metro-recent {
+   display: grid;
+   min-width: 0;
+   gap: var(--sw-space-1);
+   margin-top: var(--sw-space-1);
+}
+
+.metro-recent__label {
+   color: var(--sw-color-text-secondary);
+   font-size: 0.6875rem;
+   font-weight: 700;
+   letter-spacing: 0.08em;
+   line-height: 1.4;
+   text-align: right;
+   text-transform: uppercase;
+}
+
+.metro-recent__list {
+   display: flex;
+   min-width: 0;
+   justify-content: flex-end;
+   gap: var(--sw-space-1);
+   overflow-x: auto;
+   overscroll-behavior-inline: contain;
+   padding-bottom: 0.125rem;
+   scrollbar-width: none;
+}
+
+.metro-recent__list::-webkit-scrollbar {
+   display: none;
+}
+
+.metro-recent__button {
+   flex: 0 0 auto;
+   min-height: 2rem;
+   padding: 0.35rem 0.65rem;
+   border: var(--sw-border-width) solid var(--sw-color-border);
+   border-radius: var(--sw-radius-sm);
+   background: transparent;
+   color: var(--sw-color-text-secondary);
+   font-size: 0.75rem;
+   font-weight: 700;
+   line-height: 1.2;
+   white-space: nowrap;
+   cursor: pointer;
+   transition:
+      border-color var(--sw-duration-fast) var(--sw-ease-standard),
+      background-color var(--sw-duration-fast) var(--sw-ease-standard),
+      color var(--sw-duration-fast) var(--sw-ease-standard);
+}
+
+.metro-recent__button:hover {
+   border-color: var(--sw-color-stone);
+   background: var(--sw-color-warm-white);
+   color: var(--sw-color-text-primary);
+}
+
+.metro-recent__button[data-current="true"] {
+   border-color: var(--sw-color-olive);
+   background: var(--sw-color-paper);
+   color: var(--sw-color-olive);
+}
+
+.metro-recent__button:focus-visible {
+   outline: 0.1875rem solid var(--sw-color-focus);
+   outline-offset: 0.125rem;
+}
+
+@media (max-width: 35rem) {
+   .metro-control {
+      width: min(13.5rem, 58vw);
+   }
+
+   .metro-recent__label {
+      text-align: left;
+   }
+
+   .metro-recent__list {
+      justify-content: flex-start;
+   }
 }
 
 /* -------------------------------------------------------------------------- */
@@ -557,7 +643,7 @@ dd {
    }
 
    .metro-control {
-      width: 18rem;
+      width: 20rem;
    }
 
    .planning-step {

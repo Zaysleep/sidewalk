@@ -235,7 +235,12 @@
 .removeButton:focus-visible,
 .continueButton:focus-visible,
 .optionalButton:focus-visible,
-.resetButton:focus-visible {
+.shareButton:focus-visible,
+.resetButton:focus-visible,
+.createShareButton:focus-visible,
+.copyLinkButton:focus-visible,
+.viewSharedDayLink:focus-visible,
+.cancelShareButton:focus-visible {
    outline: 0.1875rem solid var(--sw-color-focus);
    outline-offset: 0.2rem;
 }
@@ -265,6 +270,7 @@
 
 .continueButton,
 .optionalButton,
+.shareButton,
 .resetButton {
    width: 100%;
    min-height: var(--sw-touch-target);
@@ -297,10 +303,132 @@
    color: var(--sw-color-text-primary);
 }
 
+.shareButton {
+   border: var(--sw-border-width) solid var(--sw-color-olive);
+   background: var(--sw-color-paper);
+   color: var(--sw-color-olive);
+}
+
 .optionalButton:hover,
 .resetButton:hover {
    border-color: var(--sw-color-olive);
    background: var(--sw-color-paper);
+}
+
+.shareButton:hover {
+   border-color: var(--sw-color-forest);
+   background: var(--sw-color-olive);
+   color: var(--sw-color-warm-white);
+}
+
+.sharePanel {
+   display: grid;
+   gap: var(--sw-space-4);
+   padding: clamp(var(--sw-space-4), 4vw, var(--sw-space-6));
+   border: var(--sw-border-width) solid var(--sw-color-olive);
+   border-top: var(--sw-border-strong-width) solid var(--sw-color-olive);
+   border-radius: var(--sw-radius-sm);
+   background: var(--sw-color-paper);
+}
+
+.sharePanelHeading {
+   display: grid;
+   gap: var(--sw-space-2);
+}
+
+.shareEyebrow {
+   color: var(--sw-color-olive);
+   font-size: var(--sw-text-xs);
+   font-weight: 750;
+   letter-spacing: var(--sw-tracking-label);
+   line-height: 1.4;
+   text-transform: uppercase;
+}
+
+.shareTitle {
+   max-width: 24ch;
+   font-family: var(--sw-font-editorial);
+   font-size: clamp(1.45rem, 4vw, 2rem);
+   font-weight: 500;
+   letter-spacing: var(--sw-tracking-heading);
+   line-height: 1.1;
+   text-wrap: balance;
+}
+
+.shareDescription,
+.shareStatus,
+.shareError,
+.copyMessage {
+   font-size: var(--sw-text-sm);
+   line-height: 1.55;
+}
+
+.shareDescription,
+.shareStatus {
+   color: var(--sw-color-text-secondary);
+}
+
+.shareError {
+   color: var(--sw-color-terracotta);
+   font-weight: 650;
+}
+
+.copyMessage {
+   min-height: 1.35rem;
+   color: var(--sw-color-olive);
+   font-weight: 700;
+}
+
+.shareConfirmationActions,
+.shareReadyActions {
+   display: grid;
+   grid-template-columns: repeat(2, minmax(0, 1fr));
+   gap: var(--sw-space-3);
+}
+
+.createShareButton,
+.copyLinkButton,
+.viewSharedDayLink,
+.cancelShareButton {
+   display: inline-flex;
+   width: 100%;
+   min-height: var(--sw-touch-target);
+   align-items: center;
+   justify-content: center;
+   padding: var(--sw-space-3) var(--sw-space-4);
+   border-radius: var(--sw-radius-sm);
+   font-size: var(--sw-text-sm);
+   font-weight: 750;
+   line-height: 1.2;
+   text-align: center;
+   text-decoration: none;
+   cursor: pointer;
+}
+
+.createShareButton,
+.copyLinkButton {
+   border: var(--sw-border-width) solid var(--sw-color-olive);
+   background: var(--sw-color-olive);
+   color: var(--sw-color-warm-white);
+}
+
+.createShareButton:hover,
+.copyLinkButton:hover {
+   border-color: var(--sw-color-forest);
+   background: var(--sw-color-forest);
+}
+
+.viewSharedDayLink,
+.cancelShareButton {
+   border: var(--sw-border-width) solid var(--sw-color-border);
+   background: var(--sw-color-warm-white);
+   color: var(--sw-color-text-primary);
+}
+
+.viewSharedDayLink:hover,
+.cancelShareButton:hover {
+   border-color: var(--sw-color-stone);
+   background: var(--sw-color-surface-muted);
 }
 
 .trayActions {
@@ -460,7 +588,144 @@
 @media (prefers-reduced-motion: reduce) {
    .continueButton,
    .optionalButton,
+   .shareButton,
    .resetButton {
       transition: none;
+   }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Compact tray refinement                                                    */
+/* -------------------------------------------------------------------------- */
+
+@media (max-width: 63.99rem) {
+   .tray {
+      border-top-left-radius: var(--sw-radius-sm);
+      border-top-right-radius: var(--sw-radius-sm);
+      overflow: hidden;
+   }
+
+   .summaryButton {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      min-height: 4.25rem;
+      padding-inline: max(var(--sw-space-4), env(safe-area-inset-left)) max(var(--sw-space-4), env(safe-area-inset-right));
+      background: var(--sw-color-warm-white);
+   }
+
+   .summaryHeading {
+      white-space: nowrap;
+   }
+
+   .summaryPlace {
+      font-size: var(--sw-text-md);
+   }
+
+   .content {
+      max-height: min(82svh, 52rem);
+      gap: var(--sw-space-4);
+      padding: var(--sw-space-5) max(var(--sw-space-4), env(safe-area-inset-right)) max(var(--sw-space-8), env(safe-area-inset-bottom)) max(var(--sw-space-4), env(safe-area-inset-left));
+   }
+
+   .heading {
+      padding-bottom: var(--sw-space-4);
+      border-bottom: var(--sw-border-width) solid var(--sw-color-border);
+   }
+
+   .title {
+      font-size: clamp(1.9rem, 8vw, 2.5rem);
+   }
+
+   .stopList {
+      border-top: 0;
+   }
+
+   .stop {
+      gap: var(--sw-space-3);
+      padding-block: var(--sw-space-5);
+   }
+
+   .stopHeading {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: start;
+      gap: var(--sw-space-3);
+   }
+
+   .window {
+      white-space: nowrap;
+      text-align: right;
+   }
+
+   .stopName {
+      max-width: 22ch;
+      font-size: clamp(1.35rem, 6.4vw, 1.8rem);
+      line-height: 1.12;
+   }
+
+   .stopMeta {
+      max-width: 34rem;
+      line-height: 1.6;
+   }
+
+   .stopActions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--sw-space-3);
+      margin-top: var(--sw-space-2);
+   }
+
+   .locationLink {
+      grid-column: 1 / -1;
+      width: 100%;
+      border: var(--sw-border-width) solid var(--sw-color-border);
+      background: var(--sw-color-paper);
+      text-decoration: none;
+   }
+
+   .editButton,
+   .removeButton {
+      width: 100%;
+   }
+
+   .footer {
+      padding-top: var(--sw-space-2);
+   }
+
+   .sharePanel {
+      scroll-margin-top: var(--sw-space-4);
+   }
+}
+
+@media (max-width: 26rem) {
+   .summaryButton {
+      grid-template-columns: minmax(0, 1fr) auto;
+   }
+
+   .summaryHeading {
+      display: none;
+   }
+
+   .heading {
+      display: grid;
+   }
+
+   .count {
+      justify-self: start;
+   }
+
+   .stopHeading {
+      grid-template-columns: 1fr;
+      gap: var(--sw-space-1);
+   }
+
+   .window {
+      text-align: left;
+   }
+
+   .shareConfirmationActions,
+   .shareReadyActions {
+      grid-template-columns: 1fr;
    }
 }

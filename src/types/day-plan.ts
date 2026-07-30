@@ -2,11 +2,11 @@ import type { ActivityKind } from "@/types/activity";
 import type { DayPeriod } from "@/types/day-period";
 
 /**
- * One place committed to a Morning, Afternoon, or Evening chapter.
+ * One place committed to a Sidewalk time period.
  *
  * Display information and coordinates are stored with the stop so the day can
- * survive a refresh and later recommendation requests can stay coherent with
- * the places the user has already chosen.
+ * survive a refresh, keep later recommendations geographically coherent, and
+ * produce a safe public snapshot when the user explicitly chooses to share.
  */
 export type DayStop = Readonly<{
    id: string;
@@ -35,4 +35,13 @@ export type DayStop = Readonly<{
       minimum: number;
       maximum: number;
    }>;
+
+   /**
+    * These public-facing fields were added after the original v5 session
+    * format. They remain optional so a previously saved browser session can be
+    * restored without migration or data loss.
+    */
+   summary?: string;
+   reason?: string;
+   photoResourceName?: string | null;
 }>;

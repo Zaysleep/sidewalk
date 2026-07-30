@@ -124,6 +124,39 @@ export const municipalities = [
    },
 
    /* ------------------------------------------------------------------------ */
+   /* Palm Springs                                                            */
+   /* ------------------------------------------------------------------------ */
+
+   {
+      id: "municipality-palm-springs-palm-springs",
+      metroRegionId: "metro-palm-springs",
+      name: "Palm Springs",
+      slug: "palm-springs",
+      stateOrRegion: "California",
+   },
+   {
+      id: "municipality-palm-springs-palm-desert",
+      metroRegionId: "metro-palm-springs",
+      name: "Palm Desert",
+      slug: "palm-desert",
+      stateOrRegion: "California",
+   },
+   {
+      id: "municipality-palm-springs-rancho-mirage",
+      metroRegionId: "metro-palm-springs",
+      name: "Rancho Mirage",
+      slug: "rancho-mirage",
+      stateOrRegion: "California",
+   },
+   {
+      id: "municipality-palm-springs-cathedral-city",
+      metroRegionId: "metro-palm-springs",
+      name: "Cathedral City",
+      slug: "cathedral-city",
+      stateOrRegion: "California",
+   },
+
+   /* ------------------------------------------------------------------------ */
    /* Los Angeles                                                             */
    /* ------------------------------------------------------------------------ */
 

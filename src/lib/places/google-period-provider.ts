@@ -3,6 +3,7 @@ import "server-only";
 import type { ActivityDirection, ActivityKind } from "@/types/activity";
 import { dayPeriodDefinitions, dayPeriods, type DayPeriod } from "@/types/day-period";
 import type { CommittedStopContext, PeriodRecommendation } from "@/types/period-recommendation";
+import { getLocalAreaSearchAuthority } from "@/data/geography/local-area-search-authority";
 import type { Place, PlaceCategory, ProviderBusinessStatus, ProviderPeriodAvailability } from "@/types/place";
 
 type Coordinates = Readonly<{
@@ -798,6 +799,29 @@ function getProfilesForRequest(dayPeriod: DayPeriod, activityDirection: Activity
 
 function createAreaCenterCacheKey(context: PeriodSearchContext): string {
    return [context.metroRegionId, context.municipalityId, context.localAreaId].join(":");
+}
+
+/**
+ * Ambiguous district names receive a curated search query and an optional
+ * radius ceiling. Areas without an authority entry keep the provider's
+ * existing generic geography behavior.
+ */
+function getAreaSearchQuery(context: PeriodSearchContext): string {
+   const authority = getLocalAreaSearchAuthority(context.localAreaId);
+
+   return authority?.searchQuery ?? [context.localAreaName, context.municipalityName, context.stateOrRegion].join(", ");
+}
+
+function getAreaSearchRadiusMeters(context: PeriodSearchContext, activity: ActivityKind, stage: DistanceStage): number {
+   const defaultRadius = distanceRulesByActivity[activity][stage];
+
+   const authority = getLocalAreaSearchAuthority(context.localAreaId);
+
+   if (typeof authority?.maximumSearchRadiusMeters !== "number") {
+      return defaultRadius;
+   }
+
+   return Math.min(defaultRadius, authority.maximumSearchRadiusMeters);
 }
 
 function createCommittedStopsCacheSegment(committedStops: readonly CommittedStopContext[]): string {
@@ -1661,9 +1685,27 @@ function selectThree(candidates: readonly ScoredCandidate[], context: PeriodSear
 }
 
 async function fetchAreaCenter(context: PeriodSearchContext, cacheKey: string): Promise<Coordinates> {
+   const authority = getLocalAreaSearchAuthority(context.localAreaId);
+
+   if (authority?.center) {
+      const center = {
+         latitude: authority.center.latitude,
+         longitude: authority.center.longitude,
+      };
+
+      pruneExpiringCache(areaCenterCache, maximumAreaCenterCacheEntries);
+
+      areaCenterCache.set(cacheKey, {
+         expiresAt: Date.now() + areaCenterCacheDurationMilliseconds,
+         value: center,
+      });
+
+      return center;
+   }
+
    const apiKey = getApiKey();
 
-   const query = [context.localAreaName, context.municipalityName, context.stateOrRegion].join(", ");
+   const query = getAreaSearchQuery(context);
 
    const response = await fetchGooglePlaces(
       "https://places.googleapis.com/v1/places:searchText",
@@ -1779,7 +1821,7 @@ async function resolveAreaCenter(context: PeriodSearchContext): Promise<Coordina
 async function searchProfile(profile: ActivityProfile, context: PeriodSearchContext, areaCenter: Coordinates, searchRadiusMeters: number, stage: DistanceStage): Promise<readonly GooglePlace[]> {
    const apiKey = getApiKey();
 
-   const location = [context.localAreaName, context.municipalityName, context.stateOrRegion].join(", ");
+   const location = getAreaSearchQuery(context);
 
    const response = await fetchGooglePlaces(
       "https://places.googleapis.com/v1/places:searchText",
@@ -1871,7 +1913,7 @@ async function collectCandidatesForStage(profiles: readonly ActivityProfile[], c
 
    const searchResults = await Promise.all(
       profiles.map(async (profile) => {
-         const maximumDistance = distanceRulesByActivity[profile.activity][stage];
+         const maximumDistance = getAreaSearchRadiusMeters(context, profile.activity, stage);
 
          return {
             profile,

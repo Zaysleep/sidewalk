@@ -10,43 +10,54 @@ import type { MetroRegion } from "@/types/metro-region";
 type SiteHeaderProps = Readonly<{
    metroRegions: readonly MetroRegion[];
    selectedMetroSlug: string;
+   recentMetroSlugs: readonly string[];
    onMetroChange: (metroSlug: string) => void;
 }>;
 
-/**
- * A selector group represents one state or broader regional label.
- *
- * Some Sidewalk metros cross state boundaries, so the grouping language uses
- * the existing stateOrRegion value rather than forcing every metro into one
- * state.
- */
 type MetroRegionGroup = Readonly<{
    label: string;
    metroRegions: readonly MetroRegion[];
 }>;
 
+const regionalMetroGroupLabel = "Regional Metros";
+
+function getMetroRegionGroupLabel(metroRegion: MetroRegion): string {
+   return metroRegion.stateOrRegion.includes("/") ? regionalMetroGroupLabel : metroRegion.stateOrRegion;
+}
+
 /**
- * Groups the active metro catalog by state or regional context.
- *
- * Both groups and metro names are sorted alphabetically so the selector stays
- * predictable as Sidewalk's coverage grows.
+ * Groups single-state metros by state and places cross-state regions in one
+ * predictable Regional Metros section. Both groups and metro names remain
+ * alphabetical.
  */
 function groupMetroRegions(metroRegions: readonly MetroRegion[]): readonly MetroRegionGroup[] {
    const groupedRegions = new Map<string, MetroRegion[]>();
 
    for (const metroRegion of metroRegions) {
-      const existingGroup = groupedRegions.get(metroRegion.stateOrRegion);
+      const groupLabel = getMetroRegionGroupLabel(metroRegion);
+
+      const existingGroup = groupedRegions.get(groupLabel);
 
       if (existingGroup) {
          existingGroup.push(metroRegion);
          continue;
       }
 
-      groupedRegions.set(metroRegion.stateOrRegion, [metroRegion]);
+      groupedRegions.set(groupLabel, [metroRegion]);
    }
 
    return Array.from(groupedRegions.entries())
-      .sort(([firstLabel], [secondLabel]) => firstLabel.localeCompare(secondLabel))
+      .sort(([firstLabel], [secondLabel]) => {
+         if (firstLabel === regionalMetroGroupLabel) {
+            return 1;
+         }
+
+         if (secondLabel === regionalMetroGroupLabel) {
+            return -1;
+         }
+
+         return firstLabel.localeCompare(secondLabel);
+      })
       .map(([label, regions]) => ({
          label,
          metroRegions: regions.slice().sort((firstMetro, secondMetro) => firstMetro.name.localeCompare(secondMetro.name)),
@@ -55,14 +66,16 @@ function groupMetroRegions(metroRegions: readonly MetroRegion[]): readonly Metro
 
 /**
  * SiteHeader keeps the Sidewalk identity and metro switcher continuously
- * available without competing with the selected metro headline.
- *
- * The native select remains the most reliable accessible control for this
- * phase. State and regional optgroups improve scanning without exposing
- * Sidewalk's internal coverage tiers.
+ * available without turning the expanded catalog into a browsing screen.
  */
-export function SiteHeader({ metroRegions, selectedMetroSlug, onMetroChange }: SiteHeaderProps) {
+export function SiteHeader({ metroRegions, selectedMetroSlug, recentMetroSlugs, onMetroChange }: SiteHeaderProps) {
    const metroRegionGroups = groupMetroRegions(metroRegions);
+
+   const recentMetroRegions = recentMetroSlugs.flatMap((metroSlug) => {
+      const metroRegion = metroRegions.find((candidate) => candidate.slug === metroSlug);
+
+      return metroRegion ? [metroRegion] : [];
+   });
 
    function handleSelectionChange(event: ChangeEvent<HTMLSelectElement>) {
       onMetroChange(event.target.value);
@@ -97,6 +110,24 @@ export function SiteHeader({ metroRegions, selectedMetroSlug, onMetroChange }: S
                   ⌄
                </span>
             </div>
+
+            {recentMetroRegions.length > 0 ? (
+               <nav className="metro-recent" aria-label="Recently planned metro regions">
+                  <span className="metro-recent__label">Recently planned</span>
+
+                  <div className="metro-recent__list">
+                     {recentMetroRegions.map((metroRegion) => {
+                        const isCurrentMetro = metroRegion.slug === selectedMetroSlug;
+
+                        return (
+                           <button key={metroRegion.id} type="button" className="metro-recent__button" aria-current={isCurrentMetro ? "page" : undefined} data-current={isCurrentMetro} onClick={() => onMetroChange(metroRegion.slug)}>
+                              {metroRegion.name}
+                           </button>
+                        );
+                     })}
+                  </div>
+               </nav>
+            ) : null}
          </div>
       </header>
    );

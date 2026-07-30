@@ -16,7 +16,10 @@ import { municipalities } from "@/data/geography/municipalities";
 import { metroRegions } from "@/data/metros/metro-regions";
 import { getLocalAreasForMunicipality } from "@/lib/geography/get-local-areas-for-municipality";
 import { getMunicipalitiesForMetro } from "@/lib/geography/get-municipalities-for-metro";
+import { createRecentMetroSlugs, readRecentMetroSlugs, saveRecentMetroSlugs } from "@/lib/geography/recent-metros";
 import { fetchPeriodRecommendations } from "@/lib/places/period-recommendation-client";
+import { requestSharedDay, SharedDayRequestError } from "@/lib/sharing/shared-day-client";
+import { createSharedDayRequestFromPlan } from "@/lib/sharing/shared-day-schema";
 import { activityDirections, activityKinds, type ActivityDirection, type ActivityKind } from "@/types/activity";
 import { dayPeriodDefinitions, dayPeriods, type DayPeriod } from "@/types/day-period";
 import type { DayStop } from "@/types/day-plan";
@@ -33,6 +36,15 @@ type SelectedRecommendations = Partial<Record<DayPeriod, PeriodRecommendation>>;
 type ActivityDirectionsByPeriod = Record<DayPeriod, ActivityDirection | null>;
 
 type RequestKeysByPeriod = Record<DayPeriod, string | null>;
+
+type SharedDayCreationStatus = "idle" | "loading" | "ready" | "error";
+
+type SharedDayCreationState = Readonly<{
+   status: SharedDayCreationStatus;
+   sourceKey: string | null;
+   shareUrl: string | null;
+   message: string;
+}>;
 
 type ChapterRefreshState = Readonly<{
    refreshCount: number;
@@ -70,6 +82,11 @@ type StoredPlanningSession = Readonly<{
 
    dayStops: readonly DayStop[];
 
+   /**
+    * Optional so existing version-5 sessions remain valid.
+    */
+   similarDayPeriods?: readonly DayPeriod[];
+
    chapterRefreshStates: StoredChapterRefreshStates;
 }>;
 
@@ -104,6 +121,8 @@ const activeMetroRegions = metroRegions
    .slice()
    .sort((firstMetro, secondMetro) => firstMetro.name.localeCompare(secondMetro.name));
 
+const activeMetroSlugs = activeMetroRegions.map((metroRegion) => metroRegion.slug);
+
 const defaultMetroSlug = "san-diego";
 
 const planningSessionStorageKey = "sidewalk-active-planning-session-v5";
@@ -113,6 +132,15 @@ const legacyPlanningSessionStorageKey = "sidewalk-active-planning-session-v4";
 const previousPlanningSessionStorageKeys = ["sidewalk-active-planning-session-v3", "sidewalk-active-planning-session-v2", "sidewalk-active-planning-session-v1"] as const;
 
 const sessionSeedStorageKey = "sidewalk-planning-session-seed";
+
+const similarDayQueryKeys = ["similar", "metro", "municipality", "area", "periods"] as const;
+
+type SimilarDayContext = Readonly<{
+   metroSlug: string;
+   municipalityId: string;
+   localAreaId: string;
+   periods: readonly DayPeriod[];
+}>;
 
 function createPeriodRecord<T>(createValue: (period: DayPeriod) => T): Record<DayPeriod, T> {
    return Object.fromEntries(dayPeriods.map((period) => [period, createValue(period)])) as Record<DayPeriod, T>;
@@ -144,6 +172,92 @@ function createInitialChapterRefreshState(): ChapterRefreshStates {
    });
 
    return createPeriodRecord<ChapterRefreshState>(createPeriodState);
+}
+
+function createInitialSharedDayCreationState(): SharedDayCreationState {
+   return {
+      status: "idle",
+      sourceKey: null,
+      shareUrl: null,
+      message: "",
+   };
+}
+
+function readSimilarDayContext(): SimilarDayContext | null {
+   const requestUrl = new URL(window.location.href);
+
+   if (requestUrl.searchParams.get("similar") !== "1") {
+      return null;
+   }
+
+   const metroSlug = requestUrl.searchParams.get("metro")?.trim() ?? "";
+   const municipalityId = requestUrl.searchParams.get("municipality")?.trim() ?? "";
+   const localAreaId = requestUrl.searchParams.get("area")?.trim() ?? "";
+   const periodsValue = requestUrl.searchParams.get("periods")?.trim() ?? "";
+
+   const requestedPeriods = periodsValue
+      .split(",")
+      .map((value) => value.trim())
+      .filter((value): value is DayPeriod => (dayPeriods as readonly string[]).includes(value));
+
+   const uniquePeriods = dayPeriods.filter((period) => requestedPeriods.includes(period));
+
+   if (uniquePeriods.length < 2 || uniquePeriods.length !== requestedPeriods.length) {
+      return null;
+   }
+
+   const metroRegion = activeMetroRegions.find((candidate) => candidate.slug === metroSlug) ?? null;
+
+   const municipality = municipalities.find((candidate) => candidate.id === municipalityId) ?? null;
+
+   const localArea = localAreas.find((candidate) => candidate.id === localAreaId) ?? null;
+
+   if (!metroRegion || !municipality || !localArea) {
+      return null;
+   }
+
+   if (municipality.metroRegionId !== metroRegion.id || localArea.municipalityId !== municipality.id) {
+      return null;
+   }
+
+   return {
+      metroSlug: metroRegion.slug,
+      municipalityId: municipality.id,
+      localAreaId: localArea.id,
+      periods: uniquePeriods,
+   };
+}
+
+function removeSimilarDayQueryParameters() {
+   const requestUrl = new URL(window.location.href);
+
+   similarDayQueryKeys.forEach((key) => {
+      requestUrl.searchParams.delete(key);
+   });
+
+   const nextUrl = `${requestUrl.pathname}${requestUrl.search}${requestUrl.hash}`;
+
+   window.history.replaceState(window.history.state, "", nextUrl);
+}
+
+function createSharedDaySourceKey(planningDate: string, metroRegionId: string, municipalityId: string, localAreaId: string, stops: readonly DayStop[]): string {
+   return JSON.stringify({
+      planningDate,
+      metroRegionId,
+      municipalityId,
+      localAreaId,
+      stops: sortDayStops(stops).map((stop) => ({
+         dayPeriod: stop.dayPeriod,
+         bestWindow: stop.bestWindow,
+         placeId: stop.placeId,
+         placeName: stop.placeName,
+         locationUrl: stop.locationUrl,
+         visitDurationMinutes: stop.visitDurationMinutes,
+         summary: stop.summary ?? "",
+         reason: stop.reason ?? "",
+         photoResourceName: stop.photoResourceName ?? null,
+      })),
+   });
 }
 
 function getLocalIsoDate(date: Date): string {
@@ -278,15 +392,29 @@ function createCommittedStopsRequestSegment(committedStops: readonly CommittedSt
       .join(",");
 }
 
-function getNextUnfilledPeriod(currentPeriod: DayPeriod, stops: readonly DayStop[]): DayPeriod | null {
+function getNextUnfilledPeriod(currentPeriod: DayPeriod, stops: readonly DayStop[], preferredPeriods: readonly DayPeriod[] = []): DayPeriod | null {
+   const filledPeriods = new Set(stops.map((stop) => stop.dayPeriod));
+
+   if (preferredPeriods.length > 0) {
+      const currentPreferredIndex = preferredPeriods.indexOf(currentPeriod);
+
+      const preferredStartIndex = currentPreferredIndex >= 0 ? currentPreferredIndex + 1 : 0;
+
+      for (let offset = 0; offset < preferredPeriods.length; offset += 1) {
+         const candidate = preferredPeriods[(preferredStartIndex + offset) % preferredPeriods.length];
+
+         if (!filledPeriods.has(candidate)) {
+            return candidate;
+         }
+      }
+   }
+
    const currentIndex = dayPeriods.indexOf(currentPeriod);
 
    for (let offset = 1; offset <= dayPeriods.length; offset += 1) {
       const candidate = dayPeriods[(currentIndex + offset) % dayPeriods.length];
 
-      const isFilled = stops.some((stop) => stop.dayPeriod === candidate);
-
-      if (!isFilled) {
+      if (!filledPeriods.has(candidate)) {
          return candidate;
       }
    }
@@ -294,8 +422,16 @@ function getNextUnfilledPeriod(currentPeriod: DayPeriod, stops: readonly DayStop
    return null;
 }
 
-function getFirstUnfilledPeriod(stops: readonly DayStop[]): DayPeriod | null {
-   return dayPeriods.find((period) => !stops.some((stop) => stop.dayPeriod === period)) ?? null;
+function getFirstUnfilledPeriod(stops: readonly DayStop[], preferredPeriods: readonly DayPeriod[] = []): DayPeriod | null {
+   const filledPeriods = new Set(stops.map((stop) => stop.dayPeriod));
+
+   const preferredPeriod = preferredPeriods.find((period) => !filledPeriods.has(period));
+
+   if (preferredPeriod) {
+      return preferredPeriod;
+   }
+
+   return dayPeriods.find((period) => !filledPeriods.has(period)) ?? null;
 }
 
 function getPlanProgressCopy(stopCount: number): string {
@@ -324,6 +460,10 @@ function isActivityDirection(value: unknown): value is ActivityDirection {
 
 function isActivityKind(value: unknown): value is ActivityKind {
    return typeof value === "string" && (activityKinds as readonly string[]).includes(value);
+}
+
+function isStoredSimilarDayPeriods(value: unknown): value is readonly DayPeriod[] {
+   return Array.isArray(value) && value.length <= dayPeriods.length && value.every(isDayPeriod) && new Set(value).size === value.length;
 }
 
 function isStoredActivityDirections(value: unknown): value is ActivityDirectionsByPeriod {
@@ -389,6 +529,9 @@ function isStoredDayStop(value: unknown): value is DayStop {
       (value.latitude === null || (typeof value.latitude === "number" && Number.isFinite(value.latitude))) &&
       (value.longitude === null || (typeof value.longitude === "number" && Number.isFinite(value.longitude))) &&
       (value.locationUrl === null || typeof value.locationUrl === "string") &&
+      (value.summary === undefined || typeof value.summary === "string") &&
+      (value.reason === undefined || typeof value.reason === "string") &&
+      (value.photoResourceName === undefined || value.photoResourceName === null || typeof value.photoResourceName === "string") &&
       typeof duration.minimum === "number" &&
       typeof duration.maximum === "number"
    );
@@ -492,6 +635,7 @@ function isStoredPlanningSession(value: unknown): value is StoredPlanningSession
       Array.isArray(value.dayStops) &&
       value.dayStops.length <= 5 &&
       value.dayStops.every(isStoredDayStop) &&
+      (value.similarDayPeriods === undefined || isStoredSimilarDayPeriods(value.similarDayPeriods)) &&
       isStoredChapterRefreshStates(value.chapterRefreshStates)
    );
 }
@@ -571,6 +715,8 @@ export function SidewalkPlanner() {
 
    const requestControllersReference = useRef<Partial<Record<DayPeriod, AbortController>>>({});
 
+   const shareRequestControllerReference = useRef<AbortController | null>(null);
+
    const periodPanelReference = useRef<HTMLElement | null>(null);
 
    const shouldFocusPeriodPanelReference = useRef(false);
@@ -580,6 +726,12 @@ export function SidewalkPlanner() {
    const [isDayTrayOpen, setIsDayTrayOpen] = useState(false);
 
    const [dayPlanAnnouncement, setDayPlanAnnouncement] = useState("");
+
+   const [recentMetroSlugs, setRecentMetroSlugs] = useState<readonly string[]>([]);
+
+   const [sharedDayCreationState, setSharedDayCreationState] = useState<SharedDayCreationState>(createInitialSharedDayCreationState);
+
+   const [similarDayPeriods, setSimilarDayPeriods] = useState<readonly DayPeriod[]>([]);
 
    const selectedMetro = activeMetroRegions.find((metroRegion) => metroRegion.slug === selectedMetroSlug) ?? activeMetroRegions[0];
 
@@ -595,6 +747,8 @@ export function SidewalkPlanner() {
 
    const activeChapterRefreshState = chapterRefreshStates[activeDayPeriod];
 
+   const sharedDaySourceKey = createSharedDaySourceKey(planningDate, selectedMetro?.id ?? "", selectedMunicipality?.id ?? "", selectedLocalArea?.id ?? "", dayStops);
+
    useEffect(() => {
       try {
          previousPlanningSessionStorageKeys.forEach((storageKey) => {
@@ -605,6 +759,53 @@ export function SidewalkPlanner() {
       }
 
       const today = getTodayPlanningDate();
+
+      const hasSimilarDayRequest = new URL(window.location.href).searchParams.get("similar") === "1";
+
+      const similarDayContext = hasSimilarDayRequest ? readSimilarDayContext() : null;
+
+      if (hasSimilarDayRequest) {
+         removeSimilarDayQueryParameters();
+      }
+
+      if (similarDayContext) {
+         const nextSessionSeed = generateAnonymousSessionSeed();
+
+         try {
+            window.sessionStorage.removeItem(planningSessionStorageKey);
+         } catch {
+            // The new session can still initialize without browser storage.
+         }
+
+         saveSessionSeed(nextSessionSeed);
+
+         setSelectedMetroSlug(similarDayContext.metroSlug);
+         setSelectedMunicipalityId(similarDayContext.municipalityId);
+         setSelectedLocalAreaId(similarDayContext.localAreaId);
+
+         setPlanningDate(today);
+         setActivityDirectionsByPeriod(createEmptyActivityDirections());
+         setActiveDayPeriod(similarDayContext.periods[0]);
+         setSessionSeed(nextSessionSeed);
+
+         setRecommendationsByPeriod(createEmptyRecommendations());
+         setRecommendationStatuses(createIdleStatuses());
+         setSelectedRecommendations({});
+         setLoadedRequestKeys(createEmptyRequestKeys());
+         setChapterRefreshStates(createInitialChapterRefreshState());
+
+         setDayStops([]);
+         setIsDayTrayOpen(false);
+
+         setSimilarDayPeriods(similarDayContext.periods);
+
+         setDayPlanAnnouncement(`A fresh day is ready in the same area. ${similarDayContext.periods.map(getPeriodLabel).join(", ")} are prioritized, and no places were copied.`);
+
+         setIsSessionReady(true);
+
+         return;
+      }
+
       const storedSession = readStoredPlanningSession();
 
       if (storedSession) {
@@ -631,6 +832,8 @@ export function SidewalkPlanner() {
 
             setDayStops(restoredStops);
 
+            setSimilarDayPeriods(planningDateIsCurrent ? (storedSession.similarDayPeriods ?? []) : []);
+
             setChapterRefreshStates(planningDateIsCurrent ? fromStoredChapterRefreshStates(storedSession.chapterRefreshStates) : createInitialChapterRefreshState());
 
             setIsDayTrayOpen(restoredStops.length >= 2);
@@ -648,11 +851,42 @@ export function SidewalkPlanner() {
       setIsSessionReady(true);
    }, []);
 
+   /**
+    * A metro becomes recent only after the user has selected a local area.
+    * This keeps the default San Diego state from appearing as activity before
+    * the user has actually planned there.
+    */
+   useEffect(() => {
+      if (!isSessionReady) {
+         return;
+      }
+
+      const storedRecentSlugs = readRecentMetroSlugs(activeMetroSlugs);
+
+      const nextRecentSlugs = selectedLocalAreaId ? createRecentMetroSlugs(storedRecentSlugs, selectedMetroSlug, activeMetroSlugs) : storedRecentSlugs;
+
+      saveRecentMetroSlugs(nextRecentSlugs, storedRecentSlugs);
+      setRecentMetroSlugs(nextRecentSlugs);
+   }, [isSessionReady, selectedLocalAreaId, selectedMetroSlug]);
+
+   useEffect(() => {
+      if (sharedDayCreationState.status === "idle" || sharedDayCreationState.sourceKey === sharedDaySourceKey) {
+         return;
+      }
+
+      shareRequestControllerReference.current?.abort();
+      shareRequestControllerReference.current = null;
+
+      setSharedDayCreationState(createInitialSharedDayCreationState());
+   }, [sharedDayCreationState.sourceKey, sharedDayCreationState.status, sharedDaySourceKey]);
+
    useEffect(() => {
       return () => {
          Object.values(requestControllersReference.current).forEach((controller) => {
             controller?.abort();
          });
+
+         shareRequestControllerReference.current?.abort();
       };
    }, []);
 
@@ -698,9 +932,11 @@ export function SidewalkPlanner() {
 
          dayStops,
 
+         similarDayPeriods,
+
          chapterRefreshStates: toStoredChapterRefreshStates(chapterRefreshStates),
       });
-   }, [activeDayPeriod, activityDirectionsByPeriod, chapterRefreshStates, dayStops, isSessionReady, planningDate, selectedLocalAreaId, selectedMetroSlug, selectedMunicipalityId, sessionSeed]);
+   }, [activeDayPeriod, activityDirectionsByPeriod, chapterRefreshStates, dayStops, isSessionReady, planningDate, selectedLocalAreaId, selectedMetroSlug, selectedMunicipalityId, sessionSeed, similarDayPeriods]);
 
    /**
     * Recommendations are loaded only for the active chapter.
@@ -936,9 +1172,11 @@ export function SidewalkPlanner() {
 
    const isCurrentPeriodStop = activeSelectedRecommendation !== null && activeDayStop?.placeId === activeSelectedRecommendation.place.id;
 
-   const nextUnfilledPeriod = activeDayStop ? getNextUnfilledPeriod(activeDayPeriod, dayStops) : null;
+   const nextUnfilledPeriod = activeDayStop ? getNextUnfilledPeriod(activeDayPeriod, dayStops, similarDayPeriods) : null;
 
    const nextUnfilledPeriodLabel = nextUnfilledPeriod ? getPeriodLabel(nextUnfilledPeriod) : null;
+
+   const similarDayPeriodLabels = similarDayPeriods.map(getPeriodLabel).join(" · ");
 
    const completedPeriods = dayStops.map((stop) => stop.dayPeriod);
 
@@ -958,7 +1196,7 @@ export function SidewalkPlanner() {
       requestControllersReference.current = {};
    }
 
-   function clearAllGeneratedPlanning(clearActivities: boolean) {
+   function clearAllGeneratedPlanning(clearActivities: boolean, clearSimilarDayShape = false) {
       abortAllRequests();
 
       shouldFocusPeriodPanelReference.current = true;
@@ -981,6 +1219,10 @@ export function SidewalkPlanner() {
 
       if (clearActivities) {
          setActivityDirectionsByPeriod(createEmptyActivityDirections());
+      }
+
+      if (clearSimilarDayShape) {
+         setSimilarDayPeriods([]);
       }
    }
 
@@ -1023,10 +1265,18 @@ export function SidewalkPlanner() {
          locationUrl: recommendation.place.provider.mapsUrl ?? recommendation.place.provider.websiteUrl ?? null,
 
          visitDurationMinutes: recommendation.place.editorial.visitDurationMinutes,
+
+         summary: recommendation.place.editorial.summary,
+         reason: recommendation.reason,
+         photoResourceName: recommendation.place.provider.photoResourceName ?? null,
       };
    }
 
    function handleMetroChange(nextMetroSlug: string) {
+      if (nextMetroSlug === selectedMetroSlug) {
+         return;
+      }
+
       const hadDayStops = dayStops.length > 0;
 
       setSelectedMetroSlug(nextMetroSlug);
@@ -1035,7 +1285,7 @@ export function SidewalkPlanner() {
 
       setSelectedLocalAreaId("");
 
-      clearAllGeneratedPlanning(true);
+      clearAllGeneratedPlanning(true, true);
 
       if (hadDayStops) {
          setDayPlanAnnouncement("Your day was cleared because the metro region changed.");
@@ -1049,7 +1299,7 @@ export function SidewalkPlanner() {
 
       setSelectedLocalAreaId("");
 
-      clearAllGeneratedPlanning(true);
+      clearAllGeneratedPlanning(true, true);
 
       if (hadDayStops) {
          setDayPlanAnnouncement("Your day was cleared because the municipality changed.");
@@ -1061,7 +1311,7 @@ export function SidewalkPlanner() {
 
       setSelectedLocalAreaId(nextLocalAreaId);
 
-      clearAllGeneratedPlanning(true);
+      clearAllGeneratedPlanning(true, true);
 
       if (hadDayStops) {
          setDayPlanAnnouncement("Your day was cleared because the neighborhood changed.");
@@ -1397,7 +1647,7 @@ export function SidewalkPlanner() {
    }
 
    function handleContinueFromPeriod(period: DayPeriod) {
-      const nextPeriod = getNextUnfilledPeriod(period, dayStops);
+      const nextPeriod = getNextUnfilledPeriod(period, dayStops, similarDayPeriods);
 
       if (!nextPeriod) {
          setIsDayTrayOpen(true);
@@ -1475,7 +1725,7 @@ export function SidewalkPlanner() {
    }
 
    function handleContinuePlanning() {
-      const unfilledPeriod = getFirstUnfilledPeriod(dayStops);
+      const unfilledPeriod = getFirstUnfilledPeriod(dayStops, similarDayPeriods);
 
       if (!unfilledPeriod) {
          return;
@@ -1487,6 +1737,103 @@ export function SidewalkPlanner() {
       setIsDayTrayOpen(false);
 
       setDayPlanAnnouncement(`${getPeriodLabel(unfilledPeriod)} is open if you would like to add one more stop.`);
+   }
+
+   async function handleCreateSharedDay() {
+      if (sharedDayCreationState.status === "loading") {
+         return;
+      }
+
+      if (sharedDayCreationState.status === "ready" && sharedDayCreationState.sourceKey === sharedDaySourceKey && sharedDayCreationState.shareUrl) {
+         setDayPlanAnnouncement("Your shared-day link is already ready.");
+
+         return;
+      }
+
+      if (!selectedMetro || !selectedMunicipality || !selectedLocalArea || dayStops.length < 2) {
+         setSharedDayCreationState({
+            status: "error",
+            sourceKey: sharedDaySourceKey,
+            shareUrl: null,
+            message: "Choose at least two stops before sharing this day.",
+         });
+
+         return;
+      }
+
+      const request = createSharedDayRequestFromPlan({
+         planningDate,
+
+         metroRegionId: selectedMetro.id,
+         municipalityId: selectedMunicipality.id,
+         localAreaId: selectedLocalArea.id,
+
+         stops: dayStops,
+      });
+
+      if (!request) {
+         setSharedDayCreationState({
+            status: "error",
+            sourceKey: sharedDaySourceKey,
+            shareUrl: null,
+            message: "Sidewalk could not prepare this day for sharing.",
+         });
+
+         setDayPlanAnnouncement("Sidewalk could not prepare this day for sharing.");
+
+         return;
+      }
+
+      shareRequestControllerReference.current?.abort();
+
+      const controller = new AbortController();
+
+      shareRequestControllerReference.current = controller;
+
+      setSharedDayCreationState({
+         status: "loading",
+         sourceKey: sharedDaySourceKey,
+         shareUrl: null,
+         message: "",
+      });
+
+      setDayPlanAnnouncement("Sidewalk is creating a read-only link for your day.");
+
+      try {
+         const response = await requestSharedDay(request, controller.signal);
+
+         if (controller.signal.aborted) {
+            return;
+         }
+
+         setSharedDayCreationState({
+            status: "ready",
+            sourceKey: sharedDaySourceKey,
+            shareUrl: response.shareUrl,
+            message: "",
+         });
+
+         setDayPlanAnnouncement("Your shared-day link is ready.");
+      } catch (error: unknown) {
+         if (error instanceof Error && error.name === "AbortError") {
+            return;
+         }
+
+         const message = error instanceof SharedDayRequestError ? error.message : "Sidewalk could not create a shareable day right now.";
+
+         setSharedDayCreationState({
+            status: "error",
+            sourceKey: sharedDaySourceKey,
+            shareUrl: null,
+            message,
+         });
+
+         setDayPlanAnnouncement(message);
+      } finally {
+         if (shareRequestControllerReference.current === controller) {
+            shareRequestControllerReference.current = null;
+         }
+      }
    }
 
    function handlePlanAnotherDay() {
@@ -1513,6 +1860,8 @@ export function SidewalkPlanner() {
       setDayStops([]);
 
       setIsDayTrayOpen(false);
+
+      setSimilarDayPeriods([]);
 
       setDayPlanAnnouncement("Sidewalk is preparing a new set of recommendations for the same area.");
    }
@@ -1547,7 +1896,7 @@ export function SidewalkPlanner() {
 
    return (
       <>
-         <SiteHeader metroRegions={activeMetroRegions} selectedMetroSlug={selectedMetro.slug} onMetroChange={handleMetroChange} />
+         <SiteHeader metroRegions={activeMetroRegions} selectedMetroSlug={selectedMetro.slug} recentMetroSlugs={recentMetroSlugs} onMetroChange={handleMetroChange} />
 
          <main id="main-content" className={mainClassName} tabIndex={-1}>
             <section className="planning-view" aria-labelledby="selected-metro-title">
@@ -1615,6 +1964,22 @@ export function SidewalkPlanner() {
 
                            <div className="planning-step__control">
                               <div className={plannerStyles.shell}>
+                                 {similarDayPeriods.length > 0 ? (
+                                    <aside className={plannerStyles.sharedShape} aria-labelledby="sidewalk-shared-shape-title">
+                                       <div>
+                                          <p className={plannerStyles.sharedShapeEyebrow}>Based on a shared day</p>
+
+                                          <h2 id="sidewalk-shared-shape-title" className={plannerStyles.sharedShapeTitle}>
+                                             Keep the rhythm. Choose your own places.
+                                          </h2>
+                                       </div>
+
+                                       <p className={plannerStyles.sharedShapePeriods}>{similarDayPeriodLabels}</p>
+
+                                       <p className={plannerStyles.sharedShapeDescription}>These time periods come first. Every recommendation is fresh, and the original stops were not copied.</p>
+                                    </aside>
+                                 ) : null}
+
                                  <p className={plannerStyles.progress} aria-live="polite">
                                     {planProgressCopy}
                                  </p>
@@ -1682,6 +2047,9 @@ export function SidewalkPlanner() {
                      planningDate={planningDate}
                      stops={dayStops}
                      isOpen={isDayTrayOpen}
+                     shareStatus={sharedDayCreationState.status}
+                     shareUrl={sharedDayCreationState.shareUrl}
+                     shareMessage={sharedDayCreationState.message}
                      onToggle={() => setIsDayTrayOpen((currentState) => !currentState)}
                      onDone={handleDoneEditingDay}
                      onRemove={handleRemoveStop}
@@ -1689,6 +2057,7 @@ export function SidewalkPlanner() {
                      onEditPeriod={handleEditPeriod}
                      onContinuePlanning={handleContinuePlanning}
                      onPlanAnotherDay={handlePlanAnotherDay}
+                     onCreateShare={() => void handleCreateSharedDay()}
                   />
                </div>
             </section>
