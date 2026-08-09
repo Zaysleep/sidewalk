@@ -341,9 +341,23 @@ export async function POST(request: Request) {
        * Local development will intentionally produce localhost links; those
        * are only usable on the machine running Sidewalk.
        */
-      const requestOrigin = new URL(request.url).origin;
+      const requestUrl = new URL(request.url);
 
-      const shareUrl = new URL(`/trip/${encodeURIComponent(token)}`, requestOrigin).toString();
+      const isLocalRequest = requestUrl.hostname === "localhost" || requestUrl.hostname === "127.0.0.1" || requestUrl.hostname === "[::1]";
+
+      /**
+       * Local development should keep producing localhost links so the
+       * complete share flow can be tested without a deployment.
+       *
+       * Deployed environments should point recipients at Sidewalk's canonical
+       * public URL instead of a Vercel preview deployment, which may be behind
+       * deployment protection and require a Vercel sign-in.
+       */
+      const configuredPublicUrl = process.env.SIDEWALK_PUBLIC_URL?.trim() || process.env.NEXT_PUBLIC_SITE_URL?.trim();
+
+      const shareOrigin = !isLocalRequest && configuredPublicUrl ? new URL(configuredPublicUrl).origin : requestUrl.origin;
+
+      const shareUrl = new URL(`/trip/${encodeURIComponent(token)}`, shareOrigin).toString();
 
       const responseBody: SharedTripCreateResponse = {
          token,
