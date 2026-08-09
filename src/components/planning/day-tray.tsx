@@ -500,7 +500,7 @@ export function DayTray({
 
       const shareData = {
          title: tripTitle ? `${tripTitle} · Sidewalk` : "A Sidewalk trip",
-         text: "Here’s a Sidewalk trip worth keeping.",
+         text: "Here’s a trip curated with Sidewalk.",
          url: tripShareUrl,
       };
 

@@ -6,7 +6,7 @@ import { localAreas } from "@/data/geography/local-areas";
 import { municipalities } from "@/data/geography/municipalities";
 import { metroRegions } from "@/data/metros/metro-regions";
 import { isSharedTripCreateRequest } from "@/lib/sharing/shared-trip-schema";
-import { createSharedTripToken, SharedTripConfigurationError } from "@/lib/sharing/shared-trip-token";
+import { saveSharedTripSnapshot, SharedTripStoreConfigurationError } from "@/lib/sharing/shared-trip-store";
 import { dayPeriods } from "@/types/day-period";
 import { sharedTripLimits, sharedTripSnapshotVersion, type SharedTripCreateResponse, type SharedTripDayCreateRequest, type SharedTripDaySnapshot, type SharedTripErrorCode, type SharedTripErrorResponse, type SharedTripSnapshot } from "@/types/shared-trip";
 
@@ -331,7 +331,7 @@ export async function POST(request: Request) {
    };
 
    try {
-      const token = createSharedTripToken(snapshot);
+      const token = await saveSharedTripSnapshot(snapshot);
 
       /**
        * Build the outgoing link from the host that actually received this
@@ -369,7 +369,7 @@ export async function POST(request: Request) {
          },
       });
    } catch (error: unknown) {
-      const isConfigurationError = error instanceof SharedTripConfigurationError;
+      const isConfigurationError = error instanceof SharedTripStoreConfigurationError;
 
       console.error("Sidewalk shared-trip request", {
          requestId,

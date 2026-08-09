@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SharedDayPhoto } from "@/components/sharing/shared-day-photo";
+import { isShortSharedTripToken, readSharedTripSnapshot } from "@/lib/sharing/shared-trip-store";
 import { verifySharedTripToken } from "@/lib/sharing/shared-trip-token";
 import { siteConfig } from "@/lib/site/site-config";
 import { dayPeriodDefinitions, dayPeriods, type DayPeriod } from "@/types/day-period";
@@ -32,19 +33,50 @@ type SharedTripReadResult =
         status: "invalid" | "expired" | "unavailable";
      }>;
 
-function readSharedTrip(token: string): SharedTripReadResult {
+async function readSharedTrip(token: string): Promise<SharedTripReadResult> {
    try {
-      const verification = verifySharedTripToken(token);
+      if (isShortSharedTripToken(token)) {
+         const storedTrip = await readSharedTripSnapshot(token);
 
-      if (!verification.ok) {
+         if (storedTrip.status === "ready") {
+            return {
+               status: "ready",
+               snapshot: storedTrip.snapshot,
+            };
+         }
+
+         if (storedTrip.status === "expired" || storedTrip.status === "missing") {
+            return {
+               status: "expired",
+            };
+         }
+
          return {
-            status: verification.reason,
+            status: "invalid",
+         };
+      }
+
+      /**
+       * Legacy t1 links remain readable so previously shared trips do not
+       * break when Sidewalk moves new shares to short server-backed IDs.
+       */
+      if (token.startsWith("t1.")) {
+         const verification = verifySharedTripToken(token);
+
+         if (!verification.ok) {
+            return {
+               status: verification.reason,
+            };
+         }
+
+         return {
+            status: "ready",
+            snapshot: verification.snapshot,
          };
       }
 
       return {
-         status: "ready",
-         snapshot: verification.snapshot,
+         status: "invalid",
       };
    } catch {
       return {
@@ -142,7 +174,7 @@ function createPageDescription(snapshot: SharedTripSnapshot): string {
 export async function generateMetadata({ params }: SharedTripPageProps): Promise<Metadata> {
    const { token } = await params;
 
-   const result = readSharedTrip(token);
+   const result = await readSharedTrip(token);
 
    const privateMetadata: Pick<Metadata, "robots" | "referrer"> = {
       robots: {
@@ -244,7 +276,7 @@ function SharedTripUnavailable({
 export default async function SharedTripPage({ params }: SharedTripPageProps) {
    const { token } = await params;
 
-   const result = readSharedTrip(token);
+   const result = await readSharedTrip(token);
 
    if (result.status !== "ready") {
       return <SharedTripUnavailable status={result.status} />;
