@@ -372,6 +372,20 @@ export function DayTray({
 
    const addTripDayLabel = currentDayNeedsTripSave ? (isComplete ? "Save & add another day" : "Finish this day first") : "Add another day";
 
+   const isLocalTripShare = (() => {
+      if (!tripShareUrl) {
+         return false;
+      }
+
+      try {
+         const hostname = new URL(tripShareUrl).hostname;
+
+         return hostname === "localhost" || hostname === "127.0.0.1";
+      } catch {
+         return false;
+      }
+   })();
+
    function preserveTrayScroll(action: () => void) {
       const currentScrollTop = trayContentReference.current?.scrollTop ?? 0;
 
@@ -476,6 +490,38 @@ export function DayTray({
          setTripCopyMessage("Trip link copied.");
       } catch {
          setTripCopyMessage("Sidewalk could not copy the trip link. Open the shared trip and copy it from the address bar.");
+      }
+   }
+
+   async function handleShareTripLink() {
+      if (!tripShareUrl) {
+         return;
+      }
+
+      const shareData = {
+         title: tripTitle ? `${tripTitle} · Sidewalk` : "A Sidewalk trip",
+         text: "Here’s a Sidewalk trip worth keeping.",
+         url: tripShareUrl,
+      };
+
+      try {
+         if (typeof navigator.share === "function") {
+            await navigator.share(shareData);
+
+            setTripCopyMessage("Trip shared.");
+
+            return;
+         }
+
+         await handleCopyTripLink();
+
+         setTripCopyMessage("Sharing isn’t available in this browser, so Sidewalk copied the trip link instead.");
+      } catch (error: unknown) {
+         if (error instanceof Error && error.name === "AbortError") {
+            return;
+         }
+
+         setTripCopyMessage("Sidewalk couldn’t open the share sheet. Copy the trip link instead.");
       }
    }
 
@@ -723,12 +769,16 @@ export function DayTray({
                                     <div className={styles.tripShareActions}>
                                        {tripShareStatus === "ready" && tripShareUrl ? (
                                           <>
+                                             <button type="button" className={styles.tripShareButton} onClick={() => void handleShareTripLink()}>
+                                                Share trip
+                                             </button>
+
                                              <button type="button" className={styles.tripShareButton} onClick={() => void handleCopyTripLink()}>
-                                                Copy trip link
+                                                Copy link
                                              </button>
 
                                              <a className={styles.tripShareLink} href={tripShareUrl} target="_blank" rel="noreferrer noopener" referrerPolicy="no-referrer">
-                                                View shared trip
+                                                View trip
                                              </a>
                                           </>
                                        ) : (
@@ -737,6 +787,10 @@ export function DayTray({
                                           </button>
                                        )}
                                     </div>
+                                 ) : null}
+
+                                 {isLocalTripShare ? (
+                                    <p className={styles.tripShareMessage}>This link was created on localhost, so it only works on this computer. Create the share link from the deployed Sidewalk site before sending it to someone else.</p>
                                  ) : null}
 
                                  {tripShareMessage ? (

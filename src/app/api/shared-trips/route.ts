@@ -7,7 +7,6 @@ import { municipalities } from "@/data/geography/municipalities";
 import { metroRegions } from "@/data/metros/metro-regions";
 import { isSharedTripCreateRequest } from "@/lib/sharing/shared-trip-schema";
 import { createSharedTripToken, SharedTripConfigurationError } from "@/lib/sharing/shared-trip-token";
-import { siteConfig } from "@/lib/site/site-config";
 import { dayPeriods } from "@/types/day-period";
 import { sharedTripLimits, sharedTripSnapshotVersion, type SharedTripCreateResponse, type SharedTripDayCreateRequest, type SharedTripDaySnapshot, type SharedTripErrorCode, type SharedTripErrorResponse, type SharedTripSnapshot } from "@/types/shared-trip";
 
@@ -334,7 +333,17 @@ export async function POST(request: Request) {
    try {
       const token = createSharedTripToken(snapshot);
 
-      const shareUrl = new URL(`/trip/${encodeURIComponent(token)}`, siteConfig.url).toString();
+      /**
+       * Build the outgoing link from the host that actually received this
+       * request. This keeps production, custom-domain, and preview links from
+       * accidentally inheriting a stale NEXT_PUBLIC_SITE_URL value.
+       *
+       * Local development will intentionally produce localhost links; those
+       * are only usable on the machine running Sidewalk.
+       */
+      const requestOrigin = new URL(request.url).origin;
+
+      const shareUrl = new URL(`/trip/${encodeURIComponent(token)}`, requestOrigin).toString();
 
       const responseBody: SharedTripCreateResponse = {
          token,
