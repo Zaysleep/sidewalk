@@ -38,21 +38,6 @@ export const metadata: Metadata = {
       canonical: "/",
    },
 
-   icons: {
-      icon: [
-         {
-            url: "/sidewalk-icon.png",
-            type: "image/png",
-         },
-         {
-            url: "/sidewalk-favicon.ico",
-            type: "image/x-icon",
-         },
-      ],
-      shortcut: "/sidewalk-favicon.ico",
-      apple: "/sidewalk-apple-icon.png",
-   },
-
    manifest: "/manifest.webmanifest",
 
    appleWebApp: {
@@ -88,6 +73,7 @@ export const metadata: Metadata = {
    robots: {
       index: true,
       follow: true,
+
       googleBot: {
          index: true,
          follow: true,
@@ -99,13 +85,5 @@ export const metadata: Metadata = {
 };
 
 export default function HomePage() {
-   return (
-      <>
-         <a className={styles.skipLink} href="#main-content">
-            Skip to main content
-         </a>
-
-         <SidewalkPlanner />
-      </>
-   );
+   return <SidewalkPlanner />;
 }

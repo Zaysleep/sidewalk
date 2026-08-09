@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import type { ChangeEvent } from "react";
 
 import type { MetroRegion } from "@/types/metro-region";
@@ -27,8 +28,7 @@ function getMetroRegionGroupLabel(metroRegion: MetroRegion): string {
 
 /**
  * Groups single-state metros by state and places cross-state regions in one
- * predictable Regional Metros section. Both groups and metro names remain
- * alphabetical.
+ * predictable Regional Metros section.
  */
 function groupMetroRegions(metroRegions: readonly MetroRegion[]): readonly MetroRegionGroup[] {
    const groupedRegions = new Map<string, MetroRegion[]>();
@@ -65,8 +65,8 @@ function groupMetroRegions(metroRegions: readonly MetroRegion[]): readonly Metro
 }
 
 /**
- * SiteHeader keeps the Sidewalk identity and metro switcher continuously
- * available without turning the expanded catalog into a browsing screen.
+ * SiteHeader keeps Sidewalk's identity and metro switcher continuously
+ * available without turning the metro catalog into a browsing screen.
  */
 export function SiteHeader({ metroRegions, selectedMetroSlug, recentMetroSlugs, onMetroChange }: SiteHeaderProps) {
    const metroRegionGroups = groupMetroRegions(metroRegions);
@@ -84,7 +84,8 @@ export function SiteHeader({ metroRegions, selectedMetroSlug, recentMetroSlugs, 
    return (
       <header className="site-header">
          <a className="site-header__brand-group" href="/" aria-label="Sidewalk home">
-            <span className="site-header__brand">Sidewalk</span>
+            <Image className="site-header__logo" src="/icon.png" alt="Sidewalk" width={512} height={512} priority />
+
             <span className="site-header__edition">A Kin city guide</span>
          </a>
 

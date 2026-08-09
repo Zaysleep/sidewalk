@@ -16,7 +16,7 @@ export function SiteFooter({ hasDayTray = false }: SiteFooterProps) {
    return (
       <footer className={className}>
          <p className="site-footer__brand">Sidewalk</p>
-         <p className="site-footer__credit">Built thoughtfully by Kin.</p>
+         <p className="site-footer__credit">© 2026 Sidewalk is operated by Kin Software LLC</p>
       </footer>
    );
 }
