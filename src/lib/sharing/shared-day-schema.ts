@@ -1,19 +1,35 @@
 import { dayPeriods, type DayPeriod } from "@/types/day-period";
 import type { DayStop } from "@/types/day-plan";
-import {
-   sharedDayLimits,
-   sharedDaySnapshotVersion,
-   type SharedDayCreateRequest,
-   type SharedDaySnapshot,
-   type SharedDayStop,
-} from "@/types/shared-day";
+import { sharedDayLimits, sharedDaySnapshotVersion, type SharedDayCreateRequest, type SharedDaySnapshot, type SharedDayStop } from "@/types/shared-day";
 
 const safeIdentifierPattern = /^[a-zA-Z0-9_-]+$/;
 
 const controlCharacterPattern = /[\u0000-\u001f\u007f]/;
 
+const googlePhotoResourceNamePattern = /^places\/[^/\\]+\/photos\/[^/\\]+$/;
+
+const requestKeys = ["planningDate", "metroRegionId", "municipalityId", "localAreaId", "stops"] as const;
+
+const snapshotKeys = ["version", "createdAt", "expiresAt", "planningDate", "geography", "stops"] as const;
+
+const geographyKeys = ["metroRegionId", "metroSlug", "metroName", "stateOrRegion", "municipalityId", "municipalityName", "localAreaId", "localAreaName"] as const;
+
+const stopKeys = ["dayPeriod", "bestWindow", "placeId", "placeName", "summary", "reason", "visitDurationMinutes", "locationUrl", "photoResourceName"] as const;
+
+const durationKeys = ["minimum", "maximum"] as const;
+
 function isRecord(value: unknown): value is Record<string, unknown> {
    return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function hasOnlyKeys(record: Record<string, unknown>, allowedKeys: readonly string[]): boolean {
+   const allowedKeySet = new Set(allowedKeys);
+
+   return Object.keys(record).every((key) => allowedKeySet.has(key));
+}
+
+function hasExactlyKeys(record: Record<string, unknown>, expectedKeys: readonly string[]): boolean {
+   return hasOnlyKeys(record, expectedKeys) && expectedKeys.every((key) => Object.prototype.hasOwnProperty.call(record, key));
 }
 
 function isDayPeriod(value: unknown): value is DayPeriod {
@@ -21,23 +37,11 @@ function isDayPeriod(value: unknown): value is DayPeriod {
 }
 
 function isSafeIdentifier(value: unknown): value is string {
-   return (
-      typeof value === "string" &&
-      value.length > 0 &&
-      value.length <= sharedDayLimits.maximumIdentifierLength &&
-      value.trim() === value &&
-      safeIdentifierPattern.test(value)
-   );
+   return typeof value === "string" && value.length > 0 && value.length <= sharedDayLimits.maximumIdentifierLength && value.trim() === value && safeIdentifierPattern.test(value);
 }
 
 function isSafeText(value: unknown, maximumLength: number, allowEmpty = false): value is string {
-   return (
-      typeof value === "string" &&
-      value.length <= maximumLength &&
-      (allowEmpty || value.length > 0) &&
-      value.trim() === value &&
-      !controlCharacterPattern.test(value)
-   );
+   return typeof value === "string" && value.length <= maximumLength && (allowEmpty || value.length > 0) && value.trim() === value && !controlCharacterPattern.test(value);
 }
 
 function isPlanningDate(value: unknown): value is string {
@@ -67,7 +71,7 @@ function isIsoTimestamp(value: unknown): value is string {
 }
 
 function isVisitDuration(value: unknown): value is SharedDayStop["visitDurationMinutes"] {
-   if (!isRecord(value)) {
+   if (!isRecord(value) || !hasExactlyKeys(value, durationKeys)) {
       return false;
    }
 
@@ -88,25 +92,25 @@ function isNullableLocationUrl(value: unknown): value is string | null {
       return true;
    }
 
-   if (typeof value !== "string" || value.length === 0 || value.length > sharedDayLimits.maximumLocationUrlLength || value.trim() !== value) {
+   if (typeof value !== "string" || value.length === 0 || value.length > sharedDayLimits.maximumLocationUrlLength || value.trim() !== value || controlCharacterPattern.test(value)) {
       return false;
    }
 
    try {
       const url = new URL(value);
 
-      return url.protocol === "https:" || url.protocol === "http:";
+      return (url.protocol === "https:" || url.protocol === "http:") && url.hostname.length > 0 && url.username.length === 0 && url.password.length === 0;
    } catch {
       return false;
    }
 }
 
 function isNullablePhotoResourceName(value: unknown): value is string | null {
-   return value === null || isSafeText(value, sharedDayLimits.maximumPhotoResourceNameLength);
+   return value === null || (isSafeText(value, sharedDayLimits.maximumPhotoResourceNameLength) && googlePhotoResourceNamePattern.test(value) && !value.includes(".."));
 }
 
 export function isSharedDayStop(value: unknown): value is SharedDayStop {
-   if (!isRecord(value)) {
+   if (!isRecord(value) || !hasExactlyKeys(value, stopKeys)) {
       return false;
    }
 
@@ -136,22 +140,27 @@ function hasValidStopCollection(stops: readonly SharedDayStop[]): boolean {
 }
 
 export function isSharedDayCreateRequest(value: unknown): value is SharedDayCreateRequest {
-   if (!isRecord(value) || !Array.isArray(value.stops)) {
+   if (!isRecord(value) || !hasExactlyKeys(value, requestKeys) || !Array.isArray(value.stops)) {
       return false;
    }
 
-   return (
-      isPlanningDate(value.planningDate) &&
-      isSafeIdentifier(value.metroRegionId) &&
-      isSafeIdentifier(value.municipalityId) &&
-      isSafeIdentifier(value.localAreaId) &&
-      value.stops.every(isSharedDayStop) &&
-      hasValidStopCollection(value.stops)
-   );
+   return isPlanningDate(value.planningDate) && isSafeIdentifier(value.metroRegionId) && isSafeIdentifier(value.municipalityId) && isSafeIdentifier(value.localAreaId) && value.stops.every(isSharedDayStop) && hasValidStopCollection(value.stops);
+}
+
+function hasValidSnapshotLifetime(createdAt: string, expiresAt: string): boolean {
+   const createdAtTimestamp = Date.parse(createdAt);
+
+   const expiresAtTimestamp = Date.parse(expiresAt);
+
+   const clockSkewMilliseconds = sharedDayLimits.maximumClockSkewMinutes * 60 * 1_000;
+
+   const maximumLifetimeMilliseconds = sharedDayLimits.expirationDays * 24 * 60 * 60 * 1_000 + clockSkewMilliseconds;
+
+   return createdAtTimestamp <= Date.now() + clockSkewMilliseconds && expiresAtTimestamp > createdAtTimestamp && expiresAtTimestamp - createdAtTimestamp <= maximumLifetimeMilliseconds;
 }
 
 export function isSharedDaySnapshot(value: unknown): value is SharedDaySnapshot {
-   if (!isRecord(value) || value.version !== sharedDaySnapshotVersion || !isRecord(value.geography) || !Array.isArray(value.stops)) {
+   if (!isRecord(value) || !hasExactlyKeys(value, snapshotKeys) || value.version !== sharedDaySnapshotVersion || !isRecord(value.geography) || !hasExactlyKeys(value.geography, geographyKeys) || !Array.isArray(value.stops)) {
       return false;
    }
 
@@ -160,7 +169,7 @@ export function isSharedDaySnapshot(value: unknown): value is SharedDaySnapshot 
    if (
       !isIsoTimestamp(value.createdAt) ||
       !isIsoTimestamp(value.expiresAt) ||
-      Date.parse(value.expiresAt) <= Date.parse(value.createdAt) ||
+      !hasValidSnapshotLifetime(value.createdAt, value.expiresAt) ||
       !isPlanningDate(value.planningDate) ||
       !isSafeIdentifier(geography.metroRegionId) ||
       !isSafeIdentifier(geography.metroSlug) ||

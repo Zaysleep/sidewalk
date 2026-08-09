@@ -139,6 +139,60 @@
    line-height: var(--sw-leading-body);
 }
 
+.feedback {
+   display: grid;
+   gap: var(--sw-space-3);
+   padding: var(--sw-space-4);
+   border-left: var(--sw-border-strong-width) solid var(--sw-color-mustard);
+   background: var(--sw-color-paper);
+}
+
+.feedbackCopy {
+   display: grid;
+   gap: var(--sw-space-1);
+}
+
+.feedbackLabel {
+   color: var(--sw-color-text-primary);
+   font-size: var(--sw-text-sm);
+   font-weight: 800;
+}
+
+.feedbackDescription {
+   max-width: 38rem;
+   color: var(--sw-color-text-secondary);
+   font-size: var(--sw-text-sm);
+   line-height: 1.55;
+}
+
+.feedbackActions {
+   display: flex;
+   flex-wrap: wrap;
+   gap: var(--sw-space-2);
+}
+
+.feedbackButton {
+   min-height: var(--sw-touch-target);
+   padding: var(--sw-space-2) var(--sw-space-3);
+   border: var(--sw-border-width) solid var(--sw-color-border);
+   border-radius: var(--sw-radius-sm);
+   background: transparent;
+   color: var(--sw-color-text-primary);
+   font-size: var(--sw-text-sm);
+   font-weight: 750;
+   cursor: pointer;
+}
+
+.feedbackButton:hover {
+   border-color: var(--sw-color-olive);
+   background: var(--sw-color-warm-white);
+}
+
+.feedbackButton:focus-visible {
+   outline: 0.1875rem solid var(--sw-color-focus);
+   outline-offset: 0.2rem;
+}
+
 .actions {
    display: flex;
    flex-wrap: wrap;
@@ -199,7 +253,8 @@
 }
 
 .primaryAction:focus-visible,
-.secondaryAction:focus-visible {
+.secondaryAction:focus-visible,
+.feedbackButton:focus-visible {
    outline: 0.1875rem solid var(--sw-color-focus);
    outline-offset: 0.2rem;
 }

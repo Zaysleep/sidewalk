@@ -12,23 +12,23 @@ type ActivityDirectionOption = Readonly<{
 const activityOptions = [
    {
       value: "outdoors",
-      label: "Get outside",
+      label: "Get Outside",
    },
    {
       value: "culture",
-      label: "See something",
+      label: "Culture & Nightlife",
    },
    {
       value: "browse",
-      label: "Browse somewhere",
+      label: "Shop & Browse",
    },
    {
       value: "food",
-      label: "Eat somewhere",
+      label: "Food & Drink",
    },
    {
       value: "sidewalk-choice",
-      label: "Let Sidewalk choose",
+      label: "Let Sidewalk Choose",
    },
 ] satisfies readonly ActivityDirectionOption[];
 

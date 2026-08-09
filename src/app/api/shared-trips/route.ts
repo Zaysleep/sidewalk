@@ -5,17 +5,17 @@ import { NextResponse } from "next/server";
 import { localAreas } from "@/data/geography/local-areas";
 import { municipalities } from "@/data/geography/municipalities";
 import { metroRegions } from "@/data/metros/metro-regions";
-import { isSharedDayCreateRequest } from "@/lib/sharing/shared-day-schema";
-import { createSharedDayToken, SharedDayConfigurationError } from "@/lib/sharing/shared-day-token";
+import { isSharedTripCreateRequest } from "@/lib/sharing/shared-trip-schema";
+import { createSharedTripToken, SharedTripConfigurationError } from "@/lib/sharing/shared-trip-token";
 import { siteConfig } from "@/lib/site/site-config";
 import { dayPeriods } from "@/types/day-period";
-import { sharedDayLimits, sharedDaySnapshotVersion, type SharedDayCreateResponse, type SharedDayErrorCode, type SharedDayErrorResponse, type SharedDaySnapshot } from "@/types/shared-day";
+import { sharedTripLimits, sharedTripSnapshotVersion, type SharedTripCreateResponse, type SharedTripDayCreateRequest, type SharedTripDaySnapshot, type SharedTripErrorCode, type SharedTripErrorResponse, type SharedTripSnapshot } from "@/types/shared-trip";
 
 export const runtime = "nodejs";
 
 export const maxDuration = 10;
 
-const rateLimitWindowMilliseconds = 10 * 60 * 1000;
+const rateLimitWindowMilliseconds = 10 * 60 * 1_000;
 
 const maximumRequestsPerWindow = 12;
 
@@ -36,9 +36,7 @@ type RateLimitEntry = {
 const rateLimitEntries = new Map<string, RateLimitEntry>();
 
 function getClientAddress(request: Request): string {
-   const forwardedFor = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-
-   return forwardedFor || request.headers.get("x-real-ip")?.trim() || "unknown";
+   return request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || request.headers.get("x-real-ip")?.trim() || "unknown";
 }
 
 function getRateLimitKey(request: Request): string {
@@ -111,9 +109,9 @@ function parsePlanningDate(value: string): number | null {
 
    const timestamp = Date.UTC(year, month - 1, day);
 
-   const parsedDate = new Date(timestamp);
+   const date = new Date(timestamp);
 
-   if (parsedDate.getUTCFullYear() !== year || parsedDate.getUTCMonth() !== month - 1 || parsedDate.getUTCDate() !== day) {
+   if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) {
       return null;
    }
 
@@ -133,7 +131,7 @@ function isPlanningDateInSupportedRange(value: string): boolean {
 
    const minimumDate = utcToday - 24 * 60 * 60 * 1_000;
 
-   const maximumDate = utcToday + sharedDayLimits.maximumPlanningDaysAhead * 24 * 60 * 60 * 1_000;
+   const maximumDate = utcToday + 366 * 24 * 60 * 60 * 1_000;
 
    return timestamp >= minimumDate && timestamp <= maximumDate;
 }
@@ -164,8 +162,8 @@ function isTrustedRequestOrigin(request: Request): boolean {
    }
 }
 
-function errorResponse(error: string, status: number, code: SharedDayErrorCode, requestId: string, retryable = false, additionalHeaders: Readonly<Record<string, string>> = {}) {
-   const body: SharedDayErrorResponse = {
+function errorResponse(error: string, status: number, code: SharedTripErrorCode, requestId: string, retryable = false, additionalHeaders: Readonly<Record<string, string>> = {}) {
+   const body: SharedTripErrorResponse = {
       error,
       code,
       requestId,
@@ -198,11 +196,11 @@ async function readRequestBody(request: Request): Promise<
    if (contentLengthHeader) {
       const contentLength = Number(contentLengthHeader);
 
-      if (Number.isFinite(contentLength) && contentLength > sharedDayLimits.maximumRequestBodyBytes) {
+      if (Number.isFinite(contentLength) && contentLength > sharedTripLimits.maximumRequestBodyBytes) {
          return {
             ok: false,
             status: 413,
-            message: "The sharing request is too large.",
+            message: "The trip-sharing request is too large.",
             code: "REQUEST_TOO_LARGE",
          };
       }
@@ -210,11 +208,11 @@ async function readRequestBody(request: Request): Promise<
 
    const rawBody = await request.text();
 
-   if (new TextEncoder().encode(rawBody).byteLength > sharedDayLimits.maximumRequestBodyBytes) {
+   if (new TextEncoder().encode(rawBody).byteLength > sharedTripLimits.maximumRequestBodyBytes) {
       return {
          ok: false,
          status: 413,
-         message: "The sharing request is too large.",
+         message: "The trip-sharing request is too large.",
          code: "REQUEST_TOO_LARGE",
       };
    }
@@ -228,21 +226,62 @@ async function readRequestBody(request: Request): Promise<
       return {
          ok: false,
          status: 400,
-         message: "The sharing request was not valid JSON.",
+         message: "The trip-sharing request was not valid JSON.",
          code: "INVALID_JSON",
       };
    }
+}
+
+function resolveTripDay(day: SharedTripDayCreateRequest): SharedTripDaySnapshot | null {
+   const metroRegion = metroRegions.find((candidate) => candidate.id === day.metroRegionId) ?? null;
+
+   const municipality = municipalities.find((candidate) => candidate.id === day.municipalityId) ?? null;
+
+   const localArea = localAreas.find((candidate) => candidate.id === day.localAreaId) ?? null;
+
+   if (!metroRegion || !municipality || !localArea || !metroRegion.isActive || metroRegion.coverageStatus !== "active") {
+      return null;
+   }
+
+   if (municipality.metroRegionId !== metroRegion.id || localArea.municipalityId !== municipality.id) {
+      return null;
+   }
+
+   const orderedStops = dayPeriods.flatMap((period) => {
+      const stop = day.stops.find((candidate) => candidate.dayPeriod === period);
+
+      return stop ? [stop] : [];
+   });
+
+   return {
+      planningDate: day.planningDate,
+
+      geography: {
+         metroRegionId: metroRegion.id,
+         metroSlug: metroRegion.slug,
+         metroName: metroRegion.name,
+         stateOrRegion: metroRegion.stateOrRegion,
+
+         municipalityId: municipality.id,
+         municipalityName: municipality.name,
+
+         localAreaId: localArea.id,
+         localAreaName: localArea.name,
+      },
+
+      stops: orderedStops,
+   };
 }
 
 export async function POST(request: Request) {
    const requestId = randomUUID().slice(0, 12);
 
    if (!isTrustedRequestOrigin(request)) {
-      return errorResponse("Sidewalk rejected a cross-site sharing request.", 403, "REQUEST_ORIGIN_REJECTED", requestId);
+      return errorResponse("Sidewalk rejected a cross-site trip-sharing request.", 403, "REQUEST_ORIGIN_REJECTED", requestId);
    }
 
    if (!isJsonContentType(request)) {
-      return errorResponse("The sharing request must use JSON.", 415, "UNSUPPORTED_MEDIA_TYPE", requestId);
+      return errorResponse("The trip-sharing request must use JSON.", 415, "UNSUPPORTED_MEDIA_TYPE", requestId);
    }
 
    const rateLimit = consumeRateLimit(request);
@@ -261,83 +300,53 @@ export async function POST(request: Request) {
       return errorResponse(parsedBody.message, parsedBody.status, parsedBody.code, requestId);
    }
 
-   if (!isSharedDayCreateRequest(parsedBody.value)) {
-      return errorResponse("The shared-day request is incomplete.", 400, "INVALID_REQUEST", requestId);
+   if (!isSharedTripCreateRequest(parsedBody.value)) {
+      return errorResponse("The shared-trip request is incomplete.", 400, "INVALID_REQUEST", requestId);
    }
 
-   /**
-    * Capture the validated request in a local constant so the narrowing stays
-    * intact inside Array callbacks.
-    */
    const body = parsedBody.value;
 
-   if (!isPlanningDateInSupportedRange(body.planningDate)) {
-      return errorResponse("The planning date is outside Sidewalk’s supported range.", 400, "INVALID_DATE", requestId);
+   if (body.days.some((day) => !isPlanningDateInSupportedRange(day.planningDate))) {
+      return errorResponse("One or more trip dates are outside Sidewalk’s supported range.", 400, "INVALID_DATE", requestId);
    }
 
-   const metroRegion = metroRegions.find((candidate) => candidate.id === body.metroRegionId) ?? null;
+   const resolvedDays = body.days.map((day) => resolveTripDay(day));
 
-   const municipality = municipalities.find((candidate) => candidate.id === body.municipalityId) ?? null;
-
-   const localArea = localAreas.find((candidate) => candidate.id === body.localAreaId) ?? null;
-
-   if (!metroRegion || !municipality || !localArea || !metroRegion.isActive || metroRegion.coverageStatus !== "active") {
-      return errorResponse("The selected geography could not be found.", 404, "INVALID_GEOGRAPHY", requestId);
-   }
-
-   if (municipality.metroRegionId !== metroRegion.id || localArea.municipalityId !== municipality.id) {
-      return errorResponse("The selected geography is inconsistent.", 400, "INVALID_GEOGRAPHY", requestId);
+   if (resolvedDays.some((day) => day === null)) {
+      return errorResponse("One or more trip areas could not be found.", 404, "INVALID_GEOGRAPHY", requestId);
    }
 
    const createdAt = new Date();
 
-   const expiresAt = new Date(createdAt.getTime() + sharedDayLimits.expirationDays * 24 * 60 * 60 * 1_000);
+   const expiresAt = new Date(createdAt.getTime() + sharedTripLimits.expirationDays * 24 * 60 * 60 * 1_000);
 
-   const orderedStops = dayPeriods.flatMap((period) => {
-      const stop = body.stops.find((candidate) => candidate.dayPeriod === period);
-
-      return stop ? [stop] : [];
-   });
-
-   const snapshot: SharedDaySnapshot = {
-      version: sharedDaySnapshotVersion,
+   const snapshot: SharedTripSnapshot = {
+      version: sharedTripSnapshotVersion,
 
       createdAt: createdAt.toISOString(),
       expiresAt: expiresAt.toISOString(),
 
-      planningDate: body.planningDate,
+      title: body.title,
 
-      geography: {
-         metroRegionId: metroRegion.id,
-         metroSlug: metroRegion.slug,
-         metroName: metroRegion.name,
-         stateOrRegion: metroRegion.stateOrRegion,
-
-         municipalityId: municipality.id,
-         municipalityName: municipality.name,
-
-         localAreaId: localArea.id,
-         localAreaName: localArea.name,
-      },
-
-      stops: orderedStops,
+      days: resolvedDays as readonly SharedTripDaySnapshot[],
    };
 
    try {
-      const token = createSharedDayToken(snapshot);
+      const token = createSharedTripToken(snapshot);
 
-      const shareUrl = new URL(`/day/${encodeURIComponent(token)}`, siteConfig.url).toString();
+      const shareUrl = new URL(`/trip/${encodeURIComponent(token)}`, siteConfig.url).toString();
 
-      const responseBody: SharedDayCreateResponse = {
+      const responseBody: SharedTripCreateResponse = {
          token,
          shareUrl,
          expiresAt: snapshot.expiresAt,
       };
 
-      console.info("Sidewalk shared-day request", {
+      console.info("Sidewalk shared-trip request", {
          requestId,
          stage: "complete",
-         stopCount: snapshot.stops.length,
+         dayCount: snapshot.days.length,
+         stopCount: snapshot.days.reduce((total, day) => total + day.stops.length, 0),
          expiresAt: snapshot.expiresAt,
       });
 
@@ -351,16 +360,16 @@ export async function POST(request: Request) {
          },
       });
    } catch (error: unknown) {
-      const isConfigurationError = error instanceof SharedDayConfigurationError;
+      const isConfigurationError = error instanceof SharedTripConfigurationError;
 
-      console.error("Sidewalk shared-day request", {
+      console.error("Sidewalk shared-trip request", {
          requestId,
          stage: "failed",
          errorName: error instanceof Error ? error.name : "UnknownError",
       });
 
       return errorResponse(
-         isConfigurationError ? "Sidewalk sharing is not configured yet." : "Sidewalk could not create a shareable day right now.",
+         isConfigurationError ? "Sidewalk sharing is not configured yet." : "Sidewalk could not create a shareable trip right now.",
          500,
          isConfigurationError ? "SHARE_CONFIGURATION_ERROR" : "SHARE_CREATION_ERROR",
          requestId,

@@ -43,6 +43,17 @@ type OpeningInterval = Readonly<{
    endMinuteOfWeek: number;
 }>;
 
+type AvailabilityConfidence = "current" | "regular" | "unknown";
+
+type PeriodAvailabilityAnalysis = Readonly<{
+   availability: ProviderPeriodAvailability;
+
+   confidence: AvailabilityConfidence;
+
+   overlapMinutes: number | null;
+   coverageRatio: number | null;
+}>;
+
 type GooglePlace = Readonly<{
    id?: string;
 
@@ -160,6 +171,183 @@ const recommendationCacheDurationMilliseconds = 6 * 60 * 60 * 1000;
 const areaCenterCacheDurationMilliseconds = 7 * 24 * 60 * 60 * 1000;
 
 const googlePlacesRequestTimeoutMilliseconds = 8_000;
+
+/**
+ * L1A calibration keeps "worth someone's time" ahead of raw provider rank.
+ *
+ * These are intentionally soft editorial preferences rather than hard market
+ * assumptions. Sparse neighborhoods can still fall back to a broader pool.
+ */
+const recommendationQualityCalibration = {
+   minimumReliableRatingCount: 15,
+   strongerReliableRatingCount: 50,
+
+   minimumReliableRating: 3.5,
+   minimumStrongerReliableRating: 3.8,
+
+   sidewalkChoiceStrongScore: 66,
+   directedChoiceStrongScore: 76,
+
+   maximumSeedVariationBonus: 4,
+   nationalChainPenalty: 14,
+} as const;
+
+/**
+ * L1B treats a good Sidewalk day as a sequence of complementary experiences,
+ * not five individually-good stops that all feel the same.
+ *
+ * These adjustments apply only to Sidewalk Choice. When someone explicitly
+ * asks for Food, Browse, Culture, or Outdoors, their direction remains the
+ * authority.
+ */
+const dayVarietyCalibration = {
+   unseenActivityBonus: 11,
+   broadDayBonus: 3,
+
+   repeatedActivityBasePenalty: 6,
+   repeatedActivityStepPenalty: 5,
+   maximumRepeatedActivityPenalty: 18,
+
+   consecutiveRepeatPenalty: 8,
+   adjacentDifferentActivityBonus: 3,
+
+   saturatedActivityPenalty: 4,
+} as const;
+
+/**
+ * L1C catches recommendations that technically match a provider query but do
+ * not make much sense for the selected activity or time of day.
+ *
+ * The penalties remain soft. Sidewalk can still use a less-perfect candidate
+ * in a sparse market instead of returning an empty recommendation set.
+ */
+const contextFitCalibration = {
+   preferredTypeBonus: 7,
+   preferredPrimaryTypeBonus: 3,
+
+   discouragedTypePenalty: 10,
+   discouragedPrimaryTypePenalty: 4,
+
+   activityPrimaryMatchBonus: 4,
+   activityPrimaryMismatchPenalty: 9,
+   genericOnlyPenalty: 5,
+
+   lowIntentPrimaryTypePenalty: 14,
+} as const;
+
+/**
+ * Provider types that often surface because they are nearby businesses, not
+ * because they are worthwhile Sidewalk experiences.
+ *
+ * This is a scoring penalty rather than a hard block so an unusual local place
+ * can still survive when the rest of its signals are exceptionally strong.
+ */
+const lowIntentPrimaryTypes = new Set([
+   "apartment_building",
+   "atm",
+   "bank",
+   "beauty_salon",
+   "car_dealer",
+   "car_rental",
+   "car_repair",
+   "car_wash",
+   "convenience_store",
+   "dentist",
+   "doctor",
+   "electrician",
+   "gas_station",
+   "grocery_store",
+   "gym",
+   "hair_salon",
+   "hospital",
+   "hotel",
+   "insurance_agency",
+   "laundry",
+   "lodging",
+   "motel",
+   "moving_company",
+   "nail_salon",
+   "parking",
+   "pharmacy",
+   "plumber",
+   "real_estate_agency",
+   "storage",
+   "supermarket",
+]);
+
+const preferredTypesByPeriod: Readonly<Record<DayPeriod, Readonly<Record<ActivityKind, readonly string[]>>>> = {
+   "early-morning": {
+      outdoors: ["park", "national_park", "state_park", "hiking_area", "botanical_garden"],
+      food: ["breakfast_restaurant", "bakery", "coffee_shop", "cafe"],
+      browse: ["market"],
+      culture: ["historical_landmark", "botanical_garden"],
+   },
+
+   morning: {
+      outdoors: ["park", "national_park", "state_park", "hiking_area", "botanical_garden"],
+      food: ["breakfast_restaurant", "brunch_restaurant", "bakery", "coffee_shop", "cafe"],
+      browse: ["book_store", "market", "record_store"],
+      culture: ["museum", "art_museum", "art_gallery", "library", "historical_landmark"],
+   },
+
+   afternoon: {
+      outdoors: ["park", "national_park", "state_park", "hiking_area", "botanical_garden"],
+      food: ["restaurant", "cafe", "bakery"],
+      browse: ["book_store", "record_store", "market", "gift_shop", "clothing_store", "home_goods_store"],
+      culture: ["museum", "art_museum", "art_gallery", "library", "historical_landmark", "cultural_center"],
+   },
+
+   evening: {
+      outdoors: ["park", "tourist_attraction"],
+      food: ["restaurant", "dessert_shop"],
+      browse: ["market", "record_store", "video_arcade"],
+      culture: ["performing_arts_theater", "concert_hall", "comedy_club", "event_venue", "bar", "night_club"],
+   },
+
+   night: {
+      outdoors: ["tourist_attraction"],
+      food: ["restaurant", "dessert_shop"],
+      browse: ["video_arcade", "market", "record_store"],
+      culture: ["bar", "night_club", "comedy_club", "concert_hall", "event_venue", "performing_arts_theater"],
+   },
+};
+
+const discouragedTypesByPeriod: Readonly<Record<DayPeriod, Readonly<Record<ActivityKind, readonly string[]>>>> = {
+   "early-morning": {
+      outdoors: ["event_venue"],
+      food: ["dessert_shop", "bar", "night_club"],
+      browse: ["shopping_mall", "video_arcade", "clothing_store", "home_goods_store", "record_store"],
+      culture: ["bar", "night_club", "comedy_club", "concert_hall", "performing_arts_theater", "event_venue"],
+   },
+
+   morning: {
+      outdoors: ["event_venue"],
+      food: ["bar", "night_club", "dessert_shop"],
+      browse: ["video_arcade"],
+      culture: ["bar", "night_club", "comedy_club", "concert_hall", "event_venue"],
+   },
+
+   afternoon: {
+      outdoors: [],
+      food: ["breakfast_restaurant", "brunch_restaurant"],
+      browse: [],
+      culture: ["night_club"],
+   },
+
+   evening: {
+      outdoors: ["hiking_area", "national_park", "state_park"],
+      food: ["breakfast_restaurant", "brunch_restaurant"],
+      browse: [],
+      culture: ["library"],
+   },
+
+   night: {
+      outdoors: ["hiking_area", "national_park", "state_park", "botanical_garden"],
+      food: ["breakfast_restaurant", "brunch_restaurant", "bakery", "coffee_shop"],
+      browse: ["shopping_mall", "home_goods_store", "gift_shop"],
+      culture: ["museum", "art_museum", "art_gallery", "library"],
+   },
+};
 
 function pruneExpiringCache<T>(
    cache: Map<
@@ -406,6 +594,53 @@ const typeSignals: Readonly<Record<ActivityKind, readonly string[]>> = {
    food: ["restaurant", "cafe", "bakery", "food_court", "meal_takeaway", "coffee_shop", "dessert_shop"],
 };
 
+/**
+ * A short editorial list used only as a soft scoring penalty.
+ *
+ * Sidewalk can still return one of these places when a neighborhood is sparse;
+ * they simply should not outrank a comparable local option by default.
+ */
+const nationalChainBrandKeys = new Set([
+   "applebees",
+   "applebees grill bar",
+   "barnes noble",
+   "burger king",
+   "chick fil a",
+   "chilis",
+   "chilis grill bar",
+   "chipotle mexican grill",
+   "costco",
+   "costco wholesale",
+   "dennys",
+   "dunkin",
+   "gap",
+   "h m",
+   "ihop",
+   "jack in the box",
+   "mcdonalds",
+   "olive garden",
+   "olive garden italian restaurant",
+   "old navy",
+   "panera bread",
+   "ross dress for less",
+   "starbucks",
+   "subway",
+   "taco bell",
+   "target",
+   "the cheesecake factory",
+   "tj maxx",
+   "walmart",
+   "wendys",
+   "zara",
+]);
+
+/**
+ * These provider types are useful but broad. A place that only matches one of
+ * them receives less editorial confidence than a candidate with a more
+ * specific activity signal.
+ */
+const genericActivityTypes = new Set(["event_venue", "food_court", "meal_takeaway", "restaurant", "shopping_mall", "store", "tourist_attraction"]);
+
 const categoryByActivity: Readonly<Record<ActivityKind, PlaceCategory>> = {
    outdoors: "parks-outdoors",
    culture: "culture",
@@ -486,6 +721,56 @@ const periodWindowByDayPeriod: Readonly<
       endMinute: 26 * 60,
    },
 };
+
+/**
+ * L2A rejects a place that is technically open during a period but not open
+ * long enough to support a worthwhile visit.
+ *
+ * These are deliberately conservative minimums. Unknown hours remain eligible
+ * because Sidewalk should not invent a closure when the provider has no data.
+ */
+const minimumUsefulOpenMinutesByPeriod: Readonly<Record<DayPeriod, number>> = {
+   "early-morning": 45,
+   morning: 45,
+   afternoon: 45,
+   evening: 60,
+   night: 60,
+};
+
+const minimumUsefulOpenMinutesByActivity: Readonly<Record<ActivityKind, number>> = {
+   outdoors: 45,
+   food: 45,
+   browse: 45,
+   culture: 60,
+};
+
+function getMinimumUsefulOpenMinutes(dayPeriod: DayPeriod, activity: ActivityKind): number {
+   return Math.max(minimumUsefulOpenMinutesByPeriod[dayPeriod], minimumUsefulOpenMinutesByActivity[activity]);
+}
+
+/**
+ * L3 route sanity stays deliberately lightweight. Sidewalk is not a
+ * navigation product; it simply avoids assembling a day that unnecessarily
+ * jumps across town or immediately doubles back.
+ */
+const routeSanityCalibration = {
+   veryCloseMeters: 1_500,
+   nearbyMeters: 3_000,
+   comfortableMeters: 5_000,
+   longLegMeters: 8_000,
+   excessiveLegMeters: 12_000,
+
+   veryCloseBonus: 10,
+   nearbyBonus: 7,
+   comfortableBonus: 3,
+   longLegPenalty: 4,
+   excessiveLegPenalty: 10,
+   extremeLegPenalty: 16,
+
+   backtrackReturnMeters: 1_500,
+   previousLegMinimumMeters: 2_500,
+   backtrackPenalty: 7,
+} as const;
 
 function getApiKey(): string {
    const apiKey = process.env.GOOGLE_PLACES_API_KEY;
@@ -625,6 +910,7 @@ function getOpeningHoursSource(
 ): Readonly<{
    hours: GoogleOpeningHours;
    source: "current-hours" | "regular-hours";
+   confidence: Exclude<AvailabilityConfidence, "unknown">;
 }> | null {
    const isTodayAtPlace = planningDate === getPlaceLocalIsoDate(place.utcOffsetMinutes);
 
@@ -632,6 +918,7 @@ function getOpeningHoursSource(
       return {
          hours: place.currentOpeningHours,
          source: "current-hours",
+         confidence: "current",
       };
    }
 
@@ -639,22 +926,28 @@ function getOpeningHoursSource(
       return {
          hours: place.regularOpeningHours,
          source: "regular-hours",
+         confidence: "regular",
       };
    }
 
    return null;
 }
 
-function calculatePeriodAvailability(place: GooglePlace, dayPeriod: DayPeriod, planningDate: string): ProviderPeriodAvailability {
+function analyzePeriodAvailability(place: GooglePlace, dayPeriod: DayPeriod, planningDate: string): PeriodAvailabilityAnalysis {
    const openingHoursSource = getOpeningHoursSource(place, planningDate);
 
    if (!openingHoursSource) {
       return {
-         status: "hours-unavailable",
-         source: "unavailable",
-         label: "Check hours for this date",
-         opensAt: null,
-         closesAt: null,
+         availability: {
+            status: "hours-unavailable",
+            source: "unavailable",
+            label: "Check hours for this date",
+            opensAt: null,
+            closesAt: null,
+         },
+         confidence: "unknown",
+         overlapMinutes: null,
+         coverageRatio: null,
       };
    }
 
@@ -664,11 +957,16 @@ function calculatePeriodAvailability(place: GooglePlace, dayPeriod: DayPeriod, p
 
    if (!hasPublishedHours) {
       return {
-         status: "hours-unavailable",
-         source: "unavailable",
-         label: "Check hours for this date",
-         opensAt: null,
-         closesAt: null,
+         availability: {
+            status: "hours-unavailable",
+            source: "unavailable",
+            label: "Check hours for this date",
+            opensAt: null,
+            closesAt: null,
+         },
+         confidence: "unknown",
+         overlapMinutes: null,
+         coverageRatio: null,
       };
    }
 
@@ -679,6 +977,8 @@ function calculatePeriodAvailability(place: GooglePlace, dayPeriod: DayPeriod, p
    const targetStart = dayIndex * 24 * 60 + periodWindow.startMinute;
 
    const targetEnd = dayIndex * 24 * 60 + periodWindow.endMinute;
+
+   const targetMinutes = Math.max(1, targetEnd - targetStart);
 
    const minutesPerWeek = 7 * 24 * 60;
 
@@ -698,11 +998,16 @@ function calculatePeriodAvailability(place: GooglePlace, dayPeriod: DayPeriod, p
 
    if (fullyOpenInterval) {
       return {
-         status: "open-through-window",
-         source: openingHoursSource.source,
-         label: openingHoursSource.source === "regular-hours" ? "Usually open during this window" : "Open during this window",
-         opensAt: formatClockTime(fullyOpenInterval.startMinuteOfWeek),
-         closesAt: formatClockTime(fullyOpenInterval.endMinuteOfWeek),
+         availability: {
+            status: "open-through-window",
+            source: openingHoursSource.source,
+            label: openingHoursSource.confidence === "current" ? "Open throughout this window" : "Usually open throughout this window",
+            opensAt: formatClockTime(fullyOpenInterval.startMinuteOfWeek),
+            closesAt: formatClockTime(fullyOpenInterval.endMinuteOfWeek),
+         },
+         confidence: openingHoursSource.confidence,
+         overlapMinutes: targetMinutes,
+         coverageRatio: 1,
       };
    }
 
@@ -714,6 +1019,8 @@ function calculatePeriodAvailability(place: GooglePlace, dayPeriod: DayPeriod, p
 
          return {
             interval,
+            overlapStart,
+            overlapEnd,
             overlapMinutes: Math.max(0, overlapEnd - overlapStart),
          };
       })
@@ -724,11 +1031,16 @@ function calculatePeriodAvailability(place: GooglePlace, dayPeriod: DayPeriod, p
 
    if (!strongestOverlap) {
       return {
-         status: "closed-during-window",
-         source: openingHoursSource.source,
-         label: "Closed during this window",
-         opensAt: null,
-         closesAt: null,
+         availability: {
+            status: "closed-during-window",
+            source: openingHoursSource.source,
+            label: openingHoursSource.confidence === "current" ? "Closed during this window" : "Usually closed during this window",
+            opensAt: null,
+            closesAt: null,
+         },
+         confidence: openingHoursSource.confidence,
+         overlapMinutes: 0,
+         coverageRatio: 0,
       };
    }
 
@@ -738,52 +1050,62 @@ function calculatePeriodAvailability(place: GooglePlace, dayPeriod: DayPeriod, p
 
    const closesInsideWindow = overlapInterval.endMinuteOfWeek > targetStart && overlapInterval.endMinuteOfWeek < targetEnd;
 
-   if (opensInsideWindow) {
-      const opensAt = formatClockTime(overlapInterval.startMinuteOfWeek);
+   const opensAt = opensInsideWindow ? formatClockTime(overlapInterval.startMinuteOfWeek) : null;
 
-      return {
-         status: "open-part-of-window",
-         source: openingHoursSource.source,
-         label: openingHoursSource.source === "regular-hours" ? `Usually opens at ${opensAt}` : `Opens at ${opensAt}`,
-         opensAt,
-         closesAt: closesInsideWindow ? formatClockTime(overlapInterval.endMinuteOfWeek) : null,
-      };
-   }
+   const closesAt = closesInsideWindow ? formatClockTime(overlapInterval.endMinuteOfWeek) : null;
 
-   if (closesInsideWindow) {
-      const closesAt = formatClockTime(overlapInterval.endMinuteOfWeek);
+   const sourcePrefix = openingHoursSource.confidence === "regular" ? "Usually " : "";
 
-      return {
-         status: "open-part-of-window",
-         source: openingHoursSource.source,
-         label: openingHoursSource.source === "regular-hours" ? `Usually open until ${closesAt}` : `Open until ${closesAt}`,
-         opensAt: null,
-         closesAt,
-      };
+   let label = `${sourcePrefix}open for part of this window`;
+
+   if (opensAt && closesAt) {
+      label = `${sourcePrefix}open ${opensAt}–${closesAt}`;
+   } else if (opensAt) {
+      label = `${sourcePrefix}opens at ${opensAt}`;
+   } else if (closesAt) {
+      label = `${sourcePrefix}open until ${closesAt}`;
    }
 
    return {
-      status: "open-part-of-window",
-      source: openingHoursSource.source,
-      label: openingHoursSource.source === "regular-hours" ? "Usually open for part of this window" : "Open for part of this window",
-      opensAt: null,
-      closesAt: null,
+      availability: {
+         status: "open-part-of-window",
+         source: openingHoursSource.source,
+         label,
+         opensAt,
+         closesAt,
+      },
+      confidence: openingHoursSource.confidence,
+      overlapMinutes: strongestOverlap.overlapMinutes,
+      coverageRatio: strongestOverlap.overlapMinutes / targetMinutes,
    };
 }
 
-function calculateAvailabilityScore(availability: ProviderPeriodAvailability): number {
-   switch (availability.status) {
-      case "open-through-window":
-         return 12;
+function calculateAvailabilityScore(analysis: PeriodAvailabilityAnalysis): number {
+   const isCurrent = analysis.confidence === "current";
 
-      case "open-part-of-window":
-         return 4;
+   switch (analysis.availability.status) {
+      case "open-through-window":
+         return isCurrent ? 14 : 11;
+
+      case "open-part-of-window": {
+         const coverageRatio = analysis.coverageRatio ?? 0;
+
+         /**
+          * Current hours receive slightly more confidence than regular weekly
+          * hours. Future-date recommendations remain useful without Sidewalk
+          * pretending a normal schedule is a guarantee.
+          */
+         const baseScore = isCurrent ? 3 : 2;
+         const coverageWeight = isCurrent ? 8 : 6;
+
+         return baseScore + Math.round(coverageRatio * coverageWeight);
+      }
 
       case "hours-unavailable":
          return 0;
 
       case "closed-during-window":
-         return -40;
+         return -50;
    }
 }
 
@@ -878,6 +1200,82 @@ function sanitizeProviderId(value: string): string {
 
 function getTypes(place: GooglePlace): readonly string[] {
    return Array.from(new Set([place.primaryType, ...(place.types ?? [])].filter((type): type is string => typeof type === "string" && type.length > 0)));
+}
+
+function hasAnyProviderType(place: GooglePlace, types: readonly string[]): boolean {
+   if (types.length === 0) {
+      return false;
+   }
+
+   const placeTypes = getTypes(place);
+
+   return types.some((type) => placeTypes.includes(type));
+}
+
+function calculatePrimaryActivityAlignmentScore(place: GooglePlace, activity: ActivityKind): number {
+   const primaryType = place.primaryType;
+
+   if (!primaryType) {
+      return 0;
+   }
+
+   if (genericActivityTypes.has(primaryType)) {
+      return 0;
+   }
+
+   if (typeSignals[activity].includes(primaryType)) {
+      return contextFitCalibration.activityPrimaryMatchBonus;
+   }
+
+   const belongsToAnotherActivity = (Object.entries(typeSignals) as readonly [ActivityKind, readonly string[]][]).some(([candidateActivity, candidateTypes]) => candidateActivity !== activity && candidateTypes.includes(primaryType));
+
+   return belongsToAnotherActivity ? -contextFitCalibration.activityPrimaryMismatchPenalty : 0;
+}
+
+function calculateGenericOnlyPenalty(place: GooglePlace, activity: ActivityKind): number {
+   const matchingTypes = getTypes(place).filter((type) => typeSignals[activity].includes(type));
+
+   if (matchingTypes.length === 0) {
+      return -contextFitCalibration.genericOnlyPenalty;
+   }
+
+   const hasSpecificMatch = matchingTypes.some((type) => !genericActivityTypes.has(type));
+
+   return hasSpecificMatch ? 0 : -contextFitCalibration.genericOnlyPenalty;
+}
+
+function calculatePeriodContextScore(place: GooglePlace, activity: ActivityKind, dayPeriod: DayPeriod): number {
+   const preferredTypes = preferredTypesByPeriod[dayPeriod][activity];
+
+   const discouragedTypes = discouragedTypesByPeriod[dayPeriod][activity];
+
+   let score = 0;
+
+   if (hasAnyProviderType(place, preferredTypes)) {
+      score += contextFitCalibration.preferredTypeBonus;
+   }
+
+   if (place.primaryType && preferredTypes.includes(place.primaryType)) {
+      score += contextFitCalibration.preferredPrimaryTypeBonus;
+   }
+
+   if (hasAnyProviderType(place, discouragedTypes)) {
+      score -= contextFitCalibration.discouragedTypePenalty;
+   }
+
+   if (place.primaryType && discouragedTypes.includes(place.primaryType)) {
+      score -= contextFitCalibration.discouragedPrimaryTypePenalty;
+   }
+
+   if (place.primaryType && lowIntentPrimaryTypes.has(place.primaryType)) {
+      score -= contextFitCalibration.lowIntentPrimaryTypePenalty;
+   }
+
+   score += calculatePrimaryActivityAlignmentScore(place, activity);
+
+   score += calculateGenericOnlyPenalty(place, activity);
+
+   return score;
 }
 
 function getCoordinates(place: GooglePlace): Coordinates | null {
@@ -999,6 +1397,137 @@ function createBrandKey(value: string): string {
    return normalizeName(firstSegment);
 }
 
+function isLikelyNationalChain(place: GooglePlace): boolean {
+   const name = place.displayName?.text?.trim();
+
+   if (!name) {
+      return false;
+   }
+
+   return nationalChainBrandKeys.has(createBrandKey(name));
+}
+
+function isClearlyLowQuality(place: GooglePlace): boolean {
+   const rating = place.rating;
+
+   const ratingCount = place.userRatingCount;
+
+   if (typeof rating !== "number" || typeof ratingCount !== "number" || ratingCount <= 0) {
+      return false;
+   }
+
+   if (ratingCount >= recommendationQualityCalibration.strongerReliableRatingCount && rating < recommendationQualityCalibration.minimumStrongerReliableRating) {
+      return true;
+   }
+
+   return ratingCount >= recommendationQualityCalibration.minimumReliableRatingCount && rating < recommendationQualityCalibration.minimumReliableRating;
+}
+
+function calculateReviewDepthScore(ratingCount: number | undefined): number {
+   if (typeof ratingCount !== "number" || ratingCount <= 0) {
+      return -4;
+   }
+
+   if (ratingCount >= 500) {
+      return 4;
+   }
+
+   if (ratingCount >= 150) {
+      return 3;
+   }
+
+   if (ratingCount >= 50) {
+      return 2;
+   }
+
+   if (ratingCount >= 15) {
+      return 1;
+   }
+
+   return 0;
+}
+
+function calculateEditorialSpecificityScore(place: GooglePlace, activity: ActivityKind): number {
+   const matchingTypes = getTypes(place).filter((type) => typeSignals[activity].includes(type));
+
+   const specificMatches = matchingTypes.filter((type) => !genericActivityTypes.has(type));
+
+   if (specificMatches.length >= 2) {
+      return 6;
+   }
+
+   if (specificMatches.length === 1) {
+      return 3;
+   }
+
+   if (matchingTypes.length > 0) {
+      return -3;
+   }
+
+   return -8;
+}
+
+function getStrongCandidateMinimumScore(context: PeriodSearchContext): number {
+   return context.activityDirection === "sidewalk-choice" ? recommendationQualityCalibration.sidewalkChoiceStrongScore : recommendationQualityCalibration.directedChoiceStrongScore;
+}
+
+function isStrongCandidate(candidate: ScoredCandidate, context: PeriodSearchContext): boolean {
+   return candidate.qualityScore >= getStrongCandidateMinimumScore(context);
+}
+
+function getCommittedActivityCount(context: PeriodSearchContext, activity: ActivityKind): number {
+   return context.committedStops.filter((stop) => stop.resolvedActivity === activity).length;
+}
+
+function getCommittedActivityKinds(context: PeriodSearchContext): ReadonlySet<ActivityKind> {
+   return new Set(context.committedStops.map((stop) => stop.resolvedActivity));
+}
+
+function calculateDayVarietyScore(activity: ActivityKind, context: PeriodSearchContext): number {
+   if (context.activityDirection !== "sidewalk-choice" || context.committedStops.length === 0) {
+      return 0;
+   }
+
+   const matchingActivityCount = getCommittedActivityCount(context, activity);
+
+   const committedActivityKinds = getCommittedActivityKinds(context);
+
+   let score = 0;
+
+   if (matchingActivityCount === 0) {
+      score += dayVarietyCalibration.unseenActivityBonus;
+
+      /**
+       * Once a day already contains several distinct experiences, give the
+       * remaining unused activity a small nudge rather than repeating one the
+       * person has already done.
+       */
+      if (committedActivityKinds.size >= 3) {
+         score += dayVarietyCalibration.broadDayBonus;
+      }
+   } else {
+      const repeatPenalty = dayVarietyCalibration.repeatedActivityBasePenalty + Math.max(0, matchingActivityCount - 1) * dayVarietyCalibration.repeatedActivityStepPenalty;
+
+      score -= Math.min(dayVarietyCalibration.maximumRepeatedActivityPenalty, repeatPenalty);
+
+      if (matchingActivityCount >= 2) {
+         score -= dayVarietyCalibration.saturatedActivityPenalty;
+      }
+   }
+
+   const referenceStop = getReferenceCommittedStop(context);
+
+   if (referenceStop) {
+      if (referenceStop.resolvedActivity === activity) {
+         score -= dayVarietyCalibration.consecutiveRepeatPenalty;
+      } else {
+         score += dayVarietyCalibration.adjacentDifferentActivityBonus;
+      }
+   }
+
+   return score;
+}
+
 function getReferenceCommittedStop(context: PeriodSearchContext): CommittedStopContext | null {
    if (context.committedStops.length === 0) {
       return null;
@@ -1009,6 +1538,89 @@ function getReferenceCommittedStop(context: PeriodSearchContext): CommittedStopC
    const previousStops = context.committedStops.filter((stop) => dayPeriods.indexOf(stop.dayPeriod) < currentIndex).sort((first, second) => dayPeriods.indexOf(second.dayPeriod) - dayPeriods.indexOf(first.dayPeriod));
 
    return previousStops[0] ?? context.committedStops[0] ?? null;
+}
+
+function getChronologicalCommittedStops(context: PeriodSearchContext): readonly CommittedStopContext[] {
+   return [...context.committedStops].sort((first, second) => dayPeriods.indexOf(first.dayPeriod) - dayPeriods.indexOf(second.dayPeriod));
+}
+
+function calculateReferenceStopDistanceMeters(candidateCoordinates: Coordinates, context: PeriodSearchContext): number | null {
+   const referenceStop = getReferenceCommittedStop(context);
+
+   if (!referenceStop) {
+      return null;
+   }
+
+   const referenceCoordinates = getCommittedStopCoordinates(referenceStop);
+
+   if (!referenceCoordinates) {
+      return null;
+   }
+
+   return calculateDistanceMeters(candidateCoordinates, referenceCoordinates);
+}
+
+function calculateRouteSanityScore(place: GooglePlace, context: PeriodSearchContext): number {
+   const candidateCoordinates = getCoordinates(place);
+
+   if (!candidateCoordinates) {
+      return 0;
+   }
+
+   const referenceDistance = calculateReferenceStopDistanceMeters(candidateCoordinates, context);
+
+   if (referenceDistance === null) {
+      return 0;
+   }
+
+   let score = 0;
+
+   if (referenceDistance <= routeSanityCalibration.veryCloseMeters) {
+      score += routeSanityCalibration.veryCloseBonus;
+   } else if (referenceDistance <= routeSanityCalibration.nearbyMeters) {
+      score += routeSanityCalibration.nearbyBonus;
+   } else if (referenceDistance <= routeSanityCalibration.comfortableMeters) {
+      score += routeSanityCalibration.comfortableBonus;
+   } else if (referenceDistance <= routeSanityCalibration.longLegMeters) {
+      score -= routeSanityCalibration.longLegPenalty;
+   } else if (referenceDistance <= routeSanityCalibration.excessiveLegMeters) {
+      score -= routeSanityCalibration.excessiveLegPenalty;
+   } else {
+      score -= routeSanityCalibration.extremeLegPenalty;
+   }
+
+   /**
+    * Detect a simple A → B → A pattern. This is intentionally narrow: it
+    * penalizes an obvious return toward the place before the previous stop,
+    * without trying to become a routing engine.
+    */
+   const chronologicalStops = getChronologicalCommittedStops(context);
+
+   const referenceStop = getReferenceCommittedStop(context);
+
+   if (!referenceStop) {
+      return score;
+   }
+
+   const referenceIndex = chronologicalStops.findIndex((stop) => stop.placeId === referenceStop.placeId);
+
+   const priorStop = referenceIndex > 0 ? chronologicalStops[referenceIndex - 1] : null;
+
+   const referenceCoordinates = getCommittedStopCoordinates(referenceStop);
+
+   const priorCoordinates = priorStop ? getCommittedStopCoordinates(priorStop) : null;
+
+   if (referenceCoordinates && priorCoordinates) {
+      const previousLegDistance = calculateDistanceMeters(priorCoordinates, referenceCoordinates);
+
+      const candidateDistanceToPrior = calculateDistanceMeters(candidateCoordinates, priorCoordinates);
+
+      if (previousLegDistance >= routeSanityCalibration.previousLegMinimumMeters && candidateDistanceToPrior <= routeSanityCalibration.backtrackReturnMeters) {
+         score -= routeSanityCalibration.backtrackPenalty;
+      }
+   }
+
+   return score;
 }
 
 function calculateCoherenceDistanceFit(candidateCoordinates: Coordinates, committedStops: readonly CommittedStopContext[]): number {
@@ -1059,26 +1671,12 @@ function calculateDayCoherenceScore(place: GooglePlace, activity: ActivityKind, 
       score += calculateCoherenceDistanceFit(coordinates, context.committedStops) * 18;
    }
 
-   if (context.activityDirection === "sidewalk-choice") {
-      const matchingActivityCount = context.committedStops.filter((stop) => stop.resolvedActivity === activity).length;
-
-      if (matchingActivityCount === 0) {
-         score += 8;
-      } else {
-         score -= Math.min(6, matchingActivityCount * 3);
-      }
-
-      const referenceStop = getReferenceCommittedStop(context);
-
-      if (referenceStop && referenceStop.resolvedActivity !== activity) {
-         score += 3;
-      }
-   }
+   score += calculateDayVarietyScore(activity, context);
 
    return score;
 }
 
-function scoreCandidate(place: GooglePlace, activity: ActivityKind, providerIndex: number, context: PeriodSearchContext, distanceMeters: number, maximumDistance: number, availability: ProviderPeriodAvailability): number {
+function scoreCandidate(place: GooglePlace, activity: ActivityKind, providerIndex: number, context: PeriodSearchContext, distanceMeters: number, maximumDistance: number, availabilityAnalysis: PeriodAvailabilityAnalysis): number {
    const types = getTypes(place);
 
    const activityMatches = types.filter((type) => typeSignals[activity].includes(type)).length;
@@ -1099,9 +1697,34 @@ function scoreCandidate(place: GooglePlace, activity: ActivityKind, providerInde
 
    const coherenceScore = calculateDayCoherenceScore(place, activity, context);
 
-   const availabilityScore = calculateAvailabilityScore(availability);
+   const routeSanityScore = calculateRouteSanityScore(place, context);
 
-   return activityFit * 22 + distanceFit * 28 + municipalityFit * 10 + ratingQuality * 18 + providerRelevance * 7 + preferredActivity * 10 + operationalFit * 5 + coherenceScore + availabilityScore;
+   const availabilityScore = calculateAvailabilityScore(availabilityAnalysis);
+
+   const specificityScore = calculateEditorialSpecificityScore(place, activity);
+
+   const reviewDepthScore = calculateReviewDepthScore(place.userRatingCount);
+
+   const chainPenalty = isLikelyNationalChain(place) ? recommendationQualityCalibration.nationalChainPenalty : 0;
+
+   const contextFitScore = calculatePeriodContextScore(place, activity, context.dayPeriod);
+
+   return (
+      activityFit * 22 +
+      distanceFit * 28 +
+      municipalityFit * 10 +
+      ratingQuality * 18 +
+      providerRelevance * 7 +
+      preferredActivity * 10 +
+      operationalFit * 5 +
+      coherenceScore +
+      routeSanityScore +
+      availabilityScore +
+      specificityScore +
+      reviewDepthScore +
+      contextFitScore -
+      chainPenalty
+   );
 }
 
 const fitStatementsByPeriod: Readonly<Record<DayPeriod, Readonly<Record<ActivityKind, readonly string[]>>>> = {
@@ -1521,12 +2144,14 @@ function normalizePlace(place: GooglePlace, activity: ActivityKind, context: Per
 function isCandidateEligible(
    place: GooglePlace,
    context: PeriodSearchContext,
+   activity: ActivityKind,
    areaCenter: Coordinates,
    maximumDistance: number,
 ): Readonly<{
    eligible: boolean;
    distanceMeters: number;
    availability: ProviderPeriodAvailability;
+   availabilityAnalysis: PeriodAvailabilityAnalysis;
 }> {
    const unavailableHours: ProviderPeriodAvailability = {
       status: "hours-unavailable",
@@ -1535,6 +2160,12 @@ function isCandidateEligible(
       opensAt: null,
       closesAt: null,
    };
+   const unavailableHoursAnalysis: PeriodAvailabilityAnalysis = {
+      availability: unavailableHours,
+      confidence: "unknown",
+      overlapMinutes: null,
+      coverageRatio: null,
+   };
    const name = place.displayName?.text?.trim();
 
    if (!place.id || !name) {
@@ -1542,6 +2173,7 @@ function isCandidateEligible(
          eligible: false,
          distanceMeters: Number.POSITIVE_INFINITY,
          availability: unavailableHours,
+         availabilityAnalysis: unavailableHoursAnalysis,
       };
    }
 
@@ -1552,6 +2184,7 @@ function isCandidateEligible(
          eligible: false,
          distanceMeters: Number.POSITIVE_INFINITY,
          availability: unavailableHours,
+         availabilityAnalysis: unavailableHoursAnalysis,
       };
    }
 
@@ -1564,6 +2197,7 @@ function isCandidateEligible(
          eligible: false,
          distanceMeters: Number.POSITIVE_INFINITY,
          availability: unavailableHours,
+         availabilityAnalysis: unavailableHoursAnalysis,
       };
    }
 
@@ -1572,6 +2206,16 @@ function isCandidateEligible(
          eligible: false,
          distanceMeters: Number.POSITIVE_INFINITY,
          availability: unavailableHours,
+         availabilityAnalysis: unavailableHoursAnalysis,
+      };
+   }
+
+   if (isClearlyLowQuality(place)) {
+      return {
+         eligible: false,
+         distanceMeters: Number.POSITIVE_INFINITY,
+         availability: unavailableHours,
+         availabilityAnalysis: unavailableHoursAnalysis,
       };
    }
 
@@ -1582,24 +2226,66 @@ function isCandidateEligible(
          eligible: false,
          distanceMeters: Number.POSITIVE_INFINITY,
          availability: unavailableHours,
+         availabilityAnalysis: unavailableHoursAnalysis,
       };
    }
 
    const distanceMeters = calculateDistanceMeters(areaCenter, coordinates);
 
-   const availability = calculatePeriodAvailability(place, context.dayPeriod, context.planningDate);
+   const availabilityAnalysis = analyzePeriodAvailability(place, context.dayPeriod, context.planningDate);
+
+   const availability = availabilityAnalysis.availability;
+
+   const minimumUsefulOpenMinutes = getMinimumUsefulOpenMinutes(context.dayPeriod, activity);
+
+   const hasEnoughUsableTime = availability.status !== "open-part-of-window" || (availabilityAnalysis.overlapMinutes ?? 0) >= minimumUsefulOpenMinutes;
 
    return {
-      eligible: distanceMeters <= maximumDistance && availability.status !== "closed-during-window",
+      eligible: distanceMeters <= maximumDistance && availability.status !== "closed-during-window" && hasEnoughUsableTime,
 
       distanceMeters,
 
       availability,
+      availabilityAnalysis,
    };
+}
+
+function orderStrongCandidatesForDayVariety(candidates: readonly ScoredCandidate[], context: PeriodSearchContext): readonly ScoredCandidate[] {
+   if (context.activityDirection !== "sidewalk-choice" || context.committedStops.length === 0) {
+      return candidates;
+   }
+
+   return [...candidates].sort((first, second) => {
+      const firstCount = getCommittedActivityCount(context, first.activity);
+
+      const secondCount = getCommittedActivityCount(context, second.activity);
+
+      const firstIsNew = firstCount === 0;
+      const secondIsNew = secondCount === 0;
+
+      /**
+       * Only promote novelty inside the already-strong tier. This avoids
+       * choosing a mediocre place merely because its category is different.
+       */
+      if (firstIsNew !== secondIsNew) {
+         return firstIsNew ? -1 : 1;
+      }
+
+      if (firstCount !== secondCount) {
+         return firstCount - secondCount;
+      }
+
+      return second.seededScore - first.seededScore;
+   });
 }
 
 function selectThree(candidates: readonly ScoredCandidate[], context: PeriodSearchContext): readonly PeriodRecommendation[] {
    const sorted = [...candidates].sort((first, second) => second.seededScore - first.seededScore);
+
+   const strongCandidates = orderStrongCandidatesForDayVariety(
+      sorted.filter((candidate) => isStrongCandidate(candidate, context)),
+      context,
+   );
 
    const recommendations: PeriodRecommendation[] = [];
 
@@ -1609,29 +2295,25 @@ function selectThree(candidates: readonly ScoredCandidate[], context: PeriodSear
 
    const shouldPreferActivityVariety = context.activityDirection === "sidewalk-choice";
 
-   for (const candidate of sorted) {
-      if (recommendations.length >= 3) {
-         break;
-      }
-
+   function tryAddCandidate(candidate: ScoredCandidate, preferActivityVariety: boolean): boolean {
       const name = candidate.place.displayName?.text ?? "";
 
       const normalizedName = normalizeName(name);
 
       const brandKey = createBrandKey(name);
 
-      if (usedNames.has(normalizedName) || usedBrandKeys.has(brandKey)) {
-         continue;
+      if (!normalizedName || !brandKey || usedNames.has(normalizedName) || usedBrandKeys.has(brandKey)) {
+         return false;
       }
 
-      if (shouldPreferActivityVariety && recommendations.length < 2 && usedActivities.has(candidate.activity)) {
-         continue;
+      if (preferActivityVariety && usedActivities.has(candidate.activity)) {
+         return false;
       }
 
       const place = normalizePlace(candidate.place, candidate.activity, context, candidate.distanceMeters, candidate.availability);
 
-      if (!place) {
-         continue;
+      if (!place || recommendations.some((recommendation) => recommendation.place.id === place.id)) {
+         return false;
       }
 
       recommendations.push({
@@ -1647,38 +2329,45 @@ function selectThree(candidates: readonly ScoredCandidate[], context: PeriodSear
       usedNames.add(normalizedName);
       usedBrandKeys.add(brandKey);
       usedActivities.add(candidate.activity);
+
+      return true;
    }
 
+   /**
+    * First pass: only strong candidates, and for Sidewalk Choice prefer a
+    * visibly varied recommendation set when the strong pool supports it.
+    */
+   for (const candidate of strongCandidates) {
+      if (recommendations.length >= 3) {
+         break;
+      }
+
+      tryAddCandidate(candidate, shouldPreferActivityVariety);
+   }
+
+   /**
+    * Second pass: quality still wins over artificial variety. If the market
+    * does not contain three strong, distinct activities, allow another strong
+    * option rather than promoting a weaker place.
+    */
+   for (const candidate of strongCandidates) {
+      if (recommendations.length >= 3) {
+         break;
+      }
+
+      tryAddCandidate(candidate, false);
+   }
+
+   /**
+    * Sparse-market fallback: eligible lower-tier candidates may fill any
+    * remaining slots, but only after every strong candidate has had a chance.
+    */
    for (const candidate of sorted) {
       if (recommendations.length >= 3) {
          break;
       }
 
-      const name = candidate.place.displayName?.text ?? "";
-
-      const brandKey = createBrandKey(name);
-
-      if (usedBrandKeys.has(brandKey)) {
-         continue;
-      }
-
-      const place = normalizePlace(candidate.place, candidate.activity, context, candidate.distanceMeters, candidate.availability);
-
-      if (!place || recommendations.some((recommendation) => recommendation.place.id === place.id)) {
-         continue;
-      }
-
-      recommendations.push({
-         place,
-
-         reason: place.editorial.reasonToVisit,
-
-         bestWindow: getBestWindow(context.dayPeriod),
-
-         resolvedActivity: candidate.activity,
-      });
-
-      usedBrandKeys.add(brandKey);
+      tryAddCandidate(candidate, false);
    }
 
    return recommendations;
@@ -1933,7 +2622,7 @@ async function collectCandidatesForStage(profiles: readonly ActivityProfile[], c
             return;
          }
 
-         const eligibility = isCandidateEligible(place, context, areaCenter, result.maximumDistance);
+         const eligibility = isCandidateEligible(place, context, result.profile.activity, areaCenter, result.maximumDistance);
 
          if (!eligibility.eligible) {
             return;
@@ -1941,7 +2630,7 @@ async function collectCandidatesForStage(profiles: readonly ActivityProfile[], c
 
          seenProviderIds.add(place.id);
 
-         const qualityScore = scoreCandidate(place, result.profile.activity, providerIndex, context, eligibility.distanceMeters, result.maximumDistance, eligibility.availability);
+         const qualityScore = scoreCandidate(place, result.profile.activity, providerIndex, context, eligibility.distanceMeters, result.maximumDistance, eligibility.availabilityAnalysis);
 
          const randomFactor = seededNumber([context.sessionSeed, context.dayPeriod, context.variationIndex, place.id, createCommittedStopsCacheSegment(context.committedStops)].join(":"));
 
@@ -1954,7 +2643,7 @@ async function collectCandidatesForStage(profiles: readonly ActivityProfile[], c
 
             qualityScore,
 
-            seededScore: qualityScore + randomFactor * 10,
+            seededScore: qualityScore + randomFactor * recommendationQualityCalibration.maximumSeedVariationBonus,
 
             availability: eligibility.availability,
          });
@@ -1969,6 +2658,31 @@ async function collectCandidatesForStage(profiles: readonly ActivityProfile[], c
    });
 
    return candidates;
+}
+
+function getRecommendationDistanceFromReferenceMeters(recommendation: PeriodRecommendation, context: PeriodSearchContext): number | null {
+   const referenceStop = getReferenceCommittedStop(context);
+
+   if (!referenceStop) {
+      return null;
+   }
+
+   const referenceCoordinates = getCommittedStopCoordinates(referenceStop);
+
+   const latitude = recommendation.place.provider.latitude;
+
+   const longitude = recommendation.place.provider.longitude;
+
+   if (!referenceCoordinates || typeof latitude !== "number" || typeof longitude !== "number") {
+      return null;
+   }
+
+   return Math.round(
+      calculateDistanceMeters(referenceCoordinates, {
+         latitude,
+         longitude,
+      }),
+   );
 }
 
 async function buildPeriodRecommendations(context: PeriodSearchContext, cacheKey: string): Promise<readonly PeriodRecommendation[]> {
@@ -1991,14 +2705,36 @@ async function buildPeriodRecommendations(context: PeriodSearchContext, cacheKey
 
       candidates.push(...stageCandidates);
 
-      if (candidates.length >= 8) {
+      const strongCandidateCount = candidates.filter((candidate) => isStrongCandidate(candidate, context)).length;
+
+      /**
+       * A busy provider response is not automatically a good Sidewalk set.
+       * Expand only when the nearby pool is still thin on genuinely strong
+       * candidates, while keeping an upper bound to avoid unnecessary calls.
+       */
+      if (strongCandidateCount >= 6 || candidates.length >= 14) {
          break;
       }
    }
 
-   const strongestPool = [...candidates].sort((first, second) => second.qualityScore - first.qualityScore).slice(0, 12);
+   const strongestPool = [...candidates].sort((first, second) => second.qualityScore - first.qualityScore).slice(0, 16);
 
    const recommendations = selectThree(strongestPool, context);
+
+   console.info("Sidewalk recommendation calibration", {
+      dayPeriod: context.dayPeriod,
+      activityDirection: context.activityDirection,
+      candidateCount: candidates.length,
+      strongCandidateCount: strongestPool.filter((candidate) => isStrongCandidate(candidate, context)).length,
+      selectedCount: recommendations.length,
+      selectedChainCount: recommendations.filter((recommendation) => nationalChainBrandKeys.has(createBrandKey(recommendation.place.provider.name))).length,
+      committedActivities: context.committedStops.map((stop) => stop.resolvedActivity),
+      selectedActivities: recommendations.map((recommendation) => recommendation.resolvedActivity),
+      selectedPrimaryTypes: recommendations.map((recommendation) => recommendation.place.provider.primaryType),
+      selectedAvailability: recommendations.map((recommendation) => recommendation.place.provider.periodAvailability?.label ?? "hours unavailable"),
+      selectedAvailabilitySources: recommendations.map((recommendation) => recommendation.place.provider.periodAvailability?.source ?? "unavailable"),
+      selectedPreviousStopDistancesMeters: recommendations.map((recommendation) => getRecommendationDistanceFromReferenceMeters(recommendation, context)),
+   });
 
    pruneExpiringCache(recommendationCache, maximumRecommendationCacheEntries);
 

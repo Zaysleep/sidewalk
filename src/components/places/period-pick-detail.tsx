@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 
 import { dayPeriodDefinitions, type DayPeriod } from "@/types/day-period";
 import type { PeriodRecommendation } from "@/types/period-recommendation";
+import type { RecommendationFeedbackReason } from "@/lib/places/recommendation-feedback";
 
 import styles from "./period-pick-detail.module.css";
 
@@ -20,6 +21,8 @@ type PeriodPickDetailProps = Readonly<{
    onAddToDay: (recommendation: PeriodRecommendation) => void;
 
    onContinue: () => void;
+
+   onFeedback: (reason: RecommendationFeedbackReason) => void;
 }>;
 
 function formatRatingCount(count: number): string {
@@ -34,7 +37,7 @@ function formatVisitDuration(minimum: number, maximum: number): string {
    return `${minimum}–${maximum} minutes`;
 }
 
-export function PeriodPickDetail({ dayPeriod, recommendation, areaName, hasPeriodStop, isCurrentPeriodStop, nextPeriodLabel, onAddToDay, onContinue }: PeriodPickDetailProps) {
+export function PeriodPickDetail({ dayPeriod, recommendation, areaName, hasPeriodStop, isCurrentPeriodStop, nextPeriodLabel, onAddToDay, onContinue, onFeedback }: PeriodPickDetailProps) {
    const [imageFailed, setImageFailed] = useState(false);
 
    const { place } = recommendation;
@@ -130,6 +133,30 @@ export function PeriodPickDetail({ dayPeriod, recommendation, areaName, hasPerio
 
                <p className={styles.whyCopy}>{recommendation.reason}</p>
             </div>
+
+            {!isCurrentPeriodStop ? (
+               <div className={styles.feedback}>
+                  <div className={styles.feedbackCopy}>
+                     <p className={styles.feedbackLabel}>Help Sidewalk steer</p>
+
+                     <p className={styles.feedbackDescription}>Not quite your stop? Give Sidewalk a small nudge and this place will stay out of the rest of this planning session.</p>
+                  </div>
+
+                  <div className={styles.feedbackActions} role="group" aria-label={`Feedback on ${place.provider.name}`}>
+                     <button type="button" className={styles.feedbackButton} onClick={() => onFeedback("not-my-thing")}>
+                        Not my thing
+                     </button>
+
+                     <button type="button" className={styles.feedbackButton} onClick={() => onFeedback("too-far")}>
+                        A little far
+                     </button>
+
+                     <button type="button" className={styles.feedbackButton} onClick={() => onFeedback("been-there")}>
+                        Been there
+                     </button>
+                  </div>
+               </div>
+            ) : null}
 
             <div className={styles.actions}>
                {isCurrentPeriodStop ? (

@@ -1,9 +1,19 @@
-import type {
-   SharedDayCreateRequest,
-   SharedDayCreateResponse,
-   SharedDayErrorCode,
-   SharedDayErrorResponse,
-} from "@/types/shared-day";
+import { sharedDayLimits, type SharedDayCreateRequest, type SharedDayCreateResponse, type SharedDayErrorCode, type SharedDayErrorResponse } from "@/types/shared-day";
+
+const sharedDayErrorCodes = new Set<SharedDayErrorCode>([
+   "INVALID_JSON",
+   "REQUEST_TOO_LARGE",
+   "UNSUPPORTED_MEDIA_TYPE",
+   "REQUEST_ORIGIN_REJECTED",
+   "INVALID_REQUEST",
+   "INVALID_DATE",
+   "INVALID_GEOGRAPHY",
+   "RATE_LIMITED",
+   "SHARE_CONFIGURATION_ERROR",
+   "SHARE_CREATION_ERROR",
+]);
+
+const sharedDayTokenPattern = /^v1\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
 
 export class SharedDayRequestError extends Error {
    readonly code: SharedDayErrorCode | null;
@@ -22,6 +32,10 @@ export class SharedDayRequestError extends Error {
    }
 }
 
+function isSharedDayErrorCode(value: unknown): value is SharedDayErrorCode {
+   return typeof value === "string" && sharedDayErrorCodes.has(value as SharedDayErrorCode);
+}
+
 function isCreateResponse(value: unknown): value is SharedDayCreateResponse {
    if (typeof value !== "object" || value === null || Array.isArray(value)) {
       return false;
@@ -29,7 +43,27 @@ function isCreateResponse(value: unknown): value is SharedDayCreateResponse {
 
    const candidate = value as Partial<SharedDayCreateResponse>;
 
-   return typeof candidate.token === "string" && candidate.token.length > 0 && typeof candidate.shareUrl === "string" && candidate.shareUrl.length > 0 && typeof candidate.expiresAt === "string" && Number.isFinite(Date.parse(candidate.expiresAt));
+   if (
+      typeof candidate.token !== "string" ||
+      candidate.token.length === 0 ||
+      candidate.token.length > sharedDayLimits.maximumTokenLength ||
+      !sharedDayTokenPattern.test(candidate.token) ||
+      typeof candidate.shareUrl !== "string" ||
+      candidate.shareUrl.length === 0 ||
+      typeof candidate.expiresAt !== "string" ||
+      !Number.isFinite(Date.parse(candidate.expiresAt)) ||
+      Date.parse(candidate.expiresAt) <= Date.now()
+   ) {
+      return false;
+   }
+
+   try {
+      const shareUrl = new URL(candidate.shareUrl);
+
+      return (shareUrl.protocol === "https:" || shareUrl.protocol === "http:") && shareUrl.username.length === 0 && shareUrl.password.length === 0 && shareUrl.pathname === `/day/${candidate.token}`;
+   } catch {
+      return false;
+   }
 }
 
 function isErrorResponse(value: unknown): value is SharedDayErrorResponse {
@@ -39,17 +73,20 @@ function isErrorResponse(value: unknown): value is SharedDayErrorResponse {
 
    const candidate = value as Partial<SharedDayErrorResponse>;
 
-   return typeof candidate.error === "string" && typeof candidate.code === "string";
+   return typeof candidate.error === "string" && isSharedDayErrorCode(candidate.code);
 }
 
 export async function requestSharedDay(request: SharedDayCreateRequest, signal?: AbortSignal): Promise<SharedDayCreateResponse> {
    const response = await fetch("/api/shared-days", {
       method: "POST",
       headers: {
+         Accept: "application/json",
          "Content-Type": "application/json",
       },
       body: JSON.stringify(request),
       cache: "no-store",
+      credentials: "same-origin",
+      referrerPolicy: "no-referrer",
       signal,
    });
 

@@ -12,6 +12,8 @@ const minimumSecretLength = 32;
 
 const maximumInflatedBytes = sharedDayLimits.maximumSnapshotJsonBytes;
 
+const base64UrlSegmentPattern = /^[A-Za-z0-9_-]+$/;
+
 export class SharedDayConfigurationError extends Error {
    constructor() {
       super("SIDEWALK_SHARE_SECRET must contain at least 32 characters.");
@@ -53,17 +55,35 @@ function encodeSnapshot(snapshot: SharedDaySnapshot): string {
       throw new Error("The shared-day snapshot is too large.");
    }
 
-   return deflateRawSync(Buffer.from(serializedSnapshot, "utf8"), {
+   const compressedPayload = deflateRawSync(Buffer.from(serializedSnapshot, "utf8"), {
       level: 9,
-   }).toString("base64url");
+   });
+
+   if (compressedPayload.byteLength > sharedDayLimits.maximumCompressedPayloadBytes) {
+      throw new Error("The compressed shared-day snapshot is too large.");
+   }
+
+   return compressedPayload.toString("base64url");
 }
 
 function decodeSnapshot(encodedPayload: string): unknown {
+   if (!base64UrlSegmentPattern.test(encodedPayload)) {
+      throw new Error("The shared-day payload encoding is invalid.");
+   }
+
    const compressedPayload = Buffer.from(encodedPayload, "base64url");
+
+   if (compressedPayload.byteLength === 0 || compressedPayload.byteLength > sharedDayLimits.maximumCompressedPayloadBytes) {
+      throw new Error("The shared-day payload is outside the supported size.");
+   }
 
    const inflatedPayload = inflateRawSync(compressedPayload, {
       maxOutputLength: maximumInflatedBytes,
    });
+
+   if (inflatedPayload.byteLength === 0 || inflatedPayload.byteLength > maximumInflatedBytes) {
+      throw new Error("The shared-day payload expanded beyond the supported size.");
+   }
 
    return JSON.parse(inflatedPayload.toString("utf8")) as unknown;
 }
@@ -89,7 +109,7 @@ export function createSharedDayToken(snapshot: SharedDaySnapshot): string {
 }
 
 export function verifySharedDayToken(token: string): SharedDayTokenVerification {
-   if (token.length === 0 || token.length > sharedDayLimits.maximumTokenLength) {
+   if (token.length === 0 || token.length > sharedDayLimits.maximumTokenLength || token.trim() !== token) {
       return {
          ok: false,
          reason: "invalid",
@@ -107,7 +127,7 @@ export function verifySharedDayToken(token: string): SharedDayTokenVerification 
 
    const [version, encodedPayload, encodedSignature] = segments;
 
-   if (version !== sharedDayTokenVersion || !encodedPayload || !encodedSignature) {
+   if (version !== sharedDayTokenVersion || !encodedPayload || !encodedSignature || !base64UrlSegmentPattern.test(encodedPayload) || !base64UrlSegmentPattern.test(encodedSignature)) {
       return {
          ok: false,
          reason: "invalid",

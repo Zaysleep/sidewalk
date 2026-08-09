@@ -32,26 +32,26 @@ function getStatusMessage(status: PeriodRecommendationStatus): Readonly<{
    switch (status) {
       case "idle":
          return {
-            title: "Choose what sounds worthwhile.",
-            body: "Sidewalk will prepare three options for this part of the day.",
+            title: "What sounds worthwhile?",
+            body: "Pick a direction and Sidewalk will bring back three places worth a look.",
          };
 
       case "loading":
          return {
-            title: "Finding nearby options…",
-            body: "Sidewalk is looking for three worthwhile choices nearby.",
+            title: "Looking around…",
+            body: "Sidewalk is checking what is worth your time nearby.",
          };
 
       case "empty":
          return {
-            title: "No strong match yet.",
-            body: "Try another activity direction or neighborhood.",
+            title: "Nothing worth forcing.",
+            body: "Try another direction or change neighborhoods.",
          };
 
       case "error":
          return {
-            title: "Places could not load.",
-            body: "Try the activity direction again in a moment.",
+            title: "That search came up short.",
+            body: "Give Sidewalk another try in a moment.",
          };
 
       case "ready":
@@ -64,7 +64,7 @@ export function PeriodRecommendationList({ dayPeriod, recommendations, selectedP
 
    if (statusMessage) {
       return (
-         <div className={styles.status} aria-live="polite">
+         <div className={styles.status} role="status" aria-live="polite" aria-atomic="true">
             <p className={styles.statusTitle}>{statusMessage.title}</p>
 
             <p className={styles.statusBody}>{statusMessage.body}</p>
@@ -78,7 +78,7 @@ export function PeriodRecommendationList({ dayPeriod, recommendations, selectedP
 
    const isRefreshUnavailable = !canRefresh || !hasCompleteSet;
 
-   const refreshButtonLabel = isRefreshing ? "Finding another set…" : isAtRefreshLimit || isRefreshUnavailable ? "These are the strongest nearby options." : "Show another set";
+   const refreshButtonLabel = isRefreshing ? "Looking for another set…" : isAtRefreshLimit || isRefreshUnavailable ? "That’s the nearby shortlist." : "Show me something else";
 
    function handleRefresh() {
       if (isRefreshing || isAtRefreshLimit || isRefreshUnavailable) {
@@ -89,29 +89,41 @@ export function PeriodRecommendationList({ dayPeriod, recommendations, selectedP
    }
 
    return (
-      <div className={styles.wrapper}>
+      <div className={styles.wrapper} aria-busy={isRefreshing}>
          <fieldset className={styles.fieldset}>
             <legend className="sr-only">Choose one {dayPeriod} recommendation</legend>
 
-            <div className={styles.list}>
+            <div className={styles.list} role="radiogroup" aria-label={`${dayPeriod} recommendations`}>
                {recommendations.map((recommendation) => {
                   const isSelected = recommendation.place.id === selectedPlaceId;
 
                   const isAdded = recommendation.place.id === addedPlaceId;
 
+                  const descriptionId = `sidewalk-${dayPeriod}-${recommendation.place.slug}-description`;
+
+                  const addedId = `sidewalk-${dayPeriod}-${recommendation.place.slug}-added`;
+
+                  const describedBy = isAdded ? `${descriptionId} ${addedId}` : descriptionId;
+
                   return (
                      <label key={recommendation.place.id} className={styles.option} data-selected={isSelected}>
-                        <input type="radio" className="sr-only" name={`sidewalk-${dayPeriod}-recommendation`} value={recommendation.place.id} checked={isSelected} onChange={() => onSelect(recommendation)} />
+                        <input type="radio" className="sr-only" name={`sidewalk-${dayPeriod}-recommendation`} value={recommendation.place.id} checked={isSelected} aria-describedby={describedBy} onChange={() => onSelect(recommendation)} />
 
                         <span className={styles.selectionMark} aria-hidden="true" />
 
                         <span className={styles.copy}>
                            <span className={styles.placeName}>{recommendation.place.provider.name}</span>
 
-                           <span className={styles.reason}>{recommendation.reason}</span>
+                           <span id={descriptionId} className={styles.reason}>
+                              {recommendation.place.editorial.summary}
+                           </span>
                         </span>
 
-                        {isAdded ? <span className={styles.added}>In your day</span> : null}
+                        {isAdded ? (
+                           <span id={addedId} className={styles.added}>
+                              In your day
+                           </span>
+                        ) : null}
                      </label>
                   );
                })}
@@ -119,12 +131,23 @@ export function PeriodRecommendationList({ dayPeriod, recommendations, selectedP
          </fieldset>
 
          {hasCompleteSet ? (
-            <div className={styles.refreshPanel} aria-live="polite" aria-atomic="true">
-               <button type="button" className={styles.refreshButton} disabled={isRefreshing} aria-disabled={isAtRefreshLimit || isRefreshUnavailable} data-inactive={isAtRefreshLimit || isRefreshUnavailable} onClick={handleRefresh}>
+            <div className={styles.refreshPanel}>
+               <button
+                  type="button"
+                  className={styles.refreshButton}
+                  disabled={isRefreshing}
+                  aria-disabled={isAtRefreshLimit || isRefreshUnavailable}
+                  aria-describedby={`sidewalk-${dayPeriod}-refresh-status`}
+                  aria-label={`${refreshButtonLabel} for ${dayPeriod}`}
+                  data-inactive={isAtRefreshLimit || isRefreshUnavailable}
+                  onClick={handleRefresh}
+               >
                   {refreshButtonLabel}
                </button>
 
-               <p className={styles.refreshStatus}>{isRefreshing ? "Sidewalk is looking for three more worthwhile options nearby." : refreshMessage}</p>
+               <p id={`sidewalk-${dayPeriod}-refresh-status`} className={styles.refreshStatus} role="status" aria-live="polite" aria-atomic="true">
+                  {isRefreshing ? "Sidewalk is looking for three more places worth a look." : refreshMessage}
+               </p>
             </div>
          ) : null}
       </div>

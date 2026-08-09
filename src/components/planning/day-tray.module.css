@@ -240,7 +240,13 @@
 .createShareButton:focus-visible,
 .copyLinkButton:focus-visible,
 .viewSharedDayLink:focus-visible,
-.cancelShareButton:focus-visible {
+.cancelShareButton:focus-visible,
+.tripFolioButton:focus-visible,
+.tripDayEditButton:focus-visible,
+.tripDayRemoveButton:focus-visible,
+.addTripDayButton:focus-visible,
+.tripShareButton:focus-visible,
+.tripShareLink:focus-visible {
    outline: 0.1875rem solid var(--sw-color-focus);
    outline-offset: 0.2rem;
 }
@@ -261,6 +267,332 @@
 
 .completionNote {
    max-width: 34rem;
+}
+
+.tripFolio {
+   display: grid;
+   gap: var(--sw-space-4);
+   padding: var(--sw-space-4);
+   border: var(--sw-border-width) solid var(--sw-color-border);
+   border-left: var(--sw-border-strong-width) solid var(--sw-color-mustard);
+   border-radius: var(--sw-radius-sm);
+   background: var(--sw-color-paper);
+}
+
+.tripFolioHeading {
+   display: grid;
+   gap: var(--sw-space-3);
+}
+
+.tripFolioCopy {
+   display: grid;
+   gap: var(--sw-space-1);
+   min-width: 0;
+}
+
+.tripFolioEyebrow {
+   color: var(--sw-color-text-secondary);
+   font-size: var(--sw-text-xs);
+   font-weight: 750;
+   letter-spacing: var(--sw-tracking-label);
+   line-height: 1.4;
+   text-transform: uppercase;
+}
+
+.tripFolioTitle {
+   font-family: var(--sw-font-editorial);
+   font-size: clamp(1.35rem, 4vw, 1.7rem);
+   font-weight: 500;
+   letter-spacing: var(--sw-tracking-heading);
+   line-height: 1.08;
+}
+
+.tripTitleRow {
+   display: flex;
+   flex-wrap: wrap;
+   align-items: baseline;
+   gap: var(--sw-space-2) var(--sw-space-3);
+}
+
+.renameTripButton,
+.renameTripSaveButton,
+.renameTripCancelButton {
+   min-height: var(--sw-touch-target);
+   border-radius: var(--sw-radius-sm);
+   font-size: var(--sw-text-sm);
+   font-weight: 750;
+   cursor: pointer;
+}
+
+.renameTripButton,
+.renameTripCancelButton {
+   padding-inline: var(--sw-space-2);
+   border: 0;
+   background: transparent;
+   color: var(--sw-color-olive);
+   text-decoration: underline;
+   text-underline-offset: 0.2em;
+}
+
+.renameTripForm {
+   display: grid;
+   gap: var(--sw-space-2);
+   padding-top: var(--sw-space-2);
+}
+
+.renameTripLabel {
+   color: var(--sw-color-text-secondary);
+   font-size: var(--sw-text-xs);
+   font-weight: 750;
+   letter-spacing: var(--sw-tracking-label);
+   text-transform: uppercase;
+}
+
+.renameTripInput {
+   width: 100%;
+   min-height: var(--sw-touch-target);
+   padding: var(--sw-space-3);
+   border: var(--sw-border-width) solid var(--sw-color-border);
+   border-radius: var(--sw-radius-sm);
+   background: var(--sw-color-warm-white);
+   color: var(--sw-color-text-primary);
+   font: inherit;
+}
+
+.renameTripActions {
+   display: flex;
+   flex-wrap: wrap;
+   gap: var(--sw-space-2);
+}
+
+.renameTripSaveButton {
+   padding-inline: var(--sw-space-4);
+   border: var(--sw-border-width) solid var(--sw-color-ink);
+   background: var(--sw-color-ink);
+   color: var(--sw-color-warm-white);
+}
+
+.renameTripInput:focus-visible,
+.renameTripButton:focus-visible,
+.renameTripSaveButton:focus-visible,
+.renameTripCancelButton:focus-visible {
+   outline: 0.1875rem solid var(--sw-color-focus);
+   outline-offset: 0.2rem;
+}
+
+.tripFolioSummary,
+.tripFolioMessage,
+.tripLimitNote {
+   font-size: var(--sw-text-sm);
+   line-height: 1.5;
+}
+
+.tripFolioSummary {
+   color: var(--sw-color-text-primary);
+   font-weight: 700;
+}
+
+.tripFolioMessage,
+.tripLimitNote {
+   color: var(--sw-color-text-secondary);
+}
+
+.tripFolioButton,
+.tripDayEditButton,
+.tripDayRemoveButton,
+.addTripDayButton,
+.tripShareButton,
+.tripShareLink {
+   min-height: var(--sw-touch-target);
+   padding: var(--sw-space-3) var(--sw-space-4);
+   border-radius: var(--sw-radius-sm);
+   font-size: var(--sw-text-sm);
+   font-weight: 750;
+   cursor: pointer;
+   transition:
+      background-color var(--sw-duration-fast) var(--sw-ease-standard),
+      border-color var(--sw-duration-fast) var(--sw-ease-standard),
+      color var(--sw-duration-fast) var(--sw-ease-standard);
+}
+
+.tripFolioButton,
+.addTripDayButton {
+   border: var(--sw-border-width) solid var(--sw-color-ink);
+   background: var(--sw-color-ink);
+   color: var(--sw-color-warm-white);
+}
+
+.tripFolioButton:hover,
+.addTripDayButton:hover {
+   border-color: var(--sw-color-forest);
+   background: var(--sw-color-forest);
+}
+
+.tripShare {
+   display: grid;
+   gap: var(--sw-space-3);
+   padding-top: var(--sw-space-4);
+   border-top: var(--sw-border-width) solid var(--sw-color-border);
+}
+
+.tripShareCopy {
+   display: grid;
+   gap: var(--sw-space-1);
+}
+
+.tripShareLabel {
+   color: var(--sw-color-text-primary);
+   font-size: var(--sw-text-sm);
+   font-weight: 800;
+}
+
+.tripShareDescription,
+.tripShareMessage {
+   color: var(--sw-color-text-secondary);
+   font-size: var(--sw-text-sm);
+   line-height: 1.5;
+}
+
+.tripShareActions {
+   display: flex;
+   flex-wrap: wrap;
+   gap: var(--sw-space-2);
+}
+
+.tripShareButton,
+.tripShareLink {
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   border: var(--sw-border-width) solid var(--sw-color-olive);
+   background: var(--sw-color-paper);
+   color: var(--sw-color-olive);
+   line-height: 1.2;
+   text-decoration: none;
+}
+
+.tripShareButton {
+   cursor: pointer;
+}
+
+.tripShareButton:hover:not(:disabled),
+.tripShareLink:hover {
+   border-color: var(--sw-color-forest);
+   background: var(--sw-color-olive);
+   color: var(--sw-color-warm-white);
+}
+
+.tripShareButton:disabled {
+   cursor: wait;
+   opacity: 0.65;
+}
+
+.tripFolioSaved {
+   display: inline-flex;
+   width: fit-content;
+   min-height: var(--sw-touch-target);
+   align-items: center;
+   color: var(--sw-color-olive);
+   font-size: var(--sw-text-sm);
+   font-weight: 750;
+}
+
+.tripDayList {
+   display: grid;
+   border-block: var(--sw-border-width) solid var(--sw-color-border);
+}
+
+.tripDay {
+   display: grid;
+   gap: var(--sw-space-3);
+   padding-block: var(--sw-space-3);
+}
+
+.tripDay + .tripDay {
+   border-top: var(--sw-border-width) solid var(--sw-color-border);
+}
+
+.tripDay[data-current="true"] {
+   background: color-mix(in srgb, var(--sw-color-mustard) 9%, transparent);
+}
+
+.tripDayCopy {
+   display: grid;
+   gap: var(--sw-space-1);
+   min-width: 0;
+}
+
+.tripDayDateRow {
+   display: flex;
+   flex-wrap: wrap;
+   align-items: center;
+   gap: var(--sw-space-2);
+}
+
+.tripDayDate {
+   color: var(--sw-color-text-primary);
+   font-size: var(--sw-text-sm);
+   font-weight: 800;
+   letter-spacing: 0.01em;
+}
+
+.tripDayCurrent {
+   padding: 0.15rem 0.45rem;
+   border-radius: 999px;
+   background: var(--sw-color-mustard);
+   color: var(--sw-color-ink);
+   font-size: var(--sw-text-xs);
+   font-weight: 800;
+}
+
+.tripDayArea {
+   color: var(--sw-color-text-secondary);
+   font-size: var(--sw-text-sm);
+   line-height: 1.45;
+}
+
+.tripDayActions {
+   display: flex;
+   flex-wrap: wrap;
+   gap: var(--sw-space-2);
+}
+
+.tripDayEditButton,
+.tripDayRemoveButton {
+   border: var(--sw-border-width) solid var(--sw-color-border);
+   background: transparent;
+}
+
+.tripDayEditButton {
+   color: var(--sw-color-text-primary);
+}
+
+.tripDayRemoveButton {
+   color: var(--sw-color-text-secondary);
+}
+
+.tripDayEditButton:hover {
+   border-color: var(--sw-color-olive);
+   background: var(--sw-color-warm-white);
+}
+
+.tripDayRemoveButton:hover {
+   border-color: var(--sw-color-terracotta);
+   color: var(--sw-color-terracotta);
+}
+
+.tripFolioFooter {
+   display: grid;
+   gap: var(--sw-space-2);
+}
+
+.addTripDayButton {
+   width: 100%;
+}
+
+.addTripDayButton:disabled {
+   cursor: not-allowed;
+   opacity: 0.55;
 }
 
 .footerActions {
@@ -532,6 +864,22 @@
 }
 
 @media (min-width: 40rem) {
+   .tripFolioHeading {
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+   }
+
+   .tripFolioButton,
+   .addTripDayButton {
+      width: auto;
+      min-width: 9rem;
+   }
+
+   .tripDay {
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+   }
+
    .footerActions {
       grid-template-columns: repeat(2, minmax(0, 1fr));
    }
@@ -570,6 +918,21 @@
 
    .stopName {
       font-size: 1.55rem;
+   }
+
+   .tripFolioHeading {
+      grid-template-columns: 1fr;
+      align-items: stretch;
+   }
+
+   .tripFolioButton,
+   .addTripDayButton {
+      width: 100%;
+   }
+
+   .tripDay {
+      grid-template-columns: 1fr;
+      align-items: stretch;
    }
 
    .footerActions {

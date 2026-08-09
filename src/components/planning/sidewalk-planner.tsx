@@ -18,12 +18,17 @@ import { getLocalAreasForMunicipality } from "@/lib/geography/get-local-areas-fo
 import { getMunicipalitiesForMetro } from "@/lib/geography/get-municipalities-for-metro";
 import { createRecentMetroSlugs, readRecentMetroSlugs, saveRecentMetroSlugs } from "@/lib/geography/recent-metros";
 import { fetchPeriodRecommendations } from "@/lib/places/period-recommendation-client";
+import { getFeedbackExcludedPlaceIds, readRecommendationFeedback, recordRecommendationFeedback, saveRecommendationFeedback, type RecommendationFeedbackReason, type RecommendationFeedbackSignal } from "@/lib/places/recommendation-feedback";
+import { createTripFolio, createTripFolioDay, createTripFolioDaySourceKey, findTripFolioDay, getNextTripPlanningDate, readTripFolio, removeTripFolioDay, renameTripFolio, saveTripFolio, upsertTripFolioDay } from "@/lib/trips/trip-folio-storage";
 import { requestSharedDay, SharedDayRequestError } from "@/lib/sharing/shared-day-client";
 import { createSharedDayRequestFromPlan } from "@/lib/sharing/shared-day-schema";
+import { requestSharedTrip, SharedTripRequestError } from "@/lib/sharing/shared-trip-client";
+import { createSharedTripRequestFromFolio } from "@/lib/sharing/shared-trip-schema";
 import { activityDirections, activityKinds, type ActivityDirection, type ActivityKind } from "@/types/activity";
 import { dayPeriodDefinitions, dayPeriods, type DayPeriod } from "@/types/day-period";
 import type { DayStop } from "@/types/day-plan";
 import { maxPeriodRecommendationRefreshes, type CommittedStopContext, type PeriodRecommendation, type PeriodRecommendationStatus } from "@/types/period-recommendation";
+import { tripFolioLimits, type TripFolio, type TripFolioDay } from "@/types/trip-folio";
 
 import plannerStyles from "./period-planner.module.css";
 
@@ -40,6 +45,13 @@ type RequestKeysByPeriod = Record<DayPeriod, string | null>;
 type SharedDayCreationStatus = "idle" | "loading" | "ready" | "error";
 
 type SharedDayCreationState = Readonly<{
+   status: SharedDayCreationStatus;
+   sourceKey: string | null;
+   shareUrl: string | null;
+   message: string;
+}>;
+
+type SharedTripCreationState = Readonly<{
    status: SharedDayCreationStatus;
    sourceKey: string | null;
    shareUrl: string | null;
@@ -183,6 +195,15 @@ function createInitialSharedDayCreationState(): SharedDayCreationState {
    };
 }
 
+function createInitialSharedTripCreationState(): SharedTripCreationState {
+   return {
+      status: "idle",
+      sourceKey: null,
+      shareUrl: null,
+      message: "",
+   };
+}
+
 function readSimilarDayContext(): SimilarDayContext | null {
    const requestUrl = new URL(window.location.href);
 
@@ -256,6 +277,24 @@ function createSharedDaySourceKey(planningDate: string, metroRegionId: string, m
          summary: stop.summary ?? "",
          reason: stop.reason ?? "",
          photoResourceName: stop.photoResourceName ?? null,
+      })),
+   });
+}
+
+function createSharedTripSourceKey(folio: TripFolio | null): string {
+   if (!folio) {
+      return "";
+   }
+
+   return JSON.stringify({
+      title: folio.title,
+
+      days: folio.days.map((day) => ({
+         planningDate: day.planningDate,
+         metroRegionId: day.metroRegionId,
+         municipalityId: day.municipalityId,
+         localAreaId: day.localAreaId,
+         sourceKey: createTripFolioDaySourceKey(day),
       })),
    });
 }
@@ -697,7 +736,7 @@ export function SidewalkPlanner() {
 
    const [activityDirectionsByPeriod, setActivityDirectionsByPeriod] = useState<ActivityDirectionsByPeriod>(createEmptyActivityDirections);
 
-   const [activeDayPeriod, setActiveDayPeriod] = useState<DayPeriod>("morning");
+   const [activeDayPeriod, setActiveDayPeriod] = useState<DayPeriod>("early-morning");
 
    const [sessionSeed, setSessionSeed] = useState("");
 
@@ -717,6 +756,8 @@ export function SidewalkPlanner() {
 
    const shareRequestControllerReference = useRef<AbortController | null>(null);
 
+   const tripShareRequestControllerReference = useRef<AbortController | null>(null);
+
    const periodPanelReference = useRef<HTMLElement | null>(null);
 
    const shouldFocusPeriodPanelReference = useRef(false);
@@ -731,7 +772,15 @@ export function SidewalkPlanner() {
 
    const [sharedDayCreationState, setSharedDayCreationState] = useState<SharedDayCreationState>(createInitialSharedDayCreationState);
 
+   const [sharedTripCreationState, setSharedTripCreationState] = useState<SharedTripCreationState>(createInitialSharedTripCreationState);
+
    const [similarDayPeriods, setSimilarDayPeriods] = useState<readonly DayPeriod[]>([]);
+
+   const [tripFolio, setTripFolio] = useState<TripFolio | null>(null);
+
+   const [tripFolioMessage, setTripFolioMessage] = useState("");
+
+   const [recommendationFeedback, setRecommendationFeedback] = useState<readonly RecommendationFeedbackSignal[]>([]);
 
    const selectedMetro = activeMetroRegions.find((metroRegion) => metroRegion.slug === selectedMetroSlug) ?? activeMetroRegions[0];
 
@@ -748,6 +797,32 @@ export function SidewalkPlanner() {
    const activeChapterRefreshState = chapterRefreshStates[activeDayPeriod];
 
    const sharedDaySourceKey = createSharedDaySourceKey(planningDate, selectedMetro?.id ?? "", selectedMunicipality?.id ?? "", selectedLocalArea?.id ?? "", dayStops);
+
+   const currentTripDay =
+      selectedMetro && selectedMunicipality && selectedLocalArea && planningDate && dayStops.length >= 2
+         ? createTripFolioDay({
+              planningDate,
+
+              metroRegionId: selectedMetro.id,
+              metroSlug: selectedMetro.slug,
+              metroName: selectedMetro.name,
+              stateOrRegion: selectedMetro.stateOrRegion,
+
+              municipalityId: selectedMunicipality.id,
+              municipalityName: selectedMunicipality.name,
+
+              localAreaId: selectedLocalArea.id,
+              localAreaName: selectedLocalArea.name,
+
+              stops: dayStops,
+           })
+         : null;
+
+   const savedTripDay = findTripFolioDay(tripFolio, planningDate);
+
+   const tripDayStatus = !savedTripDay || !currentTripDay ? "not-saved" : createTripFolioDaySourceKey(savedTripDay) === createTripFolioDaySourceKey(currentTripDay) ? "saved" : "changed";
+
+   const sharedTripSourceKey = createSharedTripSourceKey(tripFolio);
 
    useEffect(() => {
       try {
@@ -826,7 +901,7 @@ export function SidewalkPlanner() {
 
             setActivityDirectionsByPeriod(storedSession.activityDirectionsByPeriod);
 
-            setActiveDayPeriod(planningDateIsCurrent ? storedSession.activeDayPeriod : "morning");
+            setActiveDayPeriod(planningDateIsCurrent ? storedSession.activeDayPeriod : "early-morning");
 
             setSessionSeed(storedSession.sessionSeed);
 
@@ -849,6 +924,14 @@ export function SidewalkPlanner() {
       setPlanningDate(today);
       setSessionSeed(getOrCreateSessionSeed());
       setIsSessionReady(true);
+   }, []);
+
+   useEffect(() => {
+      setTripFolio(readTripFolio());
+   }, []);
+
+   useEffect(() => {
+      setRecommendationFeedback(readRecommendationFeedback());
    }, []);
 
    /**
@@ -881,12 +964,24 @@ export function SidewalkPlanner() {
    }, [sharedDayCreationState.sourceKey, sharedDayCreationState.status, sharedDaySourceKey]);
 
    useEffect(() => {
+      if (sharedTripCreationState.status === "idle" || sharedTripCreationState.sourceKey === sharedTripSourceKey) {
+         return;
+      }
+
+      tripShareRequestControllerReference.current?.abort();
+      tripShareRequestControllerReference.current = null;
+
+      setSharedTripCreationState(createInitialSharedTripCreationState());
+   }, [sharedTripCreationState.sourceKey, sharedTripCreationState.status, sharedTripSourceKey]);
+
+   useEffect(() => {
       return () => {
          Object.values(requestControllersReference.current).forEach((controller) => {
             controller?.abort();
          });
 
          shareRequestControllerReference.current?.abort();
+         tripShareRequestControllerReference.current?.abort();
       };
    }, []);
 
@@ -981,7 +1076,7 @@ export function SidewalkPlanner() {
          }));
       }
 
-      const excludedPlaceIds = new Set<string>();
+      const excludedPlaceIds = new Set<string>(getFeedbackExcludedPlaceIds(recommendationFeedback));
 
       if (variationIndex > 0) {
          chapterRefreshState.shownPlaceIds.forEach((placeId) => {
@@ -1184,9 +1279,11 @@ export function SidewalkPlanner() {
 
    const planProgressCopy = getPlanProgressCopy(chosenChapterCount);
 
-   const layoutClassName = dayStops.length > 0 ? "editorial-container planning-view__layout planning-view__layout--with-tray" : "editorial-container planning-view__layout";
+   const hasPersistentTray = dayStops.length > 0 || tripFolio !== null;
 
-   const mainClassName = dayStops.length > 0 ? "home-main home-main--with-day-tray" : "home-main";
+   const layoutClassName = hasPersistentTray ? "editorial-container planning-view__layout planning-view__layout--with-tray" : "editorial-container planning-view__layout";
+
+   const mainClassName = hasPersistentTray ? "home-main home-main--with-day-tray" : "home-main";
 
    function abortAllRequests() {
       Object.values(requestControllersReference.current).forEach((controller) => {
@@ -1201,7 +1298,7 @@ export function SidewalkPlanner() {
 
       shouldFocusPeriodPanelReference.current = true;
 
-      setActiveDayPeriod("morning");
+      setActiveDayPeriod("early-morning");
 
       setRecommendationsByPeriod(createEmptyRecommendations());
 
@@ -1314,7 +1411,7 @@ export function SidewalkPlanner() {
       clearAllGeneratedPlanning(true, true);
 
       if (hadDayStops) {
-         setDayPlanAnnouncement("Your day was cleared because the neighborhood changed.");
+         setDayPlanAnnouncement("Neighborhood changed. Sidewalk cleared the open day so the next picks belong to the new area.");
       }
    }
 
@@ -1323,11 +1420,21 @@ export function SidewalkPlanner() {
          return;
       }
 
+      const existingTripDay = findTripFolioDay(tripFolio, nextPlanningDate);
+
+      if (existingTripDay) {
+         handleEditTripDay(existingTripDay.planningDate);
+
+         return;
+      }
+
       const hadDayStops = dayStops.length > 0;
 
       setPlanningDate(nextPlanningDate);
 
       clearAllGeneratedPlanning(false);
+
+      setTripFolioMessage("");
 
       setDayPlanAnnouncement(hadDayStops ? "Your chosen stops were cleared because the planning date changed." : "Sidewalk is preparing recommendations for the new date.");
    }
@@ -1444,7 +1551,7 @@ export function SidewalkPlanner() {
 
       const requestKey = createPeriodRequestKey(selectedMetro.id, selectedMunicipality.id, selectedLocalArea.id, dayPeriod, activeActivityDirection, planningDate, sessionSeed, nextVariationIndex, committedStopsSegment);
 
-      const excludedPlaceIds = new Set<string>(currentRefreshState.shownPlaceIds);
+      const excludedPlaceIds = new Set<string>([...currentRefreshState.shownPlaceIds, ...getFeedbackExcludedPlaceIds(recommendationFeedback)]);
 
       currentRecommendations.forEach((recommendation) => {
          excludedPlaceIds.add(recommendation.place.id);
@@ -1578,6 +1685,49 @@ export function SidewalkPlanner() {
 
          setDayPlanAnnouncement(`Sidewalk could not refresh the ${getPeriodLabel(dayPeriod).toLowerCase()} options.`);
       }
+   }
+
+   function handleRecommendationFeedback(period: DayPeriod, recommendation: PeriodRecommendation, reason: RecommendationFeedbackReason) {
+      if (!selectedLocalArea) {
+         return;
+      }
+
+      const nextFeedback = recordRecommendationFeedback(recommendationFeedback, {
+         placeId: recommendation.place.id,
+         reason,
+         dayPeriod: period,
+         localAreaId: selectedLocalArea.id,
+      });
+
+      saveRecommendationFeedback(nextFeedback);
+
+      setRecommendationFeedback(nextFeedback);
+
+      const remainingRecommendations = recommendationsByPeriod[period].filter((candidate) => candidate.place.id !== recommendation.place.id);
+
+      setRecommendationsByPeriod((currentRecommendations) => ({
+         ...currentRecommendations,
+         [period]: remainingRecommendations,
+      }));
+
+      setSelectedRecommendations((currentSelections) => ({
+         ...currentSelections,
+         [period]: remainingRecommendations[0],
+      }));
+
+      setLoadedRequestKeys((currentKeys) => ({
+         ...currentKeys,
+         [period]: null,
+      }));
+
+      const feedbackCopy =
+         reason === "been-there"
+            ? "Been there. Sidewalk will make room for something new."
+            : reason === "too-far"
+              ? "Got it. Sidewalk will leave that one out for the rest of this planning session."
+              : "Not your thing. Sidewalk will steer around that one for the rest of this planning session.";
+
+      setDayPlanAnnouncement(feedbackCopy);
    }
 
    function handleRecommendationSelect(period: DayPeriod, recommendation: PeriodRecommendation) {
@@ -1836,16 +1986,264 @@ export function SidewalkPlanner() {
       }
    }
 
-   function handlePlanAnotherDay() {
-      const nextSessionSeed = generateAnonymousSessionSeed();
+   async function handleCreateSharedTrip() {
+      if (sharedTripCreationState.status === "loading") {
+         return;
+      }
 
-      saveSessionSeed(nextSessionSeed);
+      if (!tripFolio) {
+         setSharedTripCreationState({
+            status: "error",
+            sourceKey: sharedTripSourceKey,
+            shareUrl: null,
+            message: "Add days to a Trip Folio before sharing the trip.",
+         });
+
+         return;
+      }
+
+      if (tripFolio.days.length < tripFolioLimits.minimumDaysForShare) {
+         const message = "Add one more saved day before sharing the whole trip.";
+
+         setSharedTripCreationState({
+            status: "error",
+            sourceKey: sharedTripSourceKey,
+            shareUrl: null,
+            message,
+         });
+
+         setDayPlanAnnouncement(message);
+
+         return;
+      }
+
+      if (tripDayStatus === "changed") {
+         const message = "Update the current trip day before sharing so the link includes your latest changes.";
+
+         setSharedTripCreationState({
+            status: "error",
+            sourceKey: sharedTripSourceKey,
+            shareUrl: null,
+            message,
+         });
+
+         setDayPlanAnnouncement(message);
+
+         return;
+      }
+
+      if (sharedTripCreationState.status === "ready" && sharedTripCreationState.sourceKey === sharedTripSourceKey && sharedTripCreationState.shareUrl) {
+         setDayPlanAnnouncement("Your shared-trip link is already ready.");
+
+         return;
+      }
+
+      const request = createSharedTripRequestFromFolio(tripFolio);
+
+      if (!request) {
+         const message = "Sidewalk could not prepare this Trip Folio for sharing.";
+
+         setSharedTripCreationState({
+            status: "error",
+            sourceKey: sharedTripSourceKey,
+            shareUrl: null,
+            message,
+         });
+
+         setDayPlanAnnouncement(message);
+
+         return;
+      }
+
+      tripShareRequestControllerReference.current?.abort();
+
+      const controller = new AbortController();
+
+      tripShareRequestControllerReference.current = controller;
+
+      setSharedTripCreationState({
+         status: "loading",
+         sourceKey: sharedTripSourceKey,
+         shareUrl: null,
+         message: "",
+      });
+
+      setDayPlanAnnouncement("Sidewalk is creating one read-only link for your full trip.");
+
+      try {
+         const response = await requestSharedTrip(request, controller.signal);
+
+         if (controller.signal.aborted) {
+            return;
+         }
+
+         setSharedTripCreationState({
+            status: "ready",
+            sourceKey: sharedTripSourceKey,
+            shareUrl: response.shareUrl,
+            message: "",
+         });
+
+         setDayPlanAnnouncement("Your shared-trip link is ready.");
+      } catch (error: unknown) {
+         if (error instanceof Error && error.name === "AbortError") {
+            return;
+         }
+
+         const message = error instanceof SharedTripRequestError ? error.message : "Sidewalk could not create a shareable trip right now.";
+
+         setSharedTripCreationState({
+            status: "error",
+            sourceKey: sharedTripSourceKey,
+            shareUrl: null,
+            message,
+         });
+
+         setDayPlanAnnouncement(message);
+      } finally {
+         if (tripShareRequestControllerReference.current === controller) {
+            tripShareRequestControllerReference.current = null;
+         }
+      }
+   }
+
+   function handleRenameTrip(title: string) {
+      if (!tripFolio) {
+         return;
+      }
+
+      const renamedFolio = renameTripFolio(tripFolio, title);
+
+      if (!renamedFolio) {
+         setTripFolioMessage("Give the trip a short name before saving it.");
+
+         return;
+      }
+
+      if (!saveTripFolio(renamedFolio)) {
+         setTripFolioMessage("Sidewalk could not rename this trip in this browser.");
+
+         return;
+      }
+
+      setTripFolio(renamedFolio);
+
+      setTripFolioMessage(`Trip renamed to ${renamedFolio.title}.`);
+
+      setDayPlanAnnouncement(`${renamedFolio.title} is now the name of this Trip Folio.`);
+   }
+
+   function handleSaveDayToTrip() {
+      if (!currentTripDay || !selectedMetro) {
+         setTripFolioMessage("Choose at least two stops before adding this day to a trip.");
+
+         return;
+      }
+
+      const nextFolio = tripFolio ? upsertTripFolioDay(tripFolio, currentTripDay) : createTripFolio(`${selectedMetro.name} Trip`, currentTripDay);
+
+      if (!nextFolio) {
+         setTripFolioMessage(`A trip can hold up to ${tripFolioLimits.maximumDays} days. Remove a day before adding another one.`);
+
+         setDayPlanAnnouncement(`Your trip already has ${tripFolioLimits.maximumDays} days.`);
+
+         return;
+      }
+
+      if (!saveTripFolio(nextFolio)) {
+         setTripFolioMessage("Sidewalk could not save this trip in this browser.");
+
+         return;
+      }
+
+      const wasAlreadySaved = savedTripDay !== null;
+
+      setTripFolio(nextFolio);
+
+      setTripFolioMessage(wasAlreadySaved ? "This trip day is up to date." : "Day added. Use the Trip Folio when you are ready to add or edit another day.");
+
+      setDayPlanAnnouncement(wasAlreadySaved ? `${formatPlanningDateForAnnouncement(planningDate)} is updated in ${nextFolio.title}.` : `${formatPlanningDateForAnnouncement(planningDate)} was added to ${nextFolio.title}.`);
+   }
+
+   function handleRemoveTripDay(tripPlanningDate: string) {
+      if (!tripFolio) {
+         return;
+      }
+
+      const removedDay = findTripFolioDay(tripFolio, tripPlanningDate);
+
+      if (!removedDay) {
+         return;
+      }
+
+      const nextFolio = removeTripFolioDay(tripFolio, tripPlanningDate);
+
+      if (!saveTripFolio(nextFolio)) {
+         setTripFolioMessage("Sidewalk could not update this trip in this browser.");
+
+         return;
+      }
+
+      setTripFolio(nextFolio);
+
+      if (!nextFolio) {
+         tripShareRequestControllerReference.current?.abort();
+         tripShareRequestControllerReference.current = null;
+
+         setSharedTripCreationState(createInitialSharedTripCreationState());
+      }
+
+      const removedCurrentDay = tripPlanningDate === planningDate;
+
+      setTripFolioMessage(nextFolio ? `${formatPlanningDateForAnnouncement(tripPlanningDate)} was removed from the trip.` : "The trip is empty, so Sidewalk cleared the folio.");
+
+      setDayPlanAnnouncement(removedCurrentDay ? "This day was removed from your trip. The day itself is still open here." : `${formatPlanningDateForAnnouncement(tripPlanningDate)} was removed from the trip.`);
+   }
+
+   function formatPlanningDateForAnnouncement(value: string): string {
+      const [yearText, monthText, dayText] = value.split("-");
+
+      return new Intl.DateTimeFormat("en-US", {
+         month: "long",
+         day: "numeric",
+         timeZone: "UTC",
+      }).format(new Date(Date.UTC(Number(yearText), Number(monthText) - 1, Number(dayText))));
+   }
+
+   function createActivityDirectionsForTripDay(tripDay: TripFolioDay): ActivityDirectionsByPeriod {
+      const nextDirections = createEmptyActivityDirections();
+
+      tripDay.stops.forEach((stop) => {
+         nextDirections[stop.dayPeriod] = stop.resolvedActivity;
+      });
+
+      return nextDirections;
+   }
+
+   function resolveTripDayGeography(tripDay: TripFolioDay) {
+      const metroRegion = activeMetroRegions.find((candidate) => candidate.id === tripDay.metroRegionId || candidate.slug === tripDay.metroSlug) ?? null;
+
+      const municipality = municipalities.find((candidate) => candidate.id === tripDay.municipalityId && candidate.metroRegionId === metroRegion?.id) ?? null;
+
+      const localArea = localAreas.find((candidate) => candidate.id === tripDay.localAreaId && candidate.municipalityId === municipality?.id) ?? null;
+
+      if (!metroRegion || !municipality || !localArea) {
+         return null;
+      }
+
+      return {
+         metroRegion,
+         municipality,
+         localArea,
+      };
+   }
+
+   function resetRecommendationWorkspace(nextSessionSeed: string) {
+      abortAllRequests();
 
       setSessionSeed(nextSessionSeed);
 
-      abortAllRequests();
-
-      setActiveDayPeriod("morning");
+      saveSessionSeed(nextSessionSeed);
 
       setRecommendationsByPeriod(createEmptyRecommendations());
 
@@ -1857,13 +2255,154 @@ export function SidewalkPlanner() {
 
       setChapterRefreshStates(createInitialChapterRefreshState());
 
-      setDayStops([]);
+      setSimilarDayPeriods([]);
+
+      setSharedDayCreationState(createInitialSharedDayCreationState());
+
+      setTripFolioMessage("");
+   }
+
+   function handleEditTripDay(tripPlanningDate: string) {
+      const tripDay = findTripFolioDay(tripFolio, tripPlanningDate);
+
+      if (!tripDay) {
+         setTripFolioMessage("Sidewalk could not find that saved trip day.");
+
+         return;
+      }
+
+      const geography = resolveTripDayGeography(tripDay);
+
+      if (!geography) {
+         setTripFolioMessage("That trip day uses an area that is no longer available.");
+
+         return;
+      }
+
+      const nextSessionSeed = generateAnonymousSessionSeed();
+
+      resetRecommendationWorkspace(nextSessionSeed);
+
+      setSelectedMetroSlug(geography.metroRegion.slug);
+
+      setSelectedMunicipalityId(geography.municipality.id);
+
+      setSelectedLocalAreaId(geography.localArea.id);
+
+      setPlanningDate(tripDay.planningDate);
+
+      setActivityDirectionsByPeriod(createActivityDirectionsForTripDay(tripDay));
+
+      const restoredStops = sortDayStops(tripDay.stops);
+
+      setDayStops(restoredStops);
+
+      setActiveDayPeriod(restoredStops[0]?.dayPeriod ?? "early-morning");
 
       setIsDayTrayOpen(false);
 
-      setSimilarDayPeriods([]);
+      shouldFocusPeriodPanelReference.current = true;
 
-      setDayPlanAnnouncement("Sidewalk is preparing a new set of recommendations for the same area.");
+      setDayPlanAnnouncement(`${formatPlanningDateForAnnouncement(tripDay.planningDate)} is open for editing. Saved stops are restored, and you can change any part of the day.`);
+   }
+
+   function handleAddTripDay() {
+      if (!tripFolio) {
+         return;
+      }
+
+      /**
+       * The Trip Folio owns multi-day planning. If the person has finished a
+       * new day (or changed a saved day), "Add another day" first commits that
+       * work to the Folio before moving forward. This prevents an unsaved
+       * August 10 from being cleared while the Folio still only contains
+       * August 9.
+       */
+      let workingFolio = tripFolio;
+
+      const currentDayNeedsSaving = tripDayStatus !== "saved";
+
+      if (currentDayNeedsSaving) {
+         if (!currentTripDay) {
+            const message = "Finish this day with at least two stops before adding another trip day.";
+
+            setTripFolioMessage(message);
+
+            setDayPlanAnnouncement(message);
+
+            return;
+         }
+
+         const updatedFolio = upsertTripFolioDay(workingFolio, currentTripDay);
+
+         if (!updatedFolio) {
+            const message = `This trip already has ${tripFolioLimits.maximumDays} days. Remove a day before adding another one.`;
+
+            setTripFolioMessage(message);
+
+            setDayPlanAnnouncement(message);
+
+            return;
+         }
+
+         if (!saveTripFolio(updatedFolio)) {
+            const message = "Sidewalk could not save this trip in this browser.";
+
+            setTripFolioMessage(message);
+
+            setDayPlanAnnouncement(message);
+
+            return;
+         }
+
+         workingFolio = updatedFolio;
+
+         setTripFolio(updatedFolio);
+      }
+
+      const nextPlanningDate = getNextTripPlanningDate(workingFolio);
+
+      if (!nextPlanningDate) {
+         setTripFolioMessage(`This trip already has ${tripFolioLimits.maximumDays} days.`);
+
+         setDayPlanAnnouncement(`Your trip already has ${tripFolioLimits.maximumDays} days.`);
+
+         return;
+      }
+
+      const latestTripDay = [...workingFolio.days].sort((first, second) => second.planningDate.localeCompare(first.planningDate))[0] ?? null;
+
+      const geography = latestTripDay ? resolveTripDayGeography(latestTripDay) : null;
+
+      const nextSessionSeed = generateAnonymousSessionSeed();
+
+      resetRecommendationWorkspace(nextSessionSeed);
+
+      if (geography) {
+         setSelectedMetroSlug(geography.metroRegion.slug);
+
+         setSelectedMunicipalityId(geography.municipality.id);
+
+         setSelectedLocalAreaId(geography.localArea.id);
+      }
+
+      setPlanningDate(nextPlanningDate);
+
+      setActivityDirectionsByPeriod(createEmptyActivityDirections());
+
+      setDayStops([]);
+
+      setActiveDayPeriod("early-morning");
+
+      setIsDayTrayOpen(false);
+
+      shouldFocusPeriodPanelReference.current = true;
+
+      setDayPlanAnnouncement(
+         currentDayNeedsSaving
+            ? `${formatPlanningDateForAnnouncement(planningDate)} was saved to ${workingFolio.title}. ${formatPlanningDateForAnnouncement(nextPlanningDate)} is ready next.`
+            : `${formatPlanningDateForAnnouncement(nextPlanningDate)} is ready as the next day in ${workingFolio.title}. Start with Early Morning, or change the area first.`,
+      );
    }
 
    let selectionAnnouncement = `${selectedMetro.name} selected. Choose a municipality.`;
@@ -2033,6 +2572,7 @@ export function SidewalkPlanner() {
                                              nextPeriodLabel={nextUnfilledPeriodLabel}
                                              onAddToDay={(recommendation) => handleAddPeriodStop(activeDayPeriod, recommendation)}
                                              onContinue={() => handleContinueFromPeriod(activeDayPeriod)}
+                                             onFeedback={(reason) => handleRecommendationFeedback(activeDayPeriod, activeSelectedRecommendation, reason)}
                                           />
                                        ) : null}
                                     </div>
@@ -2050,20 +2590,32 @@ export function SidewalkPlanner() {
                      shareStatus={sharedDayCreationState.status}
                      shareUrl={sharedDayCreationState.shareUrl}
                      shareMessage={sharedDayCreationState.message}
+                     tripTitle={tripFolio?.title ?? null}
+                     tripDays={tripFolio?.days ?? []}
+                     tripDayStatus={tripDayStatus}
+                     tripMessage={tripFolioMessage}
+                     tripShareStatus={sharedTripCreationState.status}
+                     tripShareUrl={sharedTripCreationState.shareUrl}
+                     tripShareMessage={sharedTripCreationState.message}
                      onToggle={() => setIsDayTrayOpen((currentState) => !currentState)}
                      onDone={handleDoneEditingDay}
                      onRemove={handleRemoveStop}
                      onClearDay={handleClearDay}
                      onEditPeriod={handleEditPeriod}
                      onContinuePlanning={handleContinuePlanning}
-                     onPlanAnotherDay={handlePlanAnotherDay}
                      onCreateShare={() => void handleCreateSharedDay()}
+                     onSaveToTrip={handleSaveDayToTrip}
+                     onEditTripDay={handleEditTripDay}
+                     onRemoveTripDay={handleRemoveTripDay}
+                     onAddTripDay={handleAddTripDay}
+                     onCreateTripShare={() => void handleCreateSharedTrip()}
+                     onRenameTrip={handleRenameTrip}
                   />
                </div>
             </section>
          </main>
 
-         <SiteFooter hasDayTray={dayStops.length > 0} />
+         <SiteFooter hasDayTray={hasPersistentTray} />
       </>
    );
 }

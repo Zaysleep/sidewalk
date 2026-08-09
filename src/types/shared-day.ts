@@ -19,7 +19,10 @@ export const sharedDayLimits = {
    expirationDays: 30,
 
    maximumSnapshotJsonBytes: 24_576,
+   maximumCompressedPayloadBytes: 9_216,
    maximumTokenLength: 12_000,
+
+   maximumClockSkewMinutes: 5,
 } as const;
 
 export type SharedDayStop = Readonly<{
@@ -87,6 +90,8 @@ export type SharedDayCreateResponse = Readonly<{
 export type SharedDayErrorCode =
    | "INVALID_JSON"
    | "REQUEST_TOO_LARGE"
+   | "UNSUPPORTED_MEDIA_TYPE"
+   | "REQUEST_ORIGIN_REJECTED"
    | "INVALID_REQUEST"
    | "INVALID_DATE"
    | "INVALID_GEOGRAPHY"
