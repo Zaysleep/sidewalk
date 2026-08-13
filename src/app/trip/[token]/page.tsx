@@ -6,6 +6,7 @@ import { SharedDayPhoto } from "@/components/sharing/shared-day-photo";
 import { isShortSharedTripToken, readSharedTripSnapshot } from "@/lib/sharing/shared-trip-store";
 import { verifySharedTripToken } from "@/lib/sharing/shared-trip-token";
 import { siteConfig } from "@/lib/site/site-config";
+import { createSharedTripPreviewDescription, getSharedTripStopCount } from "@/lib/sharing/shared-trip-preview-summary";
 import { dayPeriodDefinitions, dayPeriods, type DayPeriod } from "@/types/day-period";
 import type { SharedDayStop } from "@/types/shared-day";
 import type { SharedTripDaySnapshot, SharedTripSnapshot } from "@/types/shared-trip";
@@ -161,14 +162,18 @@ function formatDayDuration(stops: readonly SharedDayStop[]): string {
    return minimum === maximum ? `${minimum} minutes at places` : `${minimum}–${maximum} minutes at places`;
 }
 
-function getTripStopCount(snapshot: SharedTripSnapshot): number {
-   return snapshot.days.reduce((total, day) => total + day.stops.length, 0);
-}
+function getPublicSiteUrl(): URL {
+   const configuredPublicUrl = process.env.SIDEWALK_PUBLIC_URL?.trim() || process.env.NEXT_PUBLIC_SITE_URL?.trim();
 
-function createPageDescription(snapshot: SharedTripSnapshot): string {
-   const stopCount = getTripStopCount(snapshot);
+   if (configuredPublicUrl) {
+      try {
+         return new URL(configuredPublicUrl);
+      } catch {
+         // Fall through to the existing Sidewalk configuration.
+      }
+   }
 
-   return `${snapshot.days.length}-day Sidewalk trip with ${stopCount} curated stops, shared as one read-only itinerary.`;
+   return new URL(siteConfig.url);
 }
 
 export async function generateMetadata({ params }: SharedTripPageProps): Promise<Metadata> {
@@ -196,22 +201,27 @@ export async function generateMetadata({ params }: SharedTripPageProps): Promise
 
    const title = result.snapshot.title;
 
-   const description = createPageDescription(result.snapshot);
+   const description = createSharedTripPreviewDescription(result.snapshot);
+
+   const canonicalTripUrl = new URL(`/trip/${encodeURIComponent(token)}`, getPublicSiteUrl());
 
    return {
       ...privateMetadata,
       title,
       description,
+      alternates: {
+         canonical: canonicalTripUrl,
+      },
       openGraph: {
          type: "website",
          locale: siteConfig.locale,
          siteName: siteConfig.name,
          title: `${title} | ${siteConfig.name}`,
          description,
-         url: new URL(`/trip/${token}`, siteConfig.url),
+         url: canonicalTripUrl,
       },
       twitter: {
-         card: "summary",
+         card: "summary_large_image",
          title: `${title} | ${siteConfig.name}`,
          description,
       },
@@ -284,7 +294,7 @@ export default async function SharedTripPage({ params }: SharedTripPageProps) {
 
    const { snapshot } = result;
 
-   const stopCount = getTripStopCount(snapshot);
+   const stopCount = getSharedTripStopCount(snapshot);
 
    return (
       <>

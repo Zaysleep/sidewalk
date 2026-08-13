@@ -1,22 +1,29 @@
-/**
- * Props allow the footer to reserve mobile space when the persistent day tray
- * is present at the bottom of the viewport.
- */
+import Link from "next/link";
+
+import styles from "./site-footer.module.css";
+
 type SiteFooterProps = Readonly<{
    hasDayTray?: boolean;
 }>;
 
-/**
- * The footer stays minimal so the page ends with the product rather than
- * another explanatory section.
- */
 export function SiteFooter({ hasDayTray = false }: SiteFooterProps) {
-   const className = hasDayTray ? "site-footer site-footer--with-day-tray" : "site-footer";
-
    return (
-      <footer className={className}>
-         <p className="site-footer__brand">Sidewalk</p>
-         <p className="site-footer__credit">© 2026 Sidewalk is operated by Kin Software LLC</p>
+      <footer className={`${styles.footer} ${hasDayTray ? styles.withDayTray : ""}`}>
+         <div className={styles.identity}>
+            <span className={styles.brand}>Sidewalk</span>
+
+            <span className={styles.edition}>A Kin city guide</span>
+         </div>
+
+         <nav className={styles.links} aria-label="Sidewalk information">
+            <Link href="/about">About</Link>
+
+            <Link href="/privacy">Privacy</Link>
+
+            <Link href="/terms">Terms</Link>
+
+            <Link href="/feedback">Send feedback</Link>
+         </nav>
       </footer>
    );
 }

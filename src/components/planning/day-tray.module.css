@@ -1092,3 +1092,914 @@
       grid-template-columns: 1fr;
    }
 }
+
+/* -------------------------------------------------------------------------- */
+/* P2A â€” Day Tray simplification                                               */
+/* -------------------------------------------------------------------------- */
+
+.tripTitleSummaryRow {
+   display: flex;
+   flex-wrap: wrap;
+   align-items: baseline;
+   justify-content: space-between;
+   gap: var(--sw-space-2) var(--sw-space-3);
+}
+
+.tripFolioCount {
+   flex: 0 0 auto;
+   color: var(--sw-color-text-secondary);
+   font-size: var(--sw-text-sm);
+   font-weight: 700;
+}
+
+.tripPrimaryActions {
+   display: grid;
+   gap: var(--sw-space-2);
+}
+
+.tripDetailsToggle {
+   width: fit-content;
+   min-height: var(--sw-touch-target);
+   padding: var(--sw-space-2) 0;
+   border: 0;
+   background: transparent;
+   color: var(--sw-color-olive);
+   font-size: var(--sw-text-sm);
+   font-weight: 750;
+   text-decoration: underline;
+   text-underline-offset: 0.22em;
+   cursor: pointer;
+}
+
+.tripDetailsToggle:hover {
+   color: var(--sw-color-forest);
+}
+
+.tripDetailsToggle:focus-visible {
+   outline: 0.1875rem solid var(--sw-color-focus);
+   outline-offset: 0.2rem;
+}
+
+.tripDetails {
+   display: grid;
+   gap: var(--sw-space-3);
+   padding-top: var(--sw-space-3);
+   border-top: var(--sw-border-width) solid var(--sw-color-border);
+}
+
+.tripDetailsHeader {
+   display: flex;
+   flex-wrap: wrap;
+   align-items: center;
+   justify-content: space-between;
+   gap: var(--sw-space-2);
+}
+
+.tripDetailsLabel {
+   color: var(--sw-color-text-secondary);
+   font-size: var(--sw-text-xs);
+   font-weight: 750;
+   letter-spacing: var(--sw-tracking-label);
+   text-transform: uppercase;
+}
+
+/* The tray already says DAY SAVED, so completed days do not need another
+   sentence telling the user they are saved. */
+.footerSummary:has(.total:only-child) {
+   gap: 0;
+}
+
+/* Trip Folio should read like a compact secondary section, not a second card
+   competing with the active day. */
+.tripFolio {
+   gap: var(--sw-space-3);
+   padding: var(--sw-space-3);
+}
+
+.tripFolioHeading {
+   gap: var(--sw-space-2);
+}
+
+.tripFolioCopy {
+   gap: 0.25rem;
+}
+
+.tripFolioTitle {
+   font-size: clamp(1.25rem, 3.6vw, 1.55rem);
+}
+
+.tripFolioMessage,
+.tripLimitNote {
+   margin: 0;
+}
+
+/* Current day is already open. Do not make its row look actionable unless the
+   user explicitly chooses Remove. */
+.tripDay[data-current="true"] {
+   background: transparent;
+}
+
+.tripDayCurrent {
+   background: color-mix(in srgb, var(--sw-color-mustard) 70%, white);
+}
+
+.tripDay {
+   gap: var(--sw-space-2);
+   padding-block: var(--sw-space-3);
+}
+
+.tripDayActions {
+   align-items: center;
+}
+
+.tripDayRemoveButton,
+.tripDayEditButton {
+   min-height: var(--sw-touch-target);
+   padding: var(--sw-space-2) var(--sw-space-3);
+}
+
+/* Share controls only appear after the user asks for trip details. */
+.tripShare {
+   gap: var(--sw-space-2);
+   padding-top: var(--sw-space-3);
+}
+
+/* "Share this day" is a utility, not another primary CTA. */
+.shareButton {
+   width: fit-content;
+   min-height: var(--sw-touch-target);
+   justify-self: start;
+   padding-inline: 0;
+   border: 0;
+   background: transparent;
+   color: var(--sw-color-olive);
+   text-decoration: underline;
+   text-underline-offset: 0.22em;
+}
+
+.shareButton:hover {
+   border-color: transparent;
+   background: transparent;
+   color: var(--sw-color-forest);
+}
+
+/* Destructive and close actions stay available without looking like two more
+   competing cards. */
+.trayActions {
+   display: flex;
+   flex-wrap: wrap;
+   align-items: center;
+   justify-content: space-between;
+   gap: var(--sw-space-2) var(--sw-space-4);
+}
+
+.clearDayButton,
+.doneButton {
+   width: auto;
+   padding-inline: 0;
+   border: 0;
+   background: transparent;
+   text-decoration: underline;
+   text-underline-offset: 0.22em;
+}
+
+.clearDayButton {
+   color: var(--sw-color-text-secondary);
+}
+
+.clearDayButton:hover {
+   border-color: transparent;
+   background: transparent;
+   color: var(--sw-color-terracotta);
+}
+
+.doneButton {
+   color: var(--sw-color-olive);
+}
+
+.doneButton:hover {
+   border-color: transparent;
+   background: transparent;
+   color: var(--sw-color-forest);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Phone + tablet                                                             */
+/* -------------------------------------------------------------------------- */
+
+@media (max-width: 63.99rem) {
+   .content {
+      width: min(100%, 48rem);
+      margin-inline: auto;
+      gap: var(--sw-space-3);
+      padding-top: var(--sw-space-4);
+   }
+
+   .heading {
+      padding-bottom: var(--sw-space-3);
+   }
+
+   .stop {
+      gap: var(--sw-space-2);
+      padding-block: var(--sw-space-4);
+   }
+
+   .stopActions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--sw-space-2);
+      margin-top: 0;
+   }
+
+   .locationLink {
+      width: auto;
+      min-height: var(--sw-touch-target);
+      padding: var(--sw-space-2) 0;
+      border: 0;
+      background: transparent;
+      text-decoration: underline;
+      text-underline-offset: 0.2em;
+   }
+
+   .editButton,
+   .removeButton {
+      width: auto;
+      padding-inline: var(--sw-space-3);
+   }
+
+   .footer {
+      gap: var(--sw-space-3);
+      padding-top: 0;
+   }
+
+   .tripFolio {
+      padding: var(--sw-space-3);
+   }
+
+   .tripFolioHeading {
+      grid-template-columns: 1fr;
+      align-items: stretch;
+   }
+
+   .tripFolioButton,
+   .addTripDayButton {
+      width: 100%;
+   }
+
+   .tripDetails {
+      gap: var(--sw-space-2);
+   }
+
+   .tripDay {
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+   }
+
+   .tripShareActions {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+   }
+
+   .footerActions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--sw-space-2) var(--sw-space-4);
+   }
+
+   .footerActions .continueButton,
+   .footerActions .optionalButton {
+      flex: 1 1 14rem;
+      width: auto;
+   }
+
+   .footerActions .shareButton {
+      flex: 0 0 auto;
+   }
+
+   .trayActions {
+      padding-top: var(--sw-space-3);
+   }
+}
+
+/* Phones: preserve large tap targets while avoiding a vertical stack of
+   full-width controls. */
+@media (max-width: 39.99rem) {
+   .content {
+      max-height: min(86svh, 48rem);
+   }
+
+   .tripTitleSummaryRow {
+      display: grid;
+      justify-items: start;
+      gap: 0.2rem;
+   }
+
+   .tripDay {
+      grid-template-columns: 1fr;
+   }
+
+   .tripDayActions {
+      justify-content: flex-start;
+   }
+
+   .tripShareActions {
+      grid-template-columns: 1fr;
+   }
+
+   .tripShareButton,
+   .tripShareLink {
+      width: 100%;
+   }
+
+   .footerActions {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: var(--sw-space-2) var(--sw-space-3);
+   }
+
+   .footerActions .continueButton,
+   .footerActions .optionalButton {
+      grid-column: 1 / -1;
+      width: 100%;
+   }
+
+   .footerActions .shareButton {
+      grid-column: 1;
+   }
+}
+
+@media (max-width: 26rem) {
+   .stopActions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+   }
+
+   .locationLink {
+      grid-column: 1 / -1;
+      justify-self: start;
+   }
+
+   .editButton,
+   .removeButton {
+      width: 100%;
+   }
+
+   .trayActions {
+      align-items: flex-start;
+   }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Desktop sidebar                                                            */
+/* -------------------------------------------------------------------------- */
+
+@media (min-width: 64rem) {
+   .content {
+      gap: var(--sw-space-4);
+   }
+
+   .tripFolio {
+      padding: var(--sw-space-3);
+   }
+
+   .tripPrimaryActions {
+      gap: var(--sw-space-1);
+   }
+
+   .tripFolioButton,
+   .addTripDayButton {
+      width: 100%;
+   }
+
+   .tripDay {
+      grid-template-columns: 1fr;
+   }
+
+   .tripShareActions {
+      display: grid;
+      grid-template-columns: 1fr;
+   }
+
+   .shareButton {
+      width: fit-content;
+   }
+
+   .trayActions {
+      justify-content: flex-start;
+   }
+}
+
+/* -------------------------------------------------------------------------- */
+/* P2A.1 â€” Trip title + sharing clarity                                       */
+/* -------------------------------------------------------------------------- */
+
+.srOnly {
+   position: absolute;
+   width: 1px;
+   height: 1px;
+   padding: 0;
+   margin: -1px;
+   overflow: hidden;
+   clip: rect(0, 0, 0, 0);
+   white-space: nowrap;
+   border: 0;
+}
+
+.editableTripTitle {
+   display: inline-flex;
+   align-items: baseline;
+   gap: 0.55rem;
+   max-width: 100%;
+   padding: 0;
+   border: 0;
+   background: transparent;
+   color: inherit;
+   font: inherit;
+   line-height: inherit;
+   text-align: left;
+   cursor: text;
+}
+
+.editableTripTitleHint {
+   flex: 0 0 auto;
+   color: var(--sw-color-olive);
+   font-family: inherit;
+   font-size: var(--sw-text-xs);
+   font-weight: 750;
+   letter-spacing: 0;
+   text-decoration: underline;
+   text-underline-offset: 0.2em;
+}
+
+.editableTripTitle:hover .editableTripTitleHint {
+   color: var(--sw-color-forest);
+}
+
+.editableTripTitle:focus-visible {
+   outline: 0.1875rem solid var(--sw-color-focus);
+   outline-offset: 0.25rem;
+   border-radius: 0.15rem;
+}
+
+.headerRenameForm,
+.inlineRenameForm {
+   display: grid;
+   gap: var(--sw-space-2);
+   width: min(100%, 26rem);
+}
+
+.headerRenameInput,
+.inlineRenameInput {
+   width: 100%;
+   min-height: var(--sw-touch-target);
+   border: 0;
+   border-bottom: 0.125rem solid var(--sw-color-olive);
+   border-radius: 0;
+   background: transparent;
+   color: var(--sw-color-text);
+   font: inherit;
+   font-weight: 750;
+   line-height: 1.15;
+}
+
+.headerRenameInput {
+   font-size: clamp(1.75rem, 5vw, 2.4rem);
+}
+
+.inlineRenameInput {
+   font-size: clamp(1.15rem, 3.4vw, 1.45rem);
+}
+
+.headerRenameInput:focus,
+.inlineRenameInput:focus {
+   outline: none;
+   border-bottom-color: var(--sw-color-focus);
+}
+
+.headerRenameActions {
+   display: flex;
+   flex-wrap: wrap;
+   gap: var(--sw-space-2);
+}
+
+.headerRenameSaveButton,
+.headerRenameCancelButton,
+.inlineRenameSaveButton {
+   min-height: var(--sw-touch-target);
+   padding: var(--sw-space-2) var(--sw-space-3);
+   border: var(--sw-border-width) solid var(--sw-color-border);
+   border-radius: var(--sw-radius-sm);
+   background: var(--sw-color-surface);
+   color: var(--sw-color-text);
+   font-size: var(--sw-text-sm);
+   font-weight: 750;
+   cursor: pointer;
+}
+
+.headerRenameSaveButton,
+.inlineRenameSaveButton {
+   border-color: var(--sw-color-olive);
+   color: var(--sw-color-olive);
+}
+
+.tripShare {
+   padding-top: var(--sw-space-3);
+   border-top: var(--sw-border-width) solid var(--sw-color-border);
+}
+
+.tripShareTopRow {
+   display: flex;
+   align-items: center;
+   justify-content: space-between;
+   gap: var(--sw-space-3);
+}
+
+.tripShareTopRow .tripShareLabel {
+   margin: 0;
+}
+
+.tripShareTopRow .tripShareButton {
+   width: auto;
+   min-width: 7rem;
+}
+
+.tripShareUtilityActions {
+   display: flex;
+   flex-wrap: wrap;
+   gap: var(--sw-space-3);
+}
+
+.tripShareUtilityButton,
+.tripShareUtilityLink {
+   min-height: var(--sw-touch-target);
+   padding: var(--sw-space-2) 0;
+   border: 0;
+   background: transparent;
+   color: var(--sw-color-olive);
+   font-size: var(--sw-text-sm);
+   font-weight: 750;
+   text-decoration: underline;
+   text-underline-offset: 0.2em;
+   cursor: pointer;
+}
+
+.tripShareUtilityButton:hover,
+.tripShareUtilityLink:hover {
+   color: var(--sw-color-forest);
+}
+
+@media (max-width: 63.99rem) {
+   .headerRenameForm {
+      width: min(100%, 34rem);
+   }
+
+   .tripShareTopRow {
+      align-items: center;
+   }
+}
+
+@media (max-width: 39.99rem) {
+   .editableTripTitle {
+      gap: 0.4rem;
+   }
+
+   .editableTripTitleHint {
+      font-size: 0.72rem;
+   }
+
+   .headerRenameActions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+   }
+
+   .headerRenameSaveButton,
+   .headerRenameCancelButton {
+      width: 100%;
+   }
+
+   .tripShareTopRow {
+      align-items: stretch;
+   }
+
+   .tripShareTopRow .tripShareButton {
+      min-width: 0;
+      width: auto;
+   }
+}
+
+/* -------------------------------------------------------------------------- */
+/* P2A.2 â€” Tabbed Day Tray                                                    */
+/* -------------------------------------------------------------------------- */
+
+.tabBar {
+   position: relative;
+   z-index: 3;
+   display: grid;
+   grid-template-columns: repeat(2, minmax(0, 1fr));
+   border-bottom: var(--sw-border-width) solid var(--sw-color-border);
+   background: var(--sw-color-warm-white);
+}
+
+.tabButton {
+   position: relative;
+   display: grid;
+   gap: 0.1rem;
+   min-width: 0;
+   min-height: 3.7rem;
+   align-content: center;
+   padding: var(--sw-space-2) var(--sw-space-3);
+   border: 0;
+   background: transparent;
+   color: var(--sw-color-text-secondary);
+   text-align: left;
+   cursor: pointer;
+}
+
+.tabButton::after {
+   position: absolute;
+   right: 0;
+   bottom: -0.0625rem;
+   left: 0;
+   height: 0.1875rem;
+   background: transparent;
+   content: "";
+}
+
+.tabButton[data-active="true"] {
+   color: var(--sw-color-text-primary);
+}
+
+.tabButton[data-active="true"]::after {
+   background: var(--sw-color-olive);
+}
+
+.tabButton:hover {
+   background: var(--sw-color-surface-muted);
+}
+
+.tabButton:focus-visible {
+   z-index: 1;
+   outline: 0.1875rem solid var(--sw-color-focus);
+   outline-offset: -0.1875rem;
+}
+
+.tabLabel {
+   font-size: var(--sw-text-sm);
+   font-weight: 800;
+   letter-spacing: var(--sw-tracking-label);
+   line-height: 1.2;
+   text-transform: uppercase;
+}
+
+.tabMeta {
+   overflow: hidden;
+   font-size: var(--sw-text-xs);
+   font-weight: 650;
+   line-height: 1.3;
+   text-overflow: ellipsis;
+   white-space: nowrap;
+}
+
+.tabPanel {
+   display: grid;
+   gap: var(--sw-space-4);
+   min-width: 0;
+}
+
+.emptyDayNote {
+   padding-block: var(--sw-space-4);
+   border-block: var(--sw-border-width) solid var(--sw-color-border);
+   color: var(--sw-color-text-secondary);
+   font-size: var(--sw-text-sm);
+   line-height: 1.5;
+}
+
+.tripStart {
+   display: grid;
+   gap: var(--sw-space-3);
+   padding-top: var(--sw-space-4);
+   border-top: var(--sw-border-width) solid var(--sw-color-border);
+}
+
+.tripTabHeader {
+   display: flex;
+   align-items: flex-start;
+   justify-content: space-between;
+   gap: var(--sw-space-4);
+}
+
+.tripTabIdentity {
+   min-width: 0;
+}
+
+.tripTabHeader .title {
+   margin-top: var(--sw-space-1);
+}
+
+.tripPrimaryActions {
+   display: grid;
+   gap: var(--sw-space-2);
+}
+
+.tripShare {
+   display: grid;
+   gap: var(--sw-space-2);
+   padding-block: var(--sw-space-4);
+   border-block: var(--sw-border-width) solid var(--sw-color-border);
+}
+
+.savedDaysSection {
+   display: grid;
+   gap: var(--sw-space-2);
+}
+
+.savedDaysHeading {
+   display: flex;
+   align-items: center;
+   justify-content: space-between;
+   gap: var(--sw-space-3);
+}
+
+.tripDayList {
+   border-top: var(--sw-border-width) solid var(--sw-color-border);
+}
+
+.tripDay:last-child {
+   border-bottom: var(--sw-border-width) solid var(--sw-color-border);
+}
+
+.tripTabActions {
+   display: flex;
+   justify-content: flex-start;
+}
+
+.tripTabActions .doneButton {
+   width: auto;
+   padding-inline: 0;
+   border: 0;
+   background: transparent;
+   color: var(--sw-color-olive);
+   text-decoration: underline;
+   text-underline-offset: 0.22em;
+}
+
+.tripTabActions .doneButton:hover {
+   border-color: transparent;
+   background: transparent;
+   color: var(--sw-color-forest);
+}
+
+/* The tab split replaces the old card-within-a-card feeling. */
+.tabPanel .tripFolioButton,
+.tabPanel .addTripDayButton {
+   width: 100%;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Phone + tablet                                                             */
+/* -------------------------------------------------------------------------- */
+
+@media (max-width: 63.99rem) {
+   .content {
+      gap: var(--sw-space-4);
+   }
+
+   .tabBar {
+      position: sticky;
+      top: 0;
+      margin-top: calc(var(--sw-space-4) * -1);
+      padding-top: var(--sw-space-1);
+   }
+
+   .tabPanel {
+      gap: var(--sw-space-3);
+   }
+
+   .tripTabHeader {
+      padding-top: var(--sw-space-1);
+   }
+
+   .tripDay {
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+   }
+
+   .tripTabActions {
+      padding-top: var(--sw-space-2);
+   }
+}
+
+/* Phone */
+@media (max-width: 39.99rem) {
+   .tabButton {
+      min-height: 3.55rem;
+      padding-inline: var(--sw-space-2);
+   }
+
+   .tabPanel {
+      gap: var(--sw-space-3);
+   }
+
+   .tripTabHeader {
+      display: grid;
+      gap: var(--sw-space-2);
+   }
+
+   .tripTabHeader .count {
+      justify-self: start;
+   }
+
+   .tripDay {
+      grid-template-columns: 1fr;
+   }
+
+   .tripDayActions {
+      justify-content: flex-start;
+   }
+
+   .tripShareTopRow {
+      align-items: center;
+   }
+
+   .tripShareUtilityActions {
+      gap: var(--sw-space-4);
+   }
+
+   .tripStart {
+      gap: var(--sw-space-2);
+   }
+}
+
+/* Very narrow phones */
+@media (max-width: 26rem) {
+   .tabLabel {
+      font-size: 0.78rem;
+   }
+
+   .tabMeta {
+      font-size: 0.7rem;
+   }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Desktop sidebar                                                            */
+/* -------------------------------------------------------------------------- */
+
+@media (min-width: 64rem) {
+   .content,
+   .tray[data-open="true"] .content {
+      max-height: calc(100vh - (var(--sw-space-8) * 2));
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      scrollbar-gutter: stable;
+   }
+
+   .tabBar {
+      position: sticky;
+      top: 0;
+      background: var(--sw-color-warm-white);
+   }
+
+   .tabPanel {
+      gap: var(--sw-space-4);
+   }
+
+   .tripDay {
+      grid-template-columns: 1fr;
+   }
+
+   .tripTabActions .doneButton {
+      display: none;
+   }
+}
+
+/* -------------------------------------------------------------------------- */
+/* P2 â€” Quiet day sanity note                                                  */
+/* -------------------------------------------------------------------------- */
+
+.sanityNote {
+   display: grid;
+   gap: var(--sw-space-1);
+   margin-top: var(--sw-space-3);
+   padding-top: var(--sw-space-3);
+   border-top: var(--sw-border-width) solid var(--sw-color-border);
+}
+
+.sanityLabel {
+   margin: 0;
+   color: var(--sw-color-olive);
+   font-size: var(--sw-text-xs);
+   font-weight: 800;
+   letter-spacing: var(--sw-tracking-label);
+   text-transform: uppercase;
+}
+
+.sanityText {
+   max-width: 42rem;
+   margin: 0;
+   color: var(--sw-color-text-secondary);
+   font-size: var(--sw-text-sm);
+   line-height: 1.55;
+}

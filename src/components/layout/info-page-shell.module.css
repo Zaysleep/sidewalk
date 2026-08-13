@@ -1,0 +1,112 @@
+.masthead {
+   padding: var(--sw-space-6) var(--sw-page-inline);
+   border-bottom: var(--sw-border-width) solid var(--sw-color-border);
+}
+
+.brand {
+   display: inline-grid;
+   gap: 0.18rem;
+   color: inherit;
+   text-decoration: none;
+}
+
+.wordmark {
+   font-family: var(--sw-font-editorial);
+   font-size: clamp(1.6rem, 4vw, 2rem);
+   font-weight: 600;
+   letter-spacing: var(--sw-tracking-tight);
+}
+
+.edition {
+   color: var(--sw-color-text-secondary);
+   font-size: var(--sw-text-xs);
+   font-weight: 650;
+   letter-spacing: 0.1em;
+   text-transform: uppercase;
+}
+
+.main {
+   padding: clamp(var(--sw-space-10), 8vw, var(--sw-space-20)) var(--sw-page-inline);
+}
+
+.article {
+   display: grid;
+   max-width: 48rem;
+   gap: var(--sw-space-10);
+   margin-inline: auto;
+}
+
+.hero {
+   display: grid;
+   gap: var(--sw-space-3);
+}
+
+.eyebrow {
+   color: var(--sw-color-olive);
+   font-size: var(--sw-text-xs);
+   font-weight: 800;
+   letter-spacing: var(--sw-tracking-label);
+   text-transform: uppercase;
+}
+
+.title {
+   max-width: 16ch;
+   font-family: var(--sw-font-editorial);
+   font-size: clamp(2.8rem, 8vw, 5rem);
+   font-weight: 500;
+   letter-spacing: var(--sw-tracking-tight);
+   line-height: 0.96;
+}
+
+.introduction {
+   max-width: 44rem;
+   color: var(--sw-color-text-secondary);
+   font-size: clamp(1.05rem, 2vw, 1.25rem);
+   line-height: 1.65;
+}
+
+.content {
+   display: grid;
+   gap: var(--sw-space-8);
+}
+
+.content section {
+   display: grid;
+   gap: var(--sw-space-3);
+   padding-top: var(--sw-space-5);
+   border-top: var(--sw-border-width) solid var(--sw-color-border);
+}
+
+.content h2 {
+   font-family: var(--sw-font-editorial);
+   font-size: clamp(1.55rem, 4vw, 2.1rem);
+   font-weight: 550;
+   line-height: 1.08;
+}
+
+.content p,
+.content li {
+   color: var(--sw-color-text-secondary);
+   font-size: 1rem;
+   line-height: 1.7;
+}
+
+.content ul {
+   display: grid;
+   gap: var(--sw-space-2);
+   padding-left: 1.25rem;
+}
+
+.content a,
+.returnLink {
+   color: var(--sw-color-olive);
+   font-weight: 700;
+   text-underline-offset: 0.22em;
+}
+
+.returnLink {
+   width: fit-content;
+   min-height: var(--sw-touch-target);
+   display: inline-flex;
+   align-items: center;
+}

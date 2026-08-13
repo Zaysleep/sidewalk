@@ -17,6 +17,7 @@ import { metroRegions } from "@/data/metros/metro-regions";
 import { getLocalAreasForMunicipality } from "@/lib/geography/get-local-areas-for-municipality";
 import { getMunicipalitiesForMetro } from "@/lib/geography/get-municipalities-for-metro";
 import { createRecentMetroSlugs, readRecentMetroSlugs, saveRecentMetroSlugs } from "@/lib/geography/recent-metros";
+import { trackProductSignal } from "@/lib/analytics/product-signal-client";
 import { fetchPeriodRecommendations } from "@/lib/places/period-recommendation-client";
 import { getFeedbackExcludedPlaceIds, readRecommendationFeedback, recordRecommendationFeedback, saveRecommendationFeedback, type RecommendationFeedbackReason, type RecommendationFeedbackSignal } from "@/lib/places/recommendation-feedback";
 import { createTripFolio, createTripFolioDay, createTripFolioDaySourceKey, findTripFolioDay, getNextTripPlanningDate, readTripFolio, removeTripFolioDay, renameTripFolio, saveTripFolio, upsertTripFolioDay } from "@/lib/trips/trip-folio-storage";
@@ -1136,6 +1137,13 @@ export function SidewalkPlanner() {
 
             const uniqueRecommendations = response.recommendations.filter((recommendation) => !excludedPlaceIds.has(recommendation.place.id));
 
+            trackProductSignal("recommendation_loaded", {
+               metroSlug: metro.slug,
+               localAreaId: localArea.id,
+               period: dayPeriod,
+               count: uniqueRecommendations.length,
+            });
+
             if (controller.signal.aborted) {
                return;
             }
@@ -1378,6 +1386,10 @@ export function SidewalkPlanner() {
 
       setSelectedMetroSlug(nextMetroSlug);
 
+      trackProductSignal("metro_selected", {
+         metroSlug: nextMetroSlug,
+      });
+
       setSelectedMunicipalityId("");
 
       setSelectedLocalAreaId("");
@@ -1405,6 +1417,11 @@ export function SidewalkPlanner() {
 
    function handleLocalAreaChange(nextLocalAreaId: string) {
       const hadDayStops = dayStops.length > 0;
+
+      trackProductSignal(selectedLocalAreaId ? "neighborhood_changed" : "neighborhood_selected", {
+         metroSlug: selectedMetroSlug,
+         localAreaId: nextLocalAreaId,
+      });
 
       setSelectedLocalAreaId(nextLocalAreaId);
 
@@ -1701,6 +1718,13 @@ export function SidewalkPlanner() {
 
       saveRecommendationFeedback(nextFeedback);
 
+      trackProductSignal("recommendation_feedback", {
+         metroSlug: selectedMetroSlug,
+         localAreaId: selectedLocalArea.id,
+         period,
+         reason,
+      });
+
       setRecommendationFeedback(nextFeedback);
 
       const remainingRecommendations = recommendationsByPeriod[period].filter((candidate) => candidate.place.id !== recommendation.place.id);
@@ -1768,6 +1792,23 @@ export function SidewalkPlanner() {
       const nextStops = sortDayStops([...remainingStops, nextStop]);
 
       setDayStops(nextStops);
+
+      if (!existingPeriodStop) {
+         trackProductSignal("stop_added", {
+            metroSlug: selectedMetroSlug,
+            localAreaId: selectedLocalAreaId,
+            period,
+            count: nextStops.length,
+         });
+
+         if (nextStops.length === 2) {
+            trackProductSignal("day_completed", {
+               metroSlug: selectedMetroSlug,
+               localAreaId: selectedLocalAreaId,
+               stopCount: nextStops.length,
+            });
+         }
+      }
 
       if (existingPeriodStop) {
          setDayPlanAnnouncement(`${nextStop.placeName} replaced ${existingPeriodStop.placeName} for ${getPeriodLabel(period)}. Your day remains saved.`);
@@ -2084,6 +2125,11 @@ export function SidewalkPlanner() {
             message: "",
          });
 
+         trackProductSignal("trip_shared", {
+            dayCount: tripFolio.days.length,
+            stopCount: tripFolio.days.reduce((total, day) => total + day.stops.length, 0),
+         });
+
          setDayPlanAnnouncement("Your shared-trip link is ready.");
       } catch (error: unknown) {
          if (error instanceof Error && error.name === "AbortError") {
@@ -2140,6 +2186,8 @@ export function SidewalkPlanner() {
          return;
       }
 
+      const hadTripFolioBeforeSave = tripFolio !== null;
+
       const nextFolio = tripFolio ? upsertTripFolioDay(tripFolio, currentTripDay) : createTripFolio(`${selectedMetro.name} Trip`, currentTripDay);
 
       if (!nextFolio) {
@@ -2159,6 +2207,14 @@ export function SidewalkPlanner() {
       const wasAlreadySaved = savedTripDay !== null;
 
       setTripFolio(nextFolio);
+
+      if (!wasAlreadySaved) {
+         trackProductSignal(hadTripFolioBeforeSave ? "trip_day_added" : "trip_created", {
+            metroSlug: selectedMetro.slug,
+            localAreaId: currentTripDay.localAreaId,
+            dayCount: nextFolio.days.length,
+         });
+      }
 
       setTripFolioMessage(wasAlreadySaved ? "This trip day is up to date." : "Day added. Use the Trip Folio when you are ready to add or edit another day.");
 
