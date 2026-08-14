@@ -1,25 +1,23 @@
+import { resolveGeography } from "@/lib/geography/resolve-geography";
 import { dayPeriods, type DayPeriod } from "@/types/day-period";
 import type { DayStop } from "@/types/day-plan";
-import { tripFolioLimits, tripFolioVersion, type TripFolio, type TripFolioDay } from "@/types/trip-folio";
+import {
+   legacyTripFolioVersion,
+   tripFolioLimits,
+   tripFolioVersion,
+   type TripFolio,
+   type TripFolioDay,
+   type TripFolioDayV1,
+   type TripFolioV1,
+} from "@/types/trip-folio";
 
-const tripFolioStorageKey = "sidewalk-trip-folio-v1";
+const tripFolioStorageKey = "sidewalk-trip-folio-v2";
+const legacyTripFolioStorageKey = "sidewalk-trip-folio-v1";
 
-type TripFolioDayInput = Readonly<{
-   planningDate: string;
-
-   metroRegionId: string;
-   metroSlug: string;
-   metroName: string;
-   stateOrRegion: string;
-
-   municipalityId: string;
-   municipalityName: string;
-
-   localAreaId: string;
-   localAreaName: string;
-
-   stops: readonly DayStop[];
-}>;
+type TripFolioDayInput = Omit<TripFolioDay, "stops"> &
+   Readonly<{
+      stops: readonly DayStop[];
+   }>;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
    return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -75,7 +73,17 @@ function isStoredDayStop(value: unknown): value is DayStop {
    );
 }
 
-function isTripFolioDay(value: unknown): value is TripFolioDay {
+function hasValidStops(value: unknown): value is readonly DayStop[] {
+   return (
+      Array.isArray(value) &&
+      value.length >= 2 &&
+      value.length <= dayPeriods.length &&
+      value.every(isStoredDayStop) &&
+      new Set(value.map((stop) => stop.dayPeriod)).size === value.length
+   );
+}
+
+function isTripFolioDayV1(value: unknown): value is TripFolioDayV1 {
    if (!isRecord(value)) {
       return false;
    }
@@ -90,21 +98,41 @@ function isTripFolioDay(value: unknown): value is TripFolioDay {
       typeof value.municipalityName === "string" &&
       typeof value.localAreaId === "string" &&
       typeof value.localAreaName === "string" &&
-      Array.isArray(value.stops) &&
-      value.stops.length >= 2 &&
-      value.stops.length <= dayPeriods.length &&
-      value.stops.every(isStoredDayStop) &&
-      new Set(value.stops.map((stop) => stop.dayPeriod)).size === value.stops.length
+      hasValidStops(value.stops)
    );
 }
 
-function isTripFolio(value: unknown): value is TripFolio {
+function isTripFolioDay(value: unknown): value is TripFolioDay {
    if (!isRecord(value)) {
       return false;
    }
 
    return (
-      value.version === tripFolioVersion &&
+      isPlanningDate(value.planningDate) &&
+      typeof value.countryCode === "string" &&
+      value.countryCode.length > 0 &&
+      typeof value.countryName === "string" &&
+      value.countryName.length > 0 &&
+      typeof value.regionCode === "string" &&
+      value.regionCode.length > 0 &&
+      typeof value.regionName === "string" &&
+      value.regionName.length > 0 &&
+      typeof value.timezone === "string" &&
+      value.timezone.length > 0 &&
+      typeof value.metroRegionId === "string" &&
+      typeof value.metroSlug === "string" &&
+      typeof value.metroName === "string" &&
+      typeof value.stateOrRegion === "string" &&
+      typeof value.municipalityId === "string" &&
+      typeof value.municipalityName === "string" &&
+      typeof value.localAreaId === "string" &&
+      typeof value.localAreaName === "string" &&
+      hasValidStops(value.stops)
+   );
+}
+
+function hasValidFolioShell(value: Record<string, unknown>): boolean {
+   return (
       typeof value.id === "string" &&
       value.id.length > 0 &&
       typeof value.title === "string" &&
@@ -113,9 +141,29 @@ function isTripFolio(value: unknown): value is TripFolio {
       typeof value.createdAt === "string" &&
       typeof value.updatedAt === "string" &&
       Array.isArray(value.days) &&
+      value.days.length >= 1 &&
       value.days.length <= tripFolioLimits.maximumDays &&
-      value.days.every(isTripFolioDay) &&
-      new Set(value.days.map((day) => day.planningDate)).size === value.days.length
+      new Set(value.days.map((day) => (isRecord(day) ? day.planningDate : undefined))).size === value.days.length
+   );
+}
+
+function isTripFolioV1(value: unknown): value is TripFolioV1 {
+   return (
+      isRecord(value) &&
+      value.version === legacyTripFolioVersion &&
+      hasValidFolioShell(value) &&
+      Array.isArray(value.days) &&
+      value.days.every(isTripFolioDayV1)
+   );
+}
+
+function isTripFolio(value: unknown): value is TripFolio {
+   return (
+      isRecord(value) &&
+      value.version === tripFolioVersion &&
+      hasValidFolioShell(value) &&
+      Array.isArray(value.days) &&
+      value.days.every(isTripFolioDay)
    );
 }
 
@@ -135,7 +183,7 @@ function sortStops(stops: readonly DayStop[]): readonly DayStop[] {
    });
 }
 
-function sortDays(days: readonly TripFolioDay[]): readonly TripFolioDay[] {
+function sortDays<T extends { planningDate: string }>(days: readonly T[]): readonly T[] {
    return [...days].sort((first, second) => first.planningDate.localeCompare(second.planningDate));
 }
 
@@ -143,6 +191,60 @@ function cleanTitle(title: string): string {
    const normalized = title.replace(/\s+/g, " ").trim();
 
    return normalized.slice(0, tripFolioLimits.maximumTitleLength);
+}
+
+function migrateTripFolioDay(day: TripFolioDayV1): TripFolioDay | null {
+   const geography = resolveGeography({
+      metroRegionId: day.metroRegionId,
+      municipalityId: day.municipalityId,
+      localAreaId: day.localAreaId,
+   });
+
+   if (!geography) {
+      return null;
+   }
+
+   return {
+      planningDate: day.planningDate,
+
+      countryCode: geography.country.code,
+      countryName: geography.country.name,
+
+      regionCode: geography.region.code,
+      regionName: geography.region.name,
+
+      timezone: geography.timezone,
+
+      metroRegionId: geography.metroRegion.id,
+      metroSlug: geography.metroRegion.slug,
+      metroName: geography.metroRegion.name,
+      stateOrRegion: geography.metroRegion.stateOrRegion,
+
+      municipalityId: geography.municipality.id,
+      municipalityName: geography.municipality.name,
+
+      localAreaId: geography.localArea.id,
+      localAreaName: geography.localArea.name,
+
+      stops: sortStops(day.stops),
+   };
+}
+
+function migrateTripFolio(folio: TripFolioV1): TripFolio | null {
+   const migratedDays = folio.days.map(migrateTripFolioDay);
+
+   if (migratedDays.some((day) => day === null)) {
+      return null;
+   }
+
+   return {
+      version: tripFolioVersion,
+      id: folio.id,
+      title: folio.title,
+      createdAt: folio.createdAt,
+      updatedAt: folio.updatedAt,
+      days: sortDays(migratedDays as readonly TripFolioDay[]),
+   };
 }
 
 export function createTripFolioDay(input: TripFolioDayInput): TripFolioDay | null {
@@ -156,22 +258,12 @@ export function createTripFolioDay(input: TripFolioDayInput): TripFolioDay | nul
       return null;
    }
 
-   return {
-      planningDate: input.planningDate,
-
-      metroRegionId: input.metroRegionId,
-      metroSlug: input.metroSlug,
-      metroName: input.metroName,
-      stateOrRegion: input.stateOrRegion,
-
-      municipalityId: input.municipalityId,
-      municipalityName: input.municipalityName,
-
-      localAreaId: input.localAreaId,
-      localAreaName: input.localAreaName,
-
+   const day: TripFolioDay = {
+      ...input,
       stops,
    };
+
+   return isTripFolioDay(day) ? day : null;
 }
 
 export function createTripFolio(title: string, firstDay: TripFolioDay): TripFolio {
@@ -179,13 +271,10 @@ export function createTripFolio(title: string, firstDay: TripFolioDay): TripFoli
 
    return {
       version: tripFolioVersion,
-
       id: createTripId(),
       title: cleanTitle(title) || "Sidewalk Trip",
-
       createdAt: now,
       updatedAt: now,
-
       days: [firstDay],
    };
 }
@@ -302,24 +391,47 @@ export function createTripFolioDaySourceKey(day: TripFolioDay): string {
 
 export function readTripFolio(): TripFolio | null {
    try {
-      const rawValue = window.localStorage.getItem(tripFolioStorageKey);
+      const currentRawValue = window.localStorage.getItem(tripFolioStorageKey);
 
-      if (!rawValue) {
-         return null;
-      }
+      if (currentRawValue) {
+         const currentParsedValue: unknown = JSON.parse(currentRawValue);
 
-      const parsedValue: unknown = JSON.parse(rawValue);
+         if (isTripFolio(currentParsedValue)) {
+            return {
+               ...currentParsedValue,
+               days: sortDays(currentParsedValue.days),
+            };
+         }
 
-      if (!isTripFolio(parsedValue)) {
+         // Corrupt V2 data can be discarded without touching the recoverable V1
+         // copy that may still exist from before the migration.
          window.localStorage.removeItem(tripFolioStorageKey);
+      }
 
+      const legacyRawValue = window.localStorage.getItem(legacyTripFolioStorageKey);
+
+      if (!legacyRawValue) {
          return null;
       }
 
-      return {
-         ...parsedValue,
-         days: sortDays(parsedValue.days),
-      };
+      const legacyParsedValue: unknown = JSON.parse(legacyRawValue);
+
+      if (!isTripFolioV1(legacyParsedValue)) {
+         return null;
+      }
+
+      const migratedFolio = migrateTripFolio(legacyParsedValue);
+
+      if (!migratedFolio) {
+         // Never delete a valid V1 folio merely because its old geography can no
+         // longer be resolved. Preserving the source prevents migration data loss.
+         return null;
+      }
+
+      window.localStorage.setItem(tripFolioStorageKey, JSON.stringify(migratedFolio));
+      window.localStorage.removeItem(legacyTripFolioStorageKey);
+
+      return migratedFolio;
    } catch {
       return null;
    }
@@ -329,8 +441,13 @@ export function saveTripFolio(folio: TripFolio | null): boolean {
    try {
       if (!folio) {
          window.localStorage.removeItem(tripFolioStorageKey);
+         window.localStorage.removeItem(legacyTripFolioStorageKey);
 
          return true;
+      }
+
+      if (!isTripFolio(folio)) {
+         return false;
       }
 
       window.localStorage.setItem(tripFolioStorageKey, JSON.stringify(folio));

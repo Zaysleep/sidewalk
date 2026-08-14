@@ -54,18 +54,6 @@ function formatDuration(minimumMinutes: number, maximumMinutes: number): string 
    return `${minimumMinutes}–${maximumMinutes} minutes`;
 }
 
-function formatTotalDuration(stops: readonly DayStop[]): string {
-   const minimum = stops.reduce((total, stop) => total + stop.visitDurationMinutes.minimum, 0);
-
-   const maximum = stops.reduce((total, stop) => total + stop.visitDurationMinutes.maximum, 0);
-
-   if (minimum === maximum) {
-      return `${minimum} minutes at stops`;
-   }
-
-   return `${minimum}–${maximum} minutes at stops`;
-}
-
 function formatPlanningDate(planningDate: string): string {
    const [yearText, monthText, dayText] = planningDate.split("-");
 
@@ -626,10 +614,8 @@ export function DayTray({
                         <p className={styles.eyebrow}>{orderedStops.length === 0 ? "Your day" : isComplete ? "Day saved" : "In progress"}</p>
 
                         <h2 ref={trayHeadingReference} id={trayTitleId} className={styles.title} tabIndex={-1}>
-                           Your Day
+                           {formattedPlanningDate || "Plan a day"}
                         </h2>
-
-                        {formattedPlanningDate ? <p className={styles.date}>{formattedPlanningDate}</p> : null}
                      </div>
 
                      <p className={styles.count}>{dayTabLabel}</p>
@@ -687,10 +673,8 @@ export function DayTray({
                   )}
 
                   <div className={styles.footer}>
-                     {orderedStops.length > 0 ? (
+                     {orderedStops.length > 0 && (!isComplete || daySanityNote) ? (
                         <div className={styles.footerSummary}>
-                           <p className={styles.total}>{formatTotalDuration(orderedStops)}</p>
-
                            {!isComplete ? <p className={styles.completionNote}>One more stop saves this day.</p> : null}
 
                            {daySanityNote ? (
@@ -1017,7 +1001,7 @@ export function DayTray({
                                     </div>
 
                                     <p className={styles.tripDayArea}>
-                                       {tripDay.localAreaName} · {tripDay.stops.length} {tripDay.stops.length === 1 ? "stop" : "stops"}
+                                       {tripDay.localAreaName}, {tripDay.municipalityName} · {tripDay.stops.length} {tripDay.stops.length === 1 ? "stop" : "stops"}
                                     </p>
                                  </div>
 

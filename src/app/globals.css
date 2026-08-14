@@ -301,7 +301,7 @@ dd {
 .metro-recent__list {
    display: flex;
    min-width: 0;
-   justify-content: flex-end;
+   justify-content: safe flex-end;
    gap: var(--sw-space-1);
    overflow-x: auto;
    overscroll-behavior-inline: contain;
@@ -725,7 +725,7 @@ dd {
    display: block;
 
    /*
-    * Keep the original 512 Ã— 512 image for sharpness.
+    * Keep the original 512 × 512 image for sharpness.
     * CSS controls only the rendered masthead size.
     */
    width: 8rem !important;
@@ -759,6 +759,7 @@ dd {
    margin-left: auto;
 }
 
+
 /* ==========================================================================
    iPad / tablet
    ========================================================================== */
@@ -780,6 +781,7 @@ dd {
       width: min(46vw, 22rem);
    }
 }
+
 
 /* ==========================================================================
    Mobile
@@ -835,6 +837,7 @@ dd {
       overflow-x: visible;
    }
 }
+
 
 /* ==========================================================================
    Very small phones

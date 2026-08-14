@@ -2845,4 +2845,2295 @@ export const localAreas = [
       slug: "grand-central-district",
       kind: "district",
    },
+
+   /* ------------------------------------------------------------------------ */
+   /* E1B — restrained nationwide starting areas                               */
+   /* ------------------------------------------------------------------------ */
+
+   /* Alabama */
+
+   {
+      id: "area-birmingham-downtown",
+      municipalityId: "municipality-birmingham-birmingham",
+      name: "Downtown Birmingham",
+      slug: "downtown-birmingham",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-huntsville-downtown",
+      municipalityId: "municipality-huntsville-huntsville",
+      name: "Downtown Huntsville",
+      slug: "downtown-huntsville",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-mobile-downtown",
+      municipalityId: "municipality-mobile-mobile",
+      name: "Downtown Mobile",
+      slug: "downtown-mobile",
+      kind: "downtown",
+   },
+
+   /* Alaska */
+
+   {
+      id: "area-anchorage-downtown",
+      municipalityId: "municipality-anchorage-anchorage",
+      name: "Downtown Anchorage",
+      slug: "downtown-anchorage",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-juneau-downtown",
+      municipalityId: "municipality-juneau-juneau",
+      name: "Downtown Juneau",
+      slug: "downtown-juneau",
+      kind: "downtown",
+   },
+
+   /* Arizona */
+
+   {
+      id: "area-flagstaff-downtown",
+      municipalityId: "municipality-flagstaff-flagstaff",
+      name: "Downtown Flagstaff",
+      slug: "downtown-flagstaff",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-tucson-downtown",
+      municipalityId: "municipality-tucson-tucson",
+      name: "Downtown Tucson",
+      slug: "downtown-tucson",
+      kind: "downtown",
+   },
+
+   /* Arkansas */
+
+   {
+      id: "area-fayetteville-arkansas-downtown",
+      municipalityId: "municipality-fayetteville-arkansas-fayetteville",
+      name: "Downtown Fayetteville",
+      slug: "downtown-fayetteville",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-little-rock-downtown",
+      municipalityId: "municipality-little-rock-little-rock",
+      name: "Downtown Little Rock",
+      slug: "downtown-little-rock",
+      kind: "downtown",
+   },
+
+   /* California */
+
+   {
+      id: "area-fresno-downtown",
+      municipalityId: "municipality-fresno-fresno",
+      name: "Downtown Fresno",
+      slug: "downtown-fresno",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-monterey-downtown",
+      municipalityId: "municipality-monterey-monterey",
+      name: "Downtown Monterey",
+      slug: "downtown-monterey",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-napa-downtown",
+      municipalityId: "municipality-napa-napa",
+      name: "Downtown Napa",
+      slug: "downtown-napa",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-san-luis-obispo-downtown",
+      municipalityId: "municipality-san-luis-obispo-san-luis-obispo",
+      name: "Downtown San Luis Obispo",
+      slug: "downtown-san-luis-obispo",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-santa-barbara-downtown",
+      municipalityId: "municipality-santa-barbara-santa-barbara",
+      name: "Downtown Santa Barbara",
+      slug: "downtown-santa-barbara",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-santa-cruz-downtown",
+      municipalityId: "municipality-santa-cruz-santa-cruz",
+      name: "Downtown Santa Cruz",
+      slug: "downtown-santa-cruz",
+      kind: "downtown",
+   },
+
+   /* Colorado */
+
+   {
+      id: "area-boulder-downtown",
+      municipalityId: "municipality-boulder-boulder",
+      name: "Downtown Boulder",
+      slug: "downtown-boulder",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-colorado-springs-downtown",
+      municipalityId: "municipality-colorado-springs-colorado-springs",
+      name: "Downtown Colorado Springs",
+      slug: "downtown-colorado-springs",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-fort-collins-downtown",
+      municipalityId: "municipality-fort-collins-fort-collins",
+      name: "Downtown Fort Collins",
+      slug: "downtown-fort-collins",
+      kind: "downtown",
+   },
+
+   /* Connecticut */
+
+   {
+      id: "area-hartford-downtown",
+      municipalityId: "municipality-hartford-hartford",
+      name: "Downtown Hartford",
+      slug: "downtown-hartford",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-new-haven-downtown",
+      municipalityId: "municipality-new-haven-new-haven",
+      name: "Downtown New Haven",
+      slug: "downtown-new-haven",
+      kind: "downtown",
+   },
+
+   /* Delaware */
+
+   {
+      id: "area-rehoboth-beach-downtown",
+      municipalityId: "municipality-rehoboth-beach-rehoboth-beach",
+      name: "Downtown Rehoboth Beach",
+      slug: "downtown-rehoboth-beach",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-wilmington-delaware-downtown",
+      municipalityId: "municipality-wilmington-delaware-wilmington",
+      name: "Downtown Wilmington",
+      slug: "downtown-wilmington",
+      kind: "downtown",
+   },
+
+   /* Florida */
+
+   {
+      id: "area-key-west-downtown",
+      municipalityId: "municipality-key-west-key-west",
+      name: "Downtown Key West",
+      slug: "downtown-key-west",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-naples-florida-downtown",
+      municipalityId: "municipality-naples-florida-naples",
+      name: "Downtown Naples",
+      slug: "downtown-naples",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-pensacola-downtown",
+      municipalityId: "municipality-pensacola-pensacola",
+      name: "Downtown Pensacola",
+      slug: "downtown-pensacola",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-sarasota-downtown",
+      municipalityId: "municipality-sarasota-sarasota",
+      name: "Downtown Sarasota",
+      slug: "downtown-sarasota",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-tallahassee-downtown",
+      municipalityId: "municipality-tallahassee-tallahassee",
+      name: "Downtown Tallahassee",
+      slug: "downtown-tallahassee",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-west-palm-beach-downtown",
+      municipalityId: "municipality-west-palm-beach-west-palm-beach",
+      name: "Downtown West Palm Beach",
+      slug: "downtown-west-palm-beach",
+      kind: "downtown",
+   },
+
+   /* Georgia */
+
+   {
+      id: "area-athens-georgia-downtown",
+      municipalityId: "municipality-athens-georgia-athens",
+      name: "Downtown Athens",
+      slug: "downtown-athens",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-augusta-georgia-downtown",
+      municipalityId: "municipality-augusta-georgia-augusta",
+      name: "Downtown Augusta",
+      slug: "downtown-augusta",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-savannah-downtown",
+      municipalityId: "municipality-savannah-savannah",
+      name: "Downtown Savannah",
+      slug: "downtown-savannah",
+      kind: "downtown",
+   },
+
+   /* Hawaii */
+
+   {
+      id: "area-hilo-downtown",
+      municipalityId: "municipality-hilo-hilo",
+      name: "Downtown Hilo",
+      slug: "downtown-hilo",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-honolulu-downtown",
+      municipalityId: "municipality-honolulu-honolulu",
+      name: "Downtown Honolulu",
+      slug: "downtown-honolulu",
+      kind: "downtown",
+   },
+
+   /* Idaho */
+
+   {
+      id: "area-boise-downtown",
+      municipalityId: "municipality-boise-boise",
+      name: "Downtown Boise",
+      slug: "downtown-boise",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-coeur-dalene-downtown",
+      municipalityId: "municipality-coeur-dalene-coeur-dalene",
+      name: "Downtown Coeur d'Alene",
+      slug: "downtown-coeur-dalene",
+      kind: "downtown",
+   },
+
+   /* Illinois */
+
+   {
+      id: "area-champaign-downtown",
+      municipalityId: "municipality-champaign-champaign",
+      name: "Downtown Champaign",
+      slug: "downtown-champaign",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-peoria-downtown",
+      municipalityId: "municipality-peoria-peoria",
+      name: "Downtown Peoria",
+      slug: "downtown-peoria",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-springfield-illinois-downtown",
+      municipalityId: "municipality-springfield-illinois-springfield",
+      name: "Downtown Springfield",
+      slug: "downtown-springfield",
+      kind: "downtown",
+   },
+
+   /* Indiana */
+
+   {
+      id: "area-bloomington-indiana-downtown",
+      municipalityId: "municipality-bloomington-indiana-bloomington",
+      name: "Downtown Bloomington",
+      slug: "downtown-bloomington",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-fort-wayne-downtown",
+      municipalityId: "municipality-fort-wayne-fort-wayne",
+      name: "Downtown Fort Wayne",
+      slug: "downtown-fort-wayne",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-south-bend-downtown",
+      municipalityId: "municipality-south-bend-south-bend",
+      name: "Downtown South Bend",
+      slug: "downtown-south-bend",
+      kind: "downtown",
+   },
+
+   /* Iowa */
+
+   {
+      id: "area-cedar-rapids-downtown",
+      municipalityId: "municipality-cedar-rapids-cedar-rapids",
+      name: "Downtown Cedar Rapids",
+      slug: "downtown-cedar-rapids",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-des-moines-downtown",
+      municipalityId: "municipality-des-moines-des-moines",
+      name: "Downtown Des Moines",
+      slug: "downtown-des-moines",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-iowa-city-downtown",
+      municipalityId: "municipality-iowa-city-iowa-city",
+      name: "Downtown Iowa City",
+      slug: "downtown-iowa-city",
+      kind: "downtown",
+   },
+
+   /* Kansas */
+
+   {
+      id: "area-lawrence-kansas-downtown",
+      municipalityId: "municipality-lawrence-kansas-lawrence",
+      name: "Downtown Lawrence",
+      slug: "downtown-lawrence",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-wichita-downtown",
+      municipalityId: "municipality-wichita-wichita",
+      name: "Downtown Wichita",
+      slug: "downtown-wichita",
+      kind: "downtown",
+   },
+
+   /* Kentucky */
+
+   {
+      id: "area-lexington-kentucky-downtown",
+      municipalityId: "municipality-lexington-kentucky-lexington",
+      name: "Downtown Lexington",
+      slug: "downtown-lexington",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-louisville-downtown",
+      municipalityId: "municipality-louisville-louisville",
+      name: "Downtown Louisville",
+      slug: "downtown-louisville",
+      kind: "downtown",
+   },
+
+   /* Louisiana */
+
+   {
+      id: "area-baton-rouge-downtown",
+      municipalityId: "municipality-baton-rouge-baton-rouge",
+      name: "Downtown Baton Rouge",
+      slug: "downtown-baton-rouge",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-lafayette-louisiana-downtown",
+      municipalityId: "municipality-lafayette-louisiana-lafayette",
+      name: "Downtown Lafayette",
+      slug: "downtown-lafayette",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-shreveport-downtown",
+      municipalityId: "municipality-shreveport-shreveport",
+      name: "Downtown Shreveport",
+      slug: "downtown-shreveport",
+      kind: "downtown",
+   },
+
+   /* Maine */
+
+   {
+      id: "area-bangor-downtown",
+      municipalityId: "municipality-bangor-bangor",
+      name: "Downtown Bangor",
+      slug: "downtown-bangor",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-portland-maine-downtown",
+      municipalityId: "municipality-portland-maine-portland",
+      name: "Downtown Portland",
+      slug: "downtown-portland",
+      kind: "downtown",
+   },
+
+   /* Maryland */
+
+   {
+      id: "area-annapolis-downtown",
+      municipalityId: "municipality-annapolis-annapolis",
+      name: "Downtown Annapolis",
+      slug: "downtown-annapolis",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-frederick-maryland-downtown",
+      municipalityId: "municipality-frederick-maryland-frederick",
+      name: "Downtown Frederick",
+      slug: "downtown-frederick",
+      kind: "downtown",
+   },
+
+   /* Massachusetts */
+
+   {
+      id: "area-salem-massachusetts-downtown",
+      municipalityId: "municipality-salem-massachusetts-salem",
+      name: "Downtown Salem",
+      slug: "downtown-salem",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-springfield-massachusetts-downtown",
+      municipalityId: "municipality-springfield-massachusetts-springfield",
+      name: "Downtown Springfield",
+      slug: "downtown-springfield",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-worcester-downtown",
+      municipalityId: "municipality-worcester-worcester",
+      name: "Downtown Worcester",
+      slug: "downtown-worcester",
+      kind: "downtown",
+   },
+
+   /* Michigan */
+
+   {
+      id: "area-ann-arbor-downtown",
+      municipalityId: "municipality-ann-arbor-ann-arbor",
+      name: "Downtown Ann Arbor",
+      slug: "downtown-ann-arbor",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-grand-rapids-downtown",
+      municipalityId: "municipality-grand-rapids-grand-rapids",
+      name: "Downtown Grand Rapids",
+      slug: "downtown-grand-rapids",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-lansing-downtown",
+      municipalityId: "municipality-lansing-lansing",
+      name: "Downtown Lansing",
+      slug: "downtown-lansing",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-traverse-city-downtown",
+      municipalityId: "municipality-traverse-city-traverse-city",
+      name: "Downtown Traverse City",
+      slug: "downtown-traverse-city",
+      kind: "downtown",
+   },
+
+   /* Minnesota */
+
+   {
+      id: "area-duluth-downtown",
+      municipalityId: "municipality-duluth-duluth",
+      name: "Downtown Duluth",
+      slug: "downtown-duluth",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-rochester-minnesota-downtown",
+      municipalityId: "municipality-rochester-minnesota-rochester",
+      name: "Downtown Rochester",
+      slug: "downtown-rochester",
+      kind: "downtown",
+   },
+
+   /* Mississippi */
+
+   {
+      id: "area-gulfport-downtown",
+      municipalityId: "municipality-gulfport-gulfport",
+      name: "Downtown Gulfport",
+      slug: "downtown-gulfport",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-jackson-mississippi-downtown",
+      municipalityId: "municipality-jackson-mississippi-jackson",
+      name: "Downtown Jackson",
+      slug: "downtown-jackson",
+      kind: "downtown",
+   },
+
+   /* Missouri */
+
+   {
+      id: "area-columbia-missouri-downtown",
+      municipalityId: "municipality-columbia-missouri-columbia",
+      name: "Downtown Columbia",
+      slug: "downtown-columbia",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-springfield-missouri-downtown",
+      municipalityId: "municipality-springfield-missouri-springfield",
+      name: "Downtown Springfield",
+      slug: "downtown-springfield",
+      kind: "downtown",
+   },
+
+   /* Montana */
+
+   {
+      id: "area-billings-downtown",
+      municipalityId: "municipality-billings-billings",
+      name: "Downtown Billings",
+      slug: "downtown-billings",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-bozeman-downtown",
+      municipalityId: "municipality-bozeman-bozeman",
+      name: "Downtown Bozeman",
+      slug: "downtown-bozeman",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-missoula-downtown",
+      municipalityId: "municipality-missoula-missoula",
+      name: "Downtown Missoula",
+      slug: "downtown-missoula",
+      kind: "downtown",
+   },
+
+   /* Nebraska */
+
+   {
+      id: "area-lincoln-nebraska-downtown",
+      municipalityId: "municipality-lincoln-nebraska-lincoln",
+      name: "Downtown Lincoln",
+      slug: "downtown-lincoln",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-omaha-downtown",
+      municipalityId: "municipality-omaha-omaha",
+      name: "Downtown Omaha",
+      slug: "downtown-omaha",
+      kind: "downtown",
+   },
+
+   /* Nevada */
+
+   {
+      id: "area-carson-city-downtown",
+      municipalityId: "municipality-carson-city-carson-city",
+      name: "Downtown Carson City",
+      slug: "downtown-carson-city",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-reno-downtown",
+      municipalityId: "municipality-reno-reno",
+      name: "Downtown Reno",
+      slug: "downtown-reno",
+      kind: "downtown",
+   },
+
+   /* New Hampshire */
+
+   {
+      id: "area-manchester-new-hampshire-downtown",
+      municipalityId: "municipality-manchester-new-hampshire-manchester",
+      name: "Downtown Manchester",
+      slug: "downtown-manchester",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-portsmouth-new-hampshire-downtown",
+      municipalityId: "municipality-portsmouth-new-hampshire-portsmouth",
+      name: "Downtown Portsmouth",
+      slug: "downtown-portsmouth",
+      kind: "downtown",
+   },
+
+   /* New Jersey */
+
+   {
+      id: "area-asbury-park-downtown",
+      municipalityId: "municipality-asbury-park-asbury-park",
+      name: "Downtown Asbury Park",
+      slug: "downtown-asbury-park",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-atlantic-city-downtown",
+      municipalityId: "municipality-atlantic-city-atlantic-city",
+      name: "Downtown Atlantic City",
+      slug: "downtown-atlantic-city",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-princeton-downtown",
+      municipalityId: "municipality-princeton-princeton",
+      name: "Downtown Princeton",
+      slug: "downtown-princeton",
+      kind: "downtown",
+   },
+
+   /* New Mexico */
+
+   {
+      id: "area-albuquerque-downtown",
+      municipalityId: "municipality-albuquerque-albuquerque",
+      name: "Downtown Albuquerque",
+      slug: "downtown-albuquerque",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-las-cruces-downtown",
+      municipalityId: "municipality-las-cruces-las-cruces",
+      name: "Downtown Las Cruces",
+      slug: "downtown-las-cruces",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-santa-fe-downtown",
+      municipalityId: "municipality-santa-fe-santa-fe",
+      name: "Downtown Santa Fe",
+      slug: "downtown-santa-fe",
+      kind: "downtown",
+   },
+
+   /* New York */
+
+   {
+      id: "area-albany-new-york-downtown",
+      municipalityId: "municipality-albany-new-york-albany",
+      name: "Downtown Albany",
+      slug: "downtown-albany",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-ithaca-downtown",
+      municipalityId: "municipality-ithaca-ithaca",
+      name: "Downtown Ithaca",
+      slug: "downtown-ithaca",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-rochester-new-york-downtown",
+      municipalityId: "municipality-rochester-new-york-rochester",
+      name: "Downtown Rochester",
+      slug: "downtown-rochester",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-syracuse-downtown",
+      municipalityId: "municipality-syracuse-syracuse",
+      name: "Downtown Syracuse",
+      slug: "downtown-syracuse",
+      kind: "downtown",
+   },
+
+   /* North Carolina */
+
+   {
+      id: "area-asheville-downtown",
+      municipalityId: "municipality-asheville-asheville",
+      name: "Downtown Asheville",
+      slug: "downtown-asheville",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-greensboro-downtown",
+      municipalityId: "municipality-greensboro-greensboro",
+      name: "Downtown Greensboro",
+      slug: "downtown-greensboro",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-wilmington-north-carolina-downtown",
+      municipalityId: "municipality-wilmington-north-carolina-wilmington",
+      name: "Downtown Wilmington",
+      slug: "downtown-wilmington",
+      kind: "downtown",
+   },
+
+   /* North Dakota */
+
+   {
+      id: "area-bismarck-downtown",
+      municipalityId: "municipality-bismarck-bismarck",
+      name: "Downtown Bismarck",
+      slug: "downtown-bismarck",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-fargo-downtown",
+      municipalityId: "municipality-fargo-fargo",
+      name: "Downtown Fargo",
+      slug: "downtown-fargo",
+      kind: "downtown",
+   },
+
+   /* Ohio */
+
+   {
+      id: "area-akron-downtown",
+      municipalityId: "municipality-akron-akron",
+      name: "Downtown Akron",
+      slug: "downtown-akron",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-dayton-downtown",
+      municipalityId: "municipality-dayton-dayton",
+      name: "Downtown Dayton",
+      slug: "downtown-dayton",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-toledo-downtown",
+      municipalityId: "municipality-toledo-toledo",
+      name: "Downtown Toledo",
+      slug: "downtown-toledo",
+      kind: "downtown",
+   },
+
+   /* Oklahoma */
+
+   {
+      id: "area-norman-downtown",
+      municipalityId: "municipality-norman-norman",
+      name: "Downtown Norman",
+      slug: "downtown-norman",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-tulsa-downtown",
+      municipalityId: "municipality-tulsa-tulsa",
+      name: "Downtown Tulsa",
+      slug: "downtown-tulsa",
+      kind: "downtown",
+   },
+
+   /* Oregon */
+
+   {
+      id: "area-bend-downtown",
+      municipalityId: "municipality-bend-bend",
+      name: "Downtown Bend",
+      slug: "downtown-bend",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-eugene-downtown",
+      municipalityId: "municipality-eugene-eugene",
+      name: "Downtown Eugene",
+      slug: "downtown-eugene",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-salem-oregon-downtown",
+      municipalityId: "municipality-salem-oregon-salem",
+      name: "Downtown Salem",
+      slug: "downtown-salem",
+      kind: "downtown",
+   },
+
+   /* Pennsylvania */
+
+   {
+      id: "area-allentown-pennsylvania-downtown",
+      municipalityId: "municipality-allentown-pennsylvania-allentown",
+      name: "Downtown Allentown",
+      slug: "downtown-allentown",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-harrisburg-downtown",
+      municipalityId: "municipality-harrisburg-harrisburg",
+      name: "Downtown Harrisburg",
+      slug: "downtown-harrisburg",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-lancaster-pennsylvania-downtown",
+      municipalityId: "municipality-lancaster-pennsylvania-lancaster",
+      name: "Downtown Lancaster",
+      slug: "downtown-lancaster",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-state-college-downtown",
+      municipalityId: "municipality-state-college-state-college",
+      name: "Downtown State College",
+      slug: "downtown-state-college",
+      kind: "downtown",
+   },
+
+   /* Rhode Island */
+
+   {
+      id: "area-newport-rhode-island-downtown",
+      municipalityId: "municipality-newport-rhode-island-newport",
+      name: "Downtown Newport",
+      slug: "downtown-newport",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-providence-downtown",
+      municipalityId: "municipality-providence-providence",
+      name: "Downtown Providence",
+      slug: "downtown-providence",
+      kind: "downtown",
+   },
+
+   /* South Carolina */
+
+   {
+      id: "area-charleston-south-carolina-downtown",
+      municipalityId: "municipality-charleston-south-carolina-charleston",
+      name: "Downtown Charleston",
+      slug: "downtown-charleston",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-columbia-south-carolina-downtown",
+      municipalityId: "municipality-columbia-south-carolina-columbia",
+      name: "Downtown Columbia",
+      slug: "downtown-columbia",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-greenville-south-carolina-downtown",
+      municipalityId: "municipality-greenville-south-carolina-greenville",
+      name: "Downtown Greenville",
+      slug: "downtown-greenville",
+      kind: "downtown",
+   },
+
+   /* South Dakota */
+
+   {
+      id: "area-rapid-city-downtown",
+      municipalityId: "municipality-rapid-city-rapid-city",
+      name: "Downtown Rapid City",
+      slug: "downtown-rapid-city",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-sioux-falls-downtown",
+      municipalityId: "municipality-sioux-falls-sioux-falls",
+      name: "Downtown Sioux Falls",
+      slug: "downtown-sioux-falls",
+      kind: "downtown",
+   },
+
+   /* Tennessee */
+
+   {
+      id: "area-chattanooga-downtown",
+      municipalityId: "municipality-chattanooga-chattanooga",
+      name: "Downtown Chattanooga",
+      slug: "downtown-chattanooga",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-knoxville-downtown",
+      municipalityId: "municipality-knoxville-knoxville",
+      name: "Downtown Knoxville",
+      slug: "downtown-knoxville",
+      kind: "downtown",
+   },
+
+   /* Texas */
+
+   {
+      id: "area-amarillo-downtown",
+      municipalityId: "municipality-amarillo-amarillo",
+      name: "Downtown Amarillo",
+      slug: "downtown-amarillo",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-corpus-christi-downtown",
+      municipalityId: "municipality-corpus-christi-corpus-christi",
+      name: "Downtown Corpus Christi",
+      slug: "downtown-corpus-christi",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-el-paso-downtown",
+      municipalityId: "municipality-el-paso-el-paso",
+      name: "Downtown El Paso",
+      slug: "downtown-el-paso",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-lubbock-downtown",
+      municipalityId: "municipality-lubbock-lubbock",
+      name: "Downtown Lubbock",
+      slug: "downtown-lubbock",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-mcallen-downtown",
+      municipalityId: "municipality-mcallen-mcallen",
+      name: "Downtown McAllen",
+      slug: "downtown-mcallen",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-waco-downtown",
+      municipalityId: "municipality-waco-waco",
+      name: "Downtown Waco",
+      slug: "downtown-waco",
+      kind: "downtown",
+   },
+
+   /* Utah */
+
+   {
+      id: "area-park-city-downtown",
+      municipalityId: "municipality-park-city-park-city",
+      name: "Downtown Park City",
+      slug: "downtown-park-city",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-provo-downtown",
+      municipalityId: "municipality-provo-provo",
+      name: "Downtown Provo",
+      slug: "downtown-provo",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-st-george-downtown",
+      municipalityId: "municipality-st-george-st-george",
+      name: "Downtown St. George",
+      slug: "downtown-st-george",
+      kind: "downtown",
+   },
+
+   /* Vermont */
+
+   {
+      id: "area-burlington-vermont-downtown",
+      municipalityId: "municipality-burlington-vermont-burlington",
+      name: "Downtown Burlington",
+      slug: "downtown-burlington",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-montpelier-downtown",
+      municipalityId: "municipality-montpelier-montpelier",
+      name: "Downtown Montpelier",
+      slug: "downtown-montpelier",
+      kind: "downtown",
+   },
+
+   /* Virginia */
+
+   {
+      id: "area-charlottesville-downtown",
+      municipalityId: "municipality-charlottesville-charlottesville",
+      name: "Downtown Charlottesville",
+      slug: "downtown-charlottesville",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-richmond-virginia-downtown",
+      municipalityId: "municipality-richmond-virginia-richmond",
+      name: "Downtown Richmond",
+      slug: "downtown-richmond",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-virginia-beach-downtown",
+      municipalityId: "municipality-virginia-beach-virginia-beach",
+      name: "Downtown Virginia Beach",
+      slug: "downtown-virginia-beach",
+      kind: "downtown",
+   },
+
+   /* Washington */
+
+   {
+      id: "area-bellingham-downtown",
+      municipalityId: "municipality-bellingham-bellingham",
+      name: "Downtown Bellingham",
+      slug: "downtown-bellingham",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-olympia-downtown",
+      municipalityId: "municipality-olympia-olympia",
+      name: "Downtown Olympia",
+      slug: "downtown-olympia",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-spokane-downtown",
+      municipalityId: "municipality-spokane-spokane",
+      name: "Downtown Spokane",
+      slug: "downtown-spokane",
+      kind: "downtown",
+   },
+
+   /* West Virginia */
+
+   {
+      id: "area-charleston-west-virginia-downtown",
+      municipalityId: "municipality-charleston-west-virginia-charleston",
+      name: "Downtown Charleston",
+      slug: "downtown-charleston",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-morgantown-downtown",
+      municipalityId: "municipality-morgantown-morgantown",
+      name: "Downtown Morgantown",
+      slug: "downtown-morgantown",
+      kind: "downtown",
+   },
+
+   /* Wisconsin */
+
+   {
+      id: "area-eau-claire-downtown",
+      municipalityId: "municipality-eau-claire-eau-claire",
+      name: "Downtown Eau Claire",
+      slug: "downtown-eau-claire",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-madison-wisconsin-downtown",
+      municipalityId: "municipality-madison-wisconsin-madison",
+      name: "Downtown Madison",
+      slug: "downtown-madison",
+      kind: "downtown",
+   },
+
+   /* Wyoming */
+
+   {
+      id: "area-cheyenne-downtown",
+      municipalityId: "municipality-cheyenne-cheyenne",
+      name: "Downtown Cheyenne",
+      slug: "downtown-cheyenne",
+      kind: "downtown",
+   },
+
+   {
+      id: "area-jackson-wyoming-downtown",
+      municipalityId: "municipality-jackson-wyoming-jackson",
+      name: "Downtown Jackson",
+      slug: "downtown-jackson",
+      kind: "downtown",
+   },
+
+
+   /* ======================================================================== */
+   /* E1C — U.S. Neighborhood Depth                                            */
+   /* ======================================================================== */
+
+   /**
+    * E1C adds only local areas where choosing the area meaningfully changes
+    * the character of a Sidewalk day. These are editorial discovery anchors,
+    * not an attempt to catalog every named neighborhood in each metro.
+    */
+
+   /* New York City */
+
+   {
+      id: "area-e1c-new-york-new-york-city-soho",
+      municipalityId: "municipality-new-york-new-york-city",
+      name: "SoHo",
+      slug: "soho",
+      kind: "neighborhood",
+   },
+   {
+      id: "area-e1c-new-york-new-york-city-east-village",
+      municipalityId: "municipality-new-york-new-york-city",
+      name: "East Village",
+      slug: "east-village",
+      kind: "neighborhood",
+   },
+   {
+      id: "area-e1c-new-york-new-york-city-chelsea",
+      municipalityId: "municipality-new-york-new-york-city",
+      name: "Chelsea",
+      slug: "chelsea",
+      kind: "neighborhood",
+   },
+   {
+      id: "area-e1c-new-york-new-york-city-dumbo",
+      municipalityId: "municipality-new-york-new-york-city",
+      name: "DUMBO",
+      slug: "dumbo",
+      kind: "neighborhood",
+   },
+   {
+      id: "area-e1c-new-york-new-york-city-long-island-city",
+      municipalityId: "municipality-new-york-new-york-city",
+      name: "Long Island City",
+      slug: "long-island-city",
+      kind: "neighborhood",
+   },
+
+   /* Los Angeles */
+
+   {
+      id: "area-e1c-los-angeles-los-angeles-arts-district",
+      municipalityId: "municipality-los-angeles-los-angeles",
+      name: "Arts District",
+      slug: "arts-district",
+      kind: "district",
+   },
+   {
+      id: "area-e1c-los-angeles-los-angeles-highland-park",
+      municipalityId: "municipality-los-angeles-los-angeles",
+      name: "Highland Park",
+      slug: "highland-park",
+      kind: "neighborhood",
+   },
+   {
+      id: "area-e1c-los-angeles-los-angeles-hollywood",
+      municipalityId: "municipality-los-angeles-los-angeles",
+      name: "Hollywood",
+      slug: "hollywood",
+      kind: "neighborhood",
+   },
+   {
+      id: "area-e1c-los-angeles-los-angeles-atwater-village",
+      municipalityId: "municipality-los-angeles-los-angeles",
+      name: "Atwater Village",
+      slug: "atwater-village",
+      kind: "neighborhood",
+   },
+
+   /* San Francisco */
+
+   {
+      id: "area-e1c-bay-area-san-francisco-chinatown",
+      municipalityId: "municipality-bay-area-san-francisco",
+      name: "Chinatown",
+      slug: "chinatown",
+      kind: "neighborhood",
+   },
+   {
+      id: "area-e1c-bay-area-san-francisco-the-castro",
+      municipalityId: "municipality-bay-area-san-francisco",
+      name: "The Castro",
+      slug: "the-castro",
+      kind: "neighborhood",
+   },
+   {
+      id: "area-e1c-bay-area-san-francisco-dogpatch",
+      municipalityId: "municipality-bay-area-san-francisco",
+      name: "Dogpatch",
+      slug: "dogpatch",
+      kind: "neighborhood",
+   },
+
+   /* Oakland */
+
+   {
+      id: "area-e1c-bay-area-oakland-grand-lake",
+      municipalityId: "municipality-bay-area-oakland",
+      name: "Grand Lake",
+      slug: "grand-lake",
+      kind: "neighborhood",
+   },
+   {
+      id: "area-e1c-bay-area-oakland-piedmont-avenue",
+      municipalityId: "municipality-bay-area-oakland",
+      name: "Piedmont Avenue",
+      slug: "piedmont-avenue",
+      kind: "district",
+   },
+
+   /* Chicago */
+
+   {
+      id: "area-e1c-chicago-chicago-river-north",
+      municipalityId: "municipality-chicago-chicago",
+      name: "River North",
+      slug: "river-north",
+      kind: "neighborhood",
+   },
+   {
+      id: "area-e1c-chicago-chicago-lincoln-park",
+      municipalityId: "municipality-chicago-chicago",
+      name: "Lincoln Park",
+      slug: "lincoln-park",
+      kind: "neighborhood",
+   },
+   {
+      id: "area-e1c-chicago-chicago-chinatown",
+      municipalityId: "municipality-chicago-chicago",
+      name: "Chinatown",
+      slug: "chinatown",
+      kind: "neighborhood",
+   },
+   {
+      id: "area-e1c-chicago-chicago-ukrainian-village",
+      municipalityId: "municipality-chicago-chicago",
+      name: "Ukrainian Village",
+      slug: "ukrainian-village",
+      kind: "neighborhood",
+   },
+
+   /* Boston */
+
+   {
+      id: "area-e1c-boston-boston-fenway",
+      municipalityId: "municipality-boston-boston",
+      name: "Fenway",
+      slug: "fenway",
+      kind: "neighborhood",
+   },
+   {
+      id: "area-e1c-boston-boston-jamaica-plain",
+      municipalityId: "municipality-boston-boston",
+      name: "Jamaica Plain",
+      slug: "jamaica-plain",
+      kind: "neighborhood",
+   },
+   {
+      id: "area-e1c-boston-boston-charlestown",
+      municipalityId: "municipality-boston-boston",
+      name: "Charlestown",
+      slug: "charlestown",
+      kind: "neighborhood",
+   },
+
+   /* Cambridge */
+
+   {
+      id: "area-e1c-boston-cambridge-porter-square",
+      municipalityId: "municipality-boston-cambridge",
+      name: "Porter Square",
+      slug: "porter-square",
+      kind: "district",
+   },
+
+   /* Seattle */
+
+   {
+      id: "area-e1c-seattle-seattle-belltown",
+      municipalityId: "municipality-seattle-seattle",
+      name: "Belltown",
+      slug: "belltown",
+      kind: "neighborhood",
+   },
+   {
+      id: "area-e1c-seattle-seattle-chinatown-international-district",
+      municipalityId: "municipality-seattle-seattle",
+      name: "Chinatown–International District",
+      slug: "chinatown-international-district",
+      kind: "district",
+   },
+   {
+      id: "area-e1c-seattle-seattle-georgetown",
+      municipalityId: "municipality-seattle-seattle",
+      name: "Georgetown",
+      slug: "georgetown",
+      kind: "neighborhood",
+   },
+   {
+      id: "area-e1c-seattle-seattle-west-seattle-junction",
+      municipalityId: "municipality-seattle-seattle",
+      name: "West Seattle Junction",
+      slug: "west-seattle-junction",
+      kind: "district",
+   },
+
+   /* Portland */
+
+   {
+      id: "area-e1c-portland-portland-nob-hill",
+      municipalityId: "municipality-portland-portland",
+      name: "Nob Hill",
+      slug: "nob-hill",
+      kind: "neighborhood",
+   },
+   {
+      id: "area-e1c-portland-portland-division-clinton",
+      municipalityId: "municipality-portland-portland",
+      name: "Division–Clinton",
+      slug: "division-clinton",
+      kind: "district",
+   },
+   {
+      id: "area-e1c-portland-portland-st-johns",
+      municipalityId: "municipality-portland-portland",
+      name: "St. Johns",
+      slug: "st-johns",
+      kind: "neighborhood",
+   },
+
+   /* Austin */
+
+   {
+      id: "area-e1c-austin-austin-south-lamar",
+      municipalityId: "municipality-austin-austin",
+      name: "South Lamar",
+      slug: "south-lamar",
+      kind: "district",
+   },
+   {
+      id: "area-e1c-austin-austin-north-loop",
+      municipalityId: "municipality-austin-austin",
+      name: "North Loop",
+      slug: "north-loop",
+      kind: "neighborhood",
+   },
+   {
+      id: "area-e1c-austin-austin-clarksville",
+      municipalityId: "municipality-austin-austin",
+      name: "Clarksville",
+      slug: "clarksville",
+      kind: "neighborhood",
+   },
+
+   /* Dallas */
+
+   {
+      id: "area-e1c-dfw-dallas-oak-lawn",
+      municipalityId: "municipality-dfw-dallas",
+      name: "Oak Lawn",
+      slug: "oak-lawn",
+      kind: "neighborhood",
+   },
+   {
+      id: "area-e1c-dfw-dallas-knox-henderson",
+      municipalityId: "municipality-dfw-dallas",
+      name: "Knox–Henderson",
+      slug: "knox-henderson",
+      kind: "district",
+   },
+   {
+      id: "area-e1c-dfw-dallas-the-cedars",
+      municipalityId: "municipality-dfw-dallas",
+      name: "The Cedars",
+      slug: "the-cedars",
+      kind: "neighborhood",
+   },
+
+   /* Houston */
+
+   {
+      id: "area-e1c-houston-houston-midtown",
+      municipalityId: "municipality-houston-houston",
+      name: "Midtown",
+      slug: "midtown",
+      kind: "neighborhood",
+   },
+   {
+      id: "area-e1c-houston-houston-third-ward",
+      municipalityId: "municipality-houston-houston",
+      name: "Third Ward",
+      slug: "third-ward",
+      kind: "neighborhood",
+   },
+   {
+      id: "area-e1c-houston-houston-upper-kirby",
+      municipalityId: "municipality-houston-houston",
+      name: "Upper Kirby",
+      slug: "upper-kirby",
+      kind: "district",
+   },
+
+   /* Miami */
+
+   {
+      id: "area-e1c-miami-miami-little-haiti",
+      municipalityId: "municipality-miami-miami",
+      name: "Little Haiti",
+      slug: "little-haiti",
+      kind: "neighborhood",
+   },
+   {
+      id: "area-e1c-miami-miami-midtown-miami",
+      municipalityId: "municipality-miami-miami",
+      name: "Midtown Miami",
+      slug: "midtown-miami",
+      kind: "district",
+   },
+   {
+      id: "area-e1c-miami-miami-mimo-district",
+      municipalityId: "municipality-miami-miami",
+      name: "MiMo District",
+      slug: "mimo-district",
+      kind: "district",
+   },
+
+   /* Miami Beach */
+
+   {
+      id: "area-e1c-miami-miami-beach-mid-beach",
+      municipalityId: "municipality-miami-miami-beach",
+      name: "Mid-Beach",
+      slug: "mid-beach",
+      kind: "neighborhood",
+   },
+
+   /* Washington */
+
+   {
+      id: "area-e1c-dc-washington-adams-morgan",
+      municipalityId: "municipality-dc-washington",
+      name: "Adams Morgan",
+      slug: "adams-morgan",
+      kind: "neighborhood",
+   },
+   {
+      id: "area-e1c-dc-washington-u-street",
+      municipalityId: "municipality-dc-washington",
+      name: "U Street",
+      slug: "u-street",
+      kind: "district",
+   },
+   {
+      id: "area-e1c-dc-washington-navy-yard",
+      municipalityId: "municipality-dc-washington",
+      name: "Navy Yard",
+      slug: "navy-yard",
+      kind: "neighborhood",
+   },
+
+   /* Philadelphia */
+
+   {
+      id: "area-e1c-philadelphia-philadelphia-rittenhouse-square",
+      municipalityId: "municipality-philadelphia-philadelphia",
+      name: "Rittenhouse Square",
+      slug: "rittenhouse-square",
+      kind: "neighborhood",
+   },
+   {
+      id: "area-e1c-philadelphia-philadelphia-northern-liberties",
+      municipalityId: "municipality-philadelphia-philadelphia",
+      name: "Northern Liberties",
+      slug: "northern-liberties",
+      kind: "neighborhood",
+   },
+   {
+      id: "area-e1c-philadelphia-philadelphia-east-passyunk",
+      municipalityId: "municipality-philadelphia-philadelphia",
+      name: "East Passyunk",
+      slug: "east-passyunk",
+      kind: "district",
+   },
+
+   /* Denver */
+
+   {
+      id: "area-e1c-denver-denver-baker",
+      municipalityId: "municipality-denver-denver",
+      name: "Baker",
+      slug: "baker",
+      kind: "neighborhood",
+   },
+   {
+      id: "area-e1c-denver-denver-south-broadway",
+      municipalityId: "municipality-denver-denver",
+      name: "South Broadway",
+      slug: "south-broadway",
+      kind: "district",
+   },
+   {
+      id: "area-e1c-denver-denver-city-park-west",
+      municipalityId: "municipality-denver-denver",
+      name: "City Park West",
+      slug: "city-park-west",
+      kind: "neighborhood",
+   },
+
+   /* Atlanta */
+
+   {
+      id: "area-e1c-atlanta-atlanta-little-five-points",
+      municipalityId: "municipality-atlanta-atlanta",
+      name: "Little Five Points",
+      slug: "little-five-points",
+      kind: "district",
+   },
+   {
+      id: "area-e1c-atlanta-atlanta-grant-park",
+      municipalityId: "municipality-atlanta-atlanta",
+      name: "Grant Park",
+      slug: "grant-park",
+      kind: "neighborhood",
+   },
+   {
+      id: "area-e1c-atlanta-atlanta-cabbagetown",
+      municipalityId: "municipality-atlanta-atlanta",
+      name: "Cabbagetown",
+      slug: "cabbagetown",
+      kind: "neighborhood",
+   },
+
+   /* New Orleans */
+
+   {
+      id: "area-e1c-new-orleans-new-orleans-bywater",
+      municipalityId: "municipality-new-orleans-new-orleans",
+      name: "Bywater",
+      slug: "bywater",
+      kind: "neighborhood",
+   },
+   {
+      id: "area-e1c-new-orleans-new-orleans-uptown",
+      municipalityId: "municipality-new-orleans-new-orleans",
+      name: "Uptown",
+      slug: "uptown",
+      kind: "area",
+   },
+   {
+      id: "area-e1c-new-orleans-new-orleans-warehouse-district",
+      municipalityId: "municipality-new-orleans-new-orleans",
+      name: "Warehouse District",
+      slug: "warehouse-district",
+      kind: "district",
+   },
+   {
+      id: "area-e1c-new-orleans-new-orleans-mid-city",
+      municipalityId: "municipality-new-orleans-new-orleans",
+      name: "Mid-City",
+      slug: "mid-city",
+      kind: "neighborhood",
+   },
+
+   /* Nashville */
+
+   {
+      id: "area-e1c-nashville-nashville-hillsboro-village",
+      municipalityId: "municipality-nashville-nashville",
+      name: "Hillsboro Village",
+      slug: "hillsboro-village",
+      kind: "neighborhood",
+   },
+   {
+      id: "area-e1c-nashville-nashville-sylvan-park",
+      municipalityId: "municipality-nashville-nashville",
+      name: "Sylvan Park",
+      slug: "sylvan-park",
+      kind: "neighborhood",
+   },
+   {
+      id: "area-e1c-nashville-nashville-belmont-hillsboro",
+      municipalityId: "municipality-nashville-nashville",
+      name: "Belmont–Hillsboro",
+      slug: "belmont-hillsboro",
+      kind: "neighborhood",
+   },
+
+   /* Minneapolis */
+
+   {
+      id: "area-e1c-twin-cities-minneapolis-lyn-lake",
+      municipalityId: "municipality-twin-cities-minneapolis",
+      name: "Lyn-Lake",
+      slug: "lyn-lake",
+      kind: "district",
+   },
+   {
+      id: "area-e1c-twin-cities-minneapolis-whittier",
+      municipalityId: "municipality-twin-cities-minneapolis",
+      name: "Whittier",
+      slug: "whittier",
+      kind: "neighborhood",
+   },
+
+   /* Saint Paul */
+
+   {
+      id: "area-e1c-twin-cities-saint-paul-west-seventh",
+      municipalityId: "municipality-twin-cities-saint-paul",
+      name: "West Seventh",
+      slug: "west-seventh",
+      kind: "neighborhood",
+   },
+
+   /* Detroit */
+
+   {
+      id: "area-e1c-detroit-detroit-new-center",
+      municipalityId: "municipality-detroit-detroit",
+      name: "New Center",
+      slug: "new-center",
+      kind: "neighborhood",
+   },
+   {
+      id: "area-e1c-detroit-detroit-mexicantown",
+      municipalityId: "municipality-detroit-detroit",
+      name: "Mexicantown",
+      slug: "mexicantown",
+      kind: "neighborhood",
+   },
+   {
+      id: "area-e1c-detroit-detroit-west-village",
+      municipalityId: "municipality-detroit-detroit",
+      name: "West Village",
+      slug: "west-village",
+      kind: "neighborhood",
+   },
+
+   /* Charlotte */
+
+   {
+      id: "area-e1c-charlotte-charlotte-dilworth",
+      municipalityId: "municipality-charlotte-charlotte",
+      name: "Dilworth",
+      slug: "dilworth",
+      kind: "neighborhood",
+   },
+   {
+      id: "area-e1c-charlotte-charlotte-optimist-park",
+      municipalityId: "municipality-charlotte-charlotte",
+      name: "Optimist Park",
+      slug: "optimist-park",
+      kind: "neighborhood",
+   },
+   {
+      id: "area-e1c-charlotte-charlotte-elizabeth",
+      municipalityId: "municipality-charlotte-charlotte",
+      name: "Elizabeth",
+      slug: "elizabeth",
+      kind: "neighborhood",
+   },
+
+   /* Raleigh */
+
+   {
+      id: "area-e1c-raleigh-durham-raleigh-boylan-heights",
+      municipalityId: "municipality-raleigh-durham-raleigh",
+      name: "Boylan Heights",
+      slug: "boylan-heights",
+      kind: "neighborhood",
+   },
+   {
+      id: "area-e1c-raleigh-durham-raleigh-village-district",
+      municipalityId: "municipality-raleigh-durham-raleigh",
+      name: "Village District",
+      slug: "village-district",
+      kind: "district",
+   },
+
+   /* Durham */
+
+   {
+      id: "area-e1c-raleigh-durham-durham-brightleaf",
+      municipalityId: "municipality-raleigh-durham-durham",
+      name: "Brightleaf",
+      slug: "brightleaf",
+      kind: "district",
+   },
+
+   /* Charleston */
+
+   {
+      id: "area-e1c-charleston-south-carolina-charleston-french-quarter",
+      municipalityId: "municipality-charleston-south-carolina-charleston",
+      name: "French Quarter",
+      slug: "french-quarter",
+      kind: "neighborhood",
+   },
+   {
+      id: "area-e1c-charleston-south-carolina-charleston-cannonborough-elliotborough",
+      municipalityId: "municipality-charleston-south-carolina-charleston",
+      name: "Cannonborough–Elliotborough",
+      slug: "cannonborough-elliotborough",
+      kind: "neighborhood",
+   },
+   {
+      id: "area-e1c-charleston-south-carolina-charleston-upper-king",
+      municipalityId: "municipality-charleston-south-carolina-charleston",
+      name: "Upper King",
+      slug: "upper-king",
+      kind: "district",
+   },
+   {
+      id: "area-e1c-charleston-south-carolina-charleston-west-ashley",
+      municipalityId: "municipality-charleston-south-carolina-charleston",
+      name: "West Ashley",
+      slug: "west-ashley",
+      kind: "area",
+   },
+
+   /* Savannah */
+
+   {
+      id: "area-e1c-savannah-savannah-starland-district",
+      municipalityId: "municipality-savannah-savannah",
+      name: "Starland District",
+      slug: "starland-district",
+      kind: "district",
+   },
+   {
+      id: "area-e1c-savannah-savannah-victorian-district",
+      municipalityId: "municipality-savannah-savannah",
+      name: "Victorian District",
+      slug: "victorian-district",
+      kind: "district",
+   },
+   {
+      id: "area-e1c-savannah-savannah-historic-river-street",
+      municipalityId: "municipality-savannah-savannah",
+      name: "Historic River Street",
+      slug: "historic-river-street",
+      kind: "district",
+   },
+
+   /* Honolulu */
+
+   {
+      id: "area-e1c-honolulu-honolulu-waikiki",
+      municipalityId: "municipality-honolulu-honolulu",
+      name: "Waikiki",
+      slug: "waikiki",
+      kind: "area",
+   },
+   {
+      id: "area-e1c-honolulu-honolulu-kakaako",
+      municipalityId: "municipality-honolulu-honolulu",
+      name: "Kakaako",
+      slug: "kakaako",
+      kind: "neighborhood",
+   },
+   {
+      id: "area-e1c-honolulu-honolulu-ala-moana",
+      municipalityId: "municipality-honolulu-honolulu",
+      name: "Ala Moana",
+      slug: "ala-moana",
+      kind: "area",
+   },
+   {
+      id: "area-e1c-honolulu-honolulu-kaimuki",
+      municipalityId: "municipality-honolulu-honolulu",
+      name: "Kaimuki",
+      slug: "kaimuki",
+      kind: "neighborhood",
+   },
+
+   /* Salt Lake City */
+
+   {
+      id: "area-e1c-salt-lake-city-salt-lake-city-9th-and-9th",
+      municipalityId: "municipality-salt-lake-city-salt-lake-city",
+      name: "9th & 9th",
+      slug: "9th-and-9th",
+      kind: "district",
+   },
+   {
+      id: "area-e1c-salt-lake-city-salt-lake-city-marmalade-district",
+      municipalityId: "municipality-salt-lake-city-salt-lake-city",
+      name: "Marmalade District",
+      slug: "marmalade-district",
+      kind: "district",
+   },
+
+   /* Park City */
+
+   {
+      id: "area-e1c-park-city-park-city-prospector",
+      municipalityId: "municipality-park-city-park-city",
+      name: "Prospector",
+      slug: "prospector",
+      kind: "area",
+   },
+   {
+      id: "area-e1c-park-city-park-city-deer-valley",
+      municipalityId: "municipality-park-city-park-city",
+      name: "Deer Valley",
+      slug: "deer-valley",
+      kind: "area",
+   },
+   {
+      id: "area-e1c-park-city-park-city-canyons-village",
+      municipalityId: "municipality-park-city-park-city",
+      name: "Canyons Village",
+      slug: "canyons-village",
+      kind: "area",
+   },
+
+   /* Asheville */
+
+   {
+      id: "area-e1c-asheville-asheville-river-arts-district",
+      municipalityId: "municipality-asheville-asheville",
+      name: "River Arts District",
+      slug: "river-arts-district",
+      kind: "district",
+   },
+   {
+      id: "area-e1c-asheville-asheville-west-asheville",
+      municipalityId: "municipality-asheville-asheville",
+      name: "West Asheville",
+      slug: "west-asheville",
+      kind: "area",
+   },
+   {
+      id: "area-e1c-asheville-asheville-south-slope",
+      municipalityId: "municipality-asheville-asheville",
+      name: "South Slope",
+      slug: "south-slope",
+      kind: "district",
+   },
+
+   /* Santa Fe */
+
+   {
+      id: "area-e1c-santa-fe-santa-fe-railyard-district",
+      municipalityId: "municipality-santa-fe-santa-fe",
+      name: "Railyard District",
+      slug: "railyard-district",
+      kind: "district",
+   },
+   {
+      id: "area-e1c-santa-fe-santa-fe-canyon-road",
+      municipalityId: "municipality-santa-fe-santa-fe",
+      name: "Canyon Road",
+      slug: "canyon-road",
+      kind: "district",
+   },
+   {
+      id: "area-e1c-santa-fe-santa-fe-guadalupe-district",
+      municipalityId: "municipality-santa-fe-santa-fe",
+      name: "Guadalupe District",
+      slug: "guadalupe-district",
+      kind: "district",
+   },
+
+   /* Portland, Maine */
+
+   {
+      id: "area-e1c-portland-maine-portland-old-port",
+      municipalityId: "municipality-portland-maine-portland",
+      name: "Old Port",
+      slug: "old-port",
+      kind: "district",
+   },
+   {
+      id: "area-e1c-portland-maine-portland-arts-district",
+      municipalityId: "municipality-portland-maine-portland",
+      name: "Arts District",
+      slug: "arts-district",
+      kind: "district",
+   },
+   {
+      id: "area-e1c-portland-maine-portland-east-end",
+      municipalityId: "municipality-portland-maine-portland",
+      name: "East End",
+      slug: "east-end",
+      kind: "neighborhood",
+   },
+
+   /* Providence */
+
+   {
+      id: "area-e1c-providence-providence-federal-hill",
+      municipalityId: "municipality-providence-providence",
+      name: "Federal Hill",
+      slug: "federal-hill",
+      kind: "neighborhood",
+   },
+   {
+      id: "area-e1c-providence-providence-college-hill",
+      municipalityId: "municipality-providence-providence",
+      name: "College Hill",
+      slug: "college-hill",
+      kind: "neighborhood",
+   },
+   {
+      id: "area-e1c-providence-providence-fox-point",
+      municipalityId: "municipality-providence-providence",
+      name: "Fox Point",
+      slug: "fox-point",
+      kind: "neighborhood",
+   },
+
+   /* Boise */
+
+   {
+      id: "area-e1c-boise-boise-hyde-park",
+      municipalityId: "municipality-boise-boise",
+      name: "Hyde Park",
+      slug: "hyde-park",
+      kind: "district",
+   },
+   {
+      id: "area-e1c-boise-boise-boise-bench",
+      municipalityId: "municipality-boise-boise",
+      name: "Boise Bench",
+      slug: "boise-bench",
+      kind: "area",
+   },
+
+   /* Louisville */
+
+   {
+      id: "area-e1c-louisville-louisville-nulu",
+      municipalityId: "municipality-louisville-louisville",
+      name: "NuLu",
+      slug: "nulu",
+      kind: "district",
+   },
+   {
+      id: "area-e1c-louisville-louisville-the-highlands",
+      municipalityId: "municipality-louisville-louisville",
+      name: "The Highlands",
+      slug: "the-highlands",
+      kind: "area",
+   },
+   {
+      id: "area-e1c-louisville-louisville-germantown",
+      municipalityId: "municipality-louisville-louisville",
+      name: "Germantown",
+      slug: "germantown",
+      kind: "neighborhood",
+   },
+
+   /* Albuquerque */
+
+   {
+      id: "area-e1c-albuquerque-albuquerque-old-town",
+      municipalityId: "municipality-albuquerque-albuquerque",
+      name: "Old Town",
+      slug: "old-town",
+      kind: "district",
+   },
+   {
+      id: "area-e1c-albuquerque-albuquerque-nob-hill",
+      municipalityId: "municipality-albuquerque-albuquerque",
+      name: "Nob Hill",
+      slug: "nob-hill",
+      kind: "neighborhood",
+   },
+   {
+      id: "area-e1c-albuquerque-albuquerque-sawmill-district",
+      municipalityId: "municipality-albuquerque-albuquerque",
+      name: "Sawmill District",
+      slug: "sawmill-district",
+      kind: "district",
+   },
+
+   /* Richmond */
+
+   {
+      id: "area-e1c-richmond-virginia-richmond-the-fan",
+      municipalityId: "municipality-richmond-virginia-richmond",
+      name: "The Fan",
+      slug: "the-fan",
+      kind: "neighborhood",
+   },
+   {
+      id: "area-e1c-richmond-virginia-richmond-carytown",
+      municipalityId: "municipality-richmond-virginia-richmond",
+      name: "Carytown",
+      slug: "carytown",
+      kind: "district",
+   },
+   {
+      id: "area-e1c-richmond-virginia-richmond-scotts-addition",
+      municipalityId: "municipality-richmond-virginia-richmond",
+      name: "Scott's Addition",
+      slug: "scotts-addition",
+      kind: "neighborhood",
+   },
+
+   /* Tucson */
+
+   {
+      id: "area-e1c-tucson-tucson-fourth-avenue",
+      municipalityId: "municipality-tucson-tucson",
+      name: "Fourth Avenue",
+      slug: "fourth-avenue",
+      kind: "district",
+   },
+   {
+      id: "area-e1c-tucson-tucson-barrio-viejo",
+      municipalityId: "municipality-tucson-tucson",
+      name: "Barrio Viejo",
+      slug: "barrio-viejo",
+      kind: "neighborhood",
+   },
+
+   /* Monterey */
+
+   {
+      id: "area-e1c-monterey-monterey-cannery-row",
+      municipalityId: "municipality-monterey-monterey",
+      name: "Cannery Row",
+      slug: "cannery-row",
+      kind: "district",
+   },
+   {
+      id: "area-e1c-monterey-monterey-new-monterey",
+      municipalityId: "municipality-monterey-monterey",
+      name: "New Monterey",
+      slug: "new-monterey",
+      kind: "neighborhood",
+   },
+
+   /* Santa Barbara */
+
+   {
+      id: "area-e1c-santa-barbara-santa-barbara-funk-zone",
+      municipalityId: "municipality-santa-barbara-santa-barbara",
+      name: "Funk Zone",
+      slug: "funk-zone",
+      kind: "district",
+   },
+   {
+      id: "area-e1c-santa-barbara-santa-barbara-waterfront",
+      municipalityId: "municipality-santa-barbara-santa-barbara",
+      name: "Waterfront",
+      slug: "waterfront",
+      kind: "area",
+   },
+
+   /* Key West */
+
+   {
+      id: "area-e1c-key-west-key-west-bahama-village",
+      municipalityId: "municipality-key-west-key-west",
+      name: "Bahama Village",
+      slug: "bahama-village",
+      kind: "neighborhood",
+   },
+   {
+      id: "area-e1c-key-west-key-west-historic-seaport",
+      municipalityId: "municipality-key-west-key-west",
+      name: "Historic Seaport",
+      slug: "historic-seaport",
+      kind: "district",
+   },
+
+   /* Anchorage */
+
+   {
+      id: "area-e1c-anchorage-anchorage-spenard",
+      municipalityId: "municipality-anchorage-anchorage",
+      name: "Spenard",
+      slug: "spenard",
+      kind: "neighborhood",
+   },
+   {
+      id: "area-e1c-anchorage-anchorage-south-addition",
+      municipalityId: "municipality-anchorage-anchorage",
+      name: "South Addition",
+      slug: "south-addition",
+      kind: "neighborhood",
+   },
+
+   /* E1D — Toronto */
+   { id: "area-e1d-toronto-downtown", municipalityId: "municipality-toronto-toronto", name: "Downtown", slug: "downtown", kind: "downtown" },
+   { id: "area-e1d-toronto-kensington-market", municipalityId: "municipality-toronto-toronto", name: "Kensington Market", slug: "kensington-market", kind: "district" },
+   { id: "area-e1d-toronto-queen-west", municipalityId: "municipality-toronto-toronto", name: "Queen West", slug: "queen-west", kind: "district" },
+   { id: "area-e1d-toronto-yorkville", municipalityId: "municipality-toronto-toronto", name: "Yorkville", slug: "yorkville", kind: "neighborhood" },
+   { id: "area-e1d-toronto-distillery-district", municipalityId: "municipality-toronto-toronto", name: "Distillery District", slug: "distillery-district", kind: "district" },
+
+   /* E1D — Vancouver */
+   { id: "area-e1d-vancouver-downtown", municipalityId: "municipality-vancouver-canada-vancouver", name: "Downtown", slug: "downtown", kind: "downtown" },
+   { id: "area-e1d-vancouver-gastown", municipalityId: "municipality-vancouver-canada-vancouver", name: "Gastown", slug: "gastown", kind: "district" },
+   { id: "area-e1d-vancouver-yaletown", municipalityId: "municipality-vancouver-canada-vancouver", name: "Yaletown", slug: "yaletown", kind: "neighborhood" },
+   { id: "area-e1d-vancouver-kitsilano", municipalityId: "municipality-vancouver-canada-vancouver", name: "Kitsilano", slug: "kitsilano", kind: "neighborhood" },
+   { id: "area-e1d-vancouver-mount-pleasant", municipalityId: "municipality-vancouver-canada-vancouver", name: "Mount Pleasant", slug: "mount-pleasant", kind: "neighborhood" },
+
+   /* E1D — Montreal */
+   { id: "area-e1d-montreal-old-montreal", municipalityId: "municipality-montreal-montreal", name: "Old Montreal", slug: "old-montreal", kind: "district" },
+   { id: "area-e1d-montreal-plateau-mont-royal", municipalityId: "municipality-montreal-montreal", name: "Plateau Mont-Royal", slug: "plateau-mont-royal", kind: "neighborhood" },
+   { id: "area-e1d-montreal-mile-end", municipalityId: "municipality-montreal-montreal", name: "Mile End", slug: "mile-end", kind: "neighborhood" },
+   { id: "area-e1d-montreal-downtown", municipalityId: "municipality-montreal-montreal", name: "Downtown", slug: "downtown", kind: "downtown" },
+   { id: "area-e1d-montreal-griffintown", municipalityId: "municipality-montreal-montreal", name: "Griffintown", slug: "griffintown", kind: "neighborhood" },
+
+   /* E1D — London */
+   { id: "area-e1d-london-soho", municipalityId: "municipality-london-london", name: "Soho", slug: "soho", kind: "district" },
+   { id: "area-e1d-london-shoreditch", municipalityId: "municipality-london-london", name: "Shoreditch", slug: "shoreditch", kind: "district" },
+   { id: "area-e1d-london-covent-garden", municipalityId: "municipality-london-london", name: "Covent Garden", slug: "covent-garden", kind: "district" },
+   { id: "area-e1d-london-south-bank", municipalityId: "municipality-london-london", name: "South Bank", slug: "south-bank", kind: "district" },
+   { id: "area-e1d-london-notting-hill", municipalityId: "municipality-london-london", name: "Notting Hill", slug: "notting-hill", kind: "neighborhood" },
+   { id: "area-e1d-london-camden-town", municipalityId: "municipality-london-london", name: "Camden Town", slug: "camden-town", kind: "district" },
+
+   /* E1D — Edinburgh */
+   { id: "area-e1d-edinburgh-old-town", municipalityId: "municipality-edinburgh-edinburgh", name: "Old Town", slug: "old-town", kind: "district" },
+   { id: "area-e1d-edinburgh-new-town", municipalityId: "municipality-edinburgh-edinburgh", name: "New Town", slug: "new-town", kind: "district" },
+   { id: "area-e1d-edinburgh-stockbridge", municipalityId: "municipality-edinburgh-edinburgh", name: "Stockbridge", slug: "stockbridge", kind: "neighborhood" },
+   { id: "area-e1d-edinburgh-leith", municipalityId: "municipality-edinburgh-edinburgh", name: "Leith", slug: "leith", kind: "area" },
+
+   /* E1D — Mexico City */
+   { id: "area-e1d-mexico-city-roma-norte", municipalityId: "municipality-mexico-city-mexico-city", name: "Roma Norte", slug: "roma-norte", kind: "neighborhood" },
+   { id: "area-e1d-mexico-city-condesa", municipalityId: "municipality-mexico-city-mexico-city", name: "Condesa", slug: "condesa", kind: "neighborhood" },
+   { id: "area-e1d-mexico-city-centro-historico", municipalityId: "municipality-mexico-city-mexico-city", name: "Centro Histórico", slug: "centro-historico", kind: "district" },
+   { id: "area-e1d-mexico-city-polanco", municipalityId: "municipality-mexico-city-mexico-city", name: "Polanco", slug: "polanco", kind: "neighborhood" },
+   { id: "area-e1d-mexico-city-coyoacan", municipalityId: "municipality-mexico-city-mexico-city", name: "Coyoacán", slug: "coyoacan", kind: "neighborhood" },
+
+   /* E1D — Guadalajara */
+   { id: "area-e1d-guadalajara-centro", municipalityId: "municipality-guadalajara-mexico-guadalajara", name: "Centro", slug: "centro", kind: "downtown" },
+   { id: "area-e1d-guadalajara-colonia-americana", municipalityId: "municipality-guadalajara-mexico-guadalajara", name: "Colonia Americana", slug: "colonia-americana", kind: "neighborhood" },
+   { id: "area-e1d-guadalajara-chapultepec", municipalityId: "municipality-guadalajara-mexico-guadalajara", name: "Chapultepec", slug: "chapultepec", kind: "district" },
+   { id: "area-e1d-guadalajara-providencia", municipalityId: "municipality-guadalajara-mexico-guadalajara", name: "Providencia", slug: "providencia", kind: "neighborhood" },
+
+   /* E1D — Tokyo */
+   { id: "area-e1d-tokyo-shibuya-shibuya", municipalityId: "municipality-tokyo-shibuya", name: "Shibuya", slug: "shibuya", kind: "district" },
+   { id: "area-e1d-tokyo-shibuya-daikanyama", municipalityId: "municipality-tokyo-shibuya", name: "Daikanyama", slug: "daikanyama", kind: "neighborhood" },
+   { id: "area-e1d-tokyo-shibuya-ebisu", municipalityId: "municipality-tokyo-shibuya", name: "Ebisu", slug: "ebisu", kind: "neighborhood" },
+   { id: "area-e1d-tokyo-shibuya-harajuku", municipalityId: "municipality-tokyo-shibuya", name: "Harajuku", slug: "harajuku", kind: "district" },
+   { id: "area-e1d-tokyo-shinjuku-shinjuku", municipalityId: "municipality-tokyo-shinjuku", name: "Shinjuku", slug: "shinjuku", kind: "district" },
+   { id: "area-e1d-tokyo-shinjuku-kagurazaka", municipalityId: "municipality-tokyo-shinjuku", name: "Kagurazaka", slug: "kagurazaka", kind: "neighborhood" },
+   { id: "area-e1d-tokyo-taito-asakusa", municipalityId: "municipality-tokyo-taito", name: "Asakusa", slug: "asakusa", kind: "district" },
+   { id: "area-e1d-tokyo-taito-ueno", municipalityId: "municipality-tokyo-taito", name: "Ueno", slug: "ueno", kind: "district" },
+   { id: "area-e1d-tokyo-chuo-ginza", municipalityId: "municipality-tokyo-chuo", name: "Ginza", slug: "ginza", kind: "district" },
+   { id: "area-e1d-tokyo-chuo-tsukiji", municipalityId: "municipality-tokyo-chuo", name: "Tsukiji", slug: "tsukiji", kind: "district" },
+   { id: "area-e1d-tokyo-setagaya-shimokitazawa", municipalityId: "municipality-tokyo-setagaya", name: "Shimokitazawa", slug: "shimokitazawa", kind: "neighborhood" },
+
+   /* E1D — Yokohama */
+   { id: "area-e1d-yokohama-minato-mirai", municipalityId: "municipality-yokohama-yokohama", name: "Minato Mirai", slug: "minato-mirai", kind: "district" },
+   { id: "area-e1d-yokohama-kannai", municipalityId: "municipality-yokohama-yokohama", name: "Kannai", slug: "kannai", kind: "district" },
+   { id: "area-e1d-yokohama-motomachi", municipalityId: "municipality-yokohama-yokohama", name: "Motomachi", slug: "motomachi", kind: "district" },
+   { id: "area-e1d-yokohama-chinatown", municipalityId: "municipality-yokohama-yokohama", name: "Chinatown", slug: "chinatown", kind: "district" },
+   { id: "area-e1d-yokohama-noge", municipalityId: "municipality-yokohama-yokohama", name: "Noge", slug: "noge", kind: "district" },
+
+   /* E1D — Yokosuka */
+   { id: "area-e1d-yokosuka-yokosuka-chuo", municipalityId: "municipality-yokosuka-yokosuka", name: "Yokosuka-Chuo", slug: "yokosuka-chuo", kind: "downtown" },
+   { id: "area-e1d-yokosuka-dobuita", municipalityId: "municipality-yokosuka-yokosuka", name: "Dobuita", slug: "dobuita", kind: "district" },
+   { id: "area-e1d-yokosuka-shioiri", municipalityId: "municipality-yokosuka-yokosuka", name: "Shioiri", slug: "shioiri", kind: "area" },
+   { id: "area-e1d-yokosuka-kurihama", municipalityId: "municipality-yokosuka-yokosuka", name: "Kurihama", slug: "kurihama", kind: "area" },
+
+   /* E1D — Kyoto */
+   { id: "area-e1d-kyoto-gion", municipalityId: "municipality-kyoto-kyoto", name: "Gion", slug: "gion", kind: "district" },
+   { id: "area-e1d-kyoto-higashiyama", municipalityId: "municipality-kyoto-kyoto", name: "Higashiyama", slug: "higashiyama", kind: "area" },
+   { id: "area-e1d-kyoto-pontocho", municipalityId: "municipality-kyoto-kyoto", name: "Pontocho", slug: "pontocho", kind: "district" },
+   { id: "area-e1d-kyoto-arashiyama", municipalityId: "municipality-kyoto-kyoto", name: "Arashiyama", slug: "arashiyama", kind: "area" },
+   { id: "area-e1d-kyoto-downtown", municipalityId: "municipality-kyoto-kyoto", name: "Downtown Kyoto", slug: "downtown-kyoto", kind: "downtown" },
+
+   /* E1D — Osaka */
+   { id: "area-e1d-osaka-dotonbori", municipalityId: "municipality-osaka-osaka", name: "Dotonbori", slug: "dotonbori", kind: "district" },
+   { id: "area-e1d-osaka-namba", municipalityId: "municipality-osaka-osaka", name: "Namba", slug: "namba", kind: "district" },
+   { id: "area-e1d-osaka-umeda", municipalityId: "municipality-osaka-osaka", name: "Umeda", slug: "umeda", kind: "district" },
+   { id: "area-e1d-osaka-shinsekai", municipalityId: "municipality-osaka-osaka", name: "Shinsekai", slug: "shinsekai", kind: "district" },
+   { id: "area-e1d-osaka-nakazakicho", municipalityId: "municipality-osaka-osaka", name: "Nakazakicho", slug: "nakazakicho", kind: "neighborhood" },
+
+   /* E1D — Sydney */
+   { id: "area-e1d-sydney-cbd", municipalityId: "municipality-sydney-sydney", name: "CBD", slug: "cbd", kind: "downtown" },
+   { id: "area-e1d-sydney-the-rocks", municipalityId: "municipality-sydney-sydney", name: "The Rocks", slug: "the-rocks", kind: "district" },
+   { id: "area-e1d-sydney-darling-harbour", municipalityId: "municipality-sydney-sydney", name: "Darling Harbour", slug: "darling-harbour", kind: "district" },
+   { id: "area-e1d-sydney-surry-hills", municipalityId: "municipality-sydney-sydney", name: "Surry Hills", slug: "surry-hills", kind: "neighborhood" },
+
+   /* E1D — Melbourne */
+   { id: "area-e1d-melbourne-cbd", municipalityId: "municipality-melbourne-australia-melbourne", name: "CBD", slug: "cbd", kind: "downtown" },
+   { id: "area-e1d-melbourne-southbank", municipalityId: "municipality-melbourne-australia-melbourne", name: "Southbank", slug: "southbank", kind: "district" },
+   { id: "area-e1d-melbourne-carlton", municipalityId: "municipality-melbourne-australia-melbourne", name: "Carlton", slug: "carlton", kind: "neighborhood" },
+   { id: "area-e1d-melbourne-docklands", municipalityId: "municipality-melbourne-australia-melbourne", name: "Docklands", slug: "docklands", kind: "district" },
+
+
 ] satisfies readonly LocalArea[];

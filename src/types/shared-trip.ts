@@ -1,10 +1,12 @@
 import type {
    SharedDayCreateRequest,
-   SharedDayGeography,
+   SharedDayGeographyV1,
+   SharedDayGeographyV2,
    SharedDayStop,
 } from "@/types/shared-day";
 
-export const sharedTripSnapshotVersion = 1 as const;
+export const legacySharedTripSnapshotVersion = 1 as const;
+export const sharedTripSnapshotVersion = 2 as const;
 
 export const sharedTripLimits = {
    minimumDays: 2,
@@ -21,21 +23,39 @@ export const sharedTripLimits = {
    maximumClockSkewMinutes: 5,
 } as const;
 
-export type SharedTripDayCreateRequest =
-   SharedDayCreateRequest;
+export type SharedTripDayCreateRequest = SharedDayCreateRequest;
 
 export type SharedTripCreateRequest = Readonly<{
    title: string;
    days: readonly SharedTripDayCreateRequest[];
 }>;
 
-export type SharedTripDaySnapshot = Readonly<{
+export type SharedTripDaySnapshotV1 = Readonly<{
    planningDate: string;
-   geography: SharedDayGeography;
+   geography: SharedDayGeographyV1;
    stops: readonly SharedDayStop[];
 }>;
 
-export type SharedTripSnapshot = Readonly<{
+export type SharedTripDaySnapshotV2 = Readonly<{
+   planningDate: string;
+   geography: SharedDayGeographyV2;
+   stops: readonly SharedDayStop[];
+}>;
+
+export type SharedTripDaySnapshot = SharedTripDaySnapshotV1 | SharedTripDaySnapshotV2;
+
+export type SharedTripSnapshotV1 = Readonly<{
+   version: typeof legacySharedTripSnapshotVersion;
+
+   createdAt: string;
+   expiresAt: string;
+
+   title: string;
+
+   days: readonly SharedTripDaySnapshotV1[];
+}>;
+
+export type SharedTripSnapshotV2 = Readonly<{
    version: typeof sharedTripSnapshotVersion;
 
    createdAt: string;
@@ -43,8 +63,10 @@ export type SharedTripSnapshot = Readonly<{
 
    title: string;
 
-   days: readonly SharedTripDaySnapshot[];
+   days: readonly SharedTripDaySnapshotV2[];
 }>;
+
+export type SharedTripSnapshot = SharedTripSnapshotV1 | SharedTripSnapshotV2;
 
 export type SharedTripCreateResponse = Readonly<{
    token: string;

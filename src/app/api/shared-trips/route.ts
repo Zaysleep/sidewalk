@@ -2,13 +2,12 @@ import { createHash, randomUUID } from "node:crypto";
 
 import { NextResponse } from "next/server";
 
-import { localAreas } from "@/data/geography/local-areas";
-import { municipalities } from "@/data/geography/municipalities";
-import { metroRegions } from "@/data/metros/metro-regions";
+import { isPlanningDateInDestinationRange } from "@/lib/geography/destination-date";
+import { resolveGeography } from "@/lib/geography/resolve-geography";
 import { isSharedTripCreateRequest } from "@/lib/sharing/shared-trip-schema";
 import { saveSharedTripSnapshot, SharedTripStoreConfigurationError } from "@/lib/sharing/shared-trip-store";
 import { dayPeriods } from "@/types/day-period";
-import { sharedTripLimits, sharedTripSnapshotVersion, type SharedTripCreateResponse, type SharedTripDayCreateRequest, type SharedTripDaySnapshot, type SharedTripErrorCode, type SharedTripErrorResponse, type SharedTripSnapshot } from "@/types/shared-trip";
+import { sharedTripLimits, sharedTripSnapshotVersion, type SharedTripCreateResponse, type SharedTripDayCreateRequest, type SharedTripDaySnapshotV2, type SharedTripErrorCode, type SharedTripErrorResponse, type SharedTripSnapshotV2 } from "@/types/shared-trip";
 
 export const runtime = "nodejs";
 
@@ -93,46 +92,6 @@ function consumeRateLimit(request: Request): Readonly<{
       remaining: Math.max(0, maximumRequestsPerWindow - existingEntry.count),
       retryAfterSeconds: Math.max(1, Math.ceil((existingEntry.resetAt - now) / 1_000)),
    };
-}
-
-function parsePlanningDate(value: string): number | null {
-   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-      return null;
-   }
-
-   const [yearText, monthText, dayText] = value.split("-");
-
-   const year = Number(yearText);
-   const month = Number(monthText);
-   const day = Number(dayText);
-
-   const timestamp = Date.UTC(year, month - 1, day);
-
-   const date = new Date(timestamp);
-
-   if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) {
-      return null;
-   }
-
-   return timestamp;
-}
-
-function isPlanningDateInSupportedRange(value: string): boolean {
-   const timestamp = parsePlanningDate(value);
-
-   if (timestamp === null) {
-      return false;
-   }
-
-   const now = new Date();
-
-   const utcToday = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
-
-   const minimumDate = utcToday - 24 * 60 * 60 * 1_000;
-
-   const maximumDate = utcToday + 366 * 24 * 60 * 60 * 1_000;
-
-   return timestamp >= minimumDate && timestamp <= maximumDate;
 }
 
 function isJsonContentType(request: Request): boolean {
@@ -231,19 +190,35 @@ async function readRequestBody(request: Request): Promise<
    }
 }
 
-function resolveTripDay(day: SharedTripDayCreateRequest): SharedTripDaySnapshot | null {
-   const metroRegion = metroRegions.find((candidate) => candidate.id === day.metroRegionId) ?? null;
+type ResolvedTripDay =
+   | Readonly<{
+        ok: true;
+        snapshot: SharedTripDaySnapshotV2;
+     }>
+   | Readonly<{
+        ok: false;
+        reason: "geography" | "date";
+     }>;
 
-   const municipality = municipalities.find((candidate) => candidate.id === day.municipalityId) ?? null;
+function resolveTripDay(day: SharedTripDayCreateRequest): ResolvedTripDay {
+   const geography = resolveGeography({
+      metroRegionId: day.metroRegionId,
+      municipalityId: day.municipalityId,
+      localAreaId: day.localAreaId,
+   });
 
-   const localArea = localAreas.find((candidate) => candidate.id === day.localAreaId) ?? null;
-
-   if (!metroRegion || !municipality || !localArea || !metroRegion.isActive || metroRegion.coverageStatus !== "active") {
-      return null;
+   if (!geography || !geography.metroRegion.isActive || geography.metroRegion.coverageStatus !== "active") {
+      return {
+         ok: false,
+         reason: "geography",
+      };
    }
 
-   if (municipality.metroRegionId !== metroRegion.id || localArea.municipalityId !== municipality.id) {
-      return null;
+   if (!isPlanningDateInDestinationRange(day.planningDate, geography.timezone, 366, 1)) {
+      return {
+         ok: false,
+         reason: "date",
+      };
    }
 
    const orderedStops = dayPeriods.flatMap((period) => {
@@ -253,22 +228,33 @@ function resolveTripDay(day: SharedTripDayCreateRequest): SharedTripDaySnapshot 
    });
 
    return {
-      planningDate: day.planningDate,
+      ok: true,
+      snapshot: {
+         planningDate: day.planningDate,
 
-      geography: {
-         metroRegionId: metroRegion.id,
-         metroSlug: metroRegion.slug,
-         metroName: metroRegion.name,
-         stateOrRegion: metroRegion.stateOrRegion,
+         geography: {
+            countryCode: geography.country.code,
+            countryName: geography.country.name,
 
-         municipalityId: municipality.id,
-         municipalityName: municipality.name,
+            regionCode: geography.region.code,
+            regionName: geography.region.name,
 
-         localAreaId: localArea.id,
-         localAreaName: localArea.name,
+            timezone: geography.timezone,
+
+            metroRegionId: geography.metroRegion.id,
+            metroSlug: geography.metroRegion.slug,
+            metroName: geography.metroRegion.name,
+            stateOrRegion: geography.metroRegion.stateOrRegion,
+
+            municipalityId: geography.municipality.id,
+            municipalityName: geography.municipality.name,
+
+            localAreaId: geography.localArea.id,
+            localAreaName: geography.localArea.name,
+         },
+
+         stops: orderedStops,
       },
-
-      stops: orderedStops,
    };
 }
 
@@ -305,21 +291,29 @@ export async function POST(request: Request) {
 
    const body = parsedBody.value;
 
-   if (body.days.some((day) => !isPlanningDateInSupportedRange(day.planningDate))) {
+   const resolvedDays = body.days.map((day) => resolveTripDay(day));
+
+   if (resolvedDays.some((day) => !day.ok && day.reason === "geography")) {
+      return errorResponse("One or more trip areas could not be found.", 404, "INVALID_GEOGRAPHY", requestId);
+   }
+
+   if (resolvedDays.some((day) => !day.ok && day.reason === "date")) {
       return errorResponse("One or more trip dates are outside Sidewalk’s supported range.", 400, "INVALID_DATE", requestId);
    }
 
-   const resolvedDays = body.days.map((day) => resolveTripDay(day));
+   const daySnapshots = resolvedDays.map((day) => {
+      if (!day.ok) {
+         throw new Error("Resolved trip-day narrowing failed.");
+      }
 
-   if (resolvedDays.some((day) => day === null)) {
-      return errorResponse("One or more trip areas could not be found.", 404, "INVALID_GEOGRAPHY", requestId);
-   }
+      return day.snapshot;
+   });
 
    const createdAt = new Date();
 
    const expiresAt = new Date(createdAt.getTime() + sharedTripLimits.expirationDays * 24 * 60 * 60 * 1_000);
 
-   const snapshot: SharedTripSnapshot = {
+   const snapshot: SharedTripSnapshotV2 = {
       version: sharedTripSnapshotVersion,
 
       createdAt: createdAt.toISOString(),
@@ -327,7 +321,7 @@ export async function POST(request: Request) {
 
       title: body.title,
 
-      days: resolvedDays as readonly SharedTripDaySnapshot[],
+      days: daySnapshots,
    };
 
    try {

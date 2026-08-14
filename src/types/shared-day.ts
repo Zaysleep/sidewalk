@@ -1,6 +1,7 @@
 import type { DayPeriod } from "@/types/day-period";
 
-export const sharedDaySnapshotVersion = 1 as const;
+export const legacySharedDaySnapshotVersion = 1 as const;
+export const sharedDaySnapshotVersion = 2 as const;
 
 export const sharedDayLimits = {
    maximumRequestBodyBytes: 32_768,
@@ -55,7 +56,7 @@ export type SharedDayCreateRequest = Readonly<{
    stops: readonly SharedDayStop[];
 }>;
 
-export type SharedDayGeography = Readonly<{
+export type SharedDayGeographyV1 = Readonly<{
    metroRegionId: string;
    metroSlug: string;
    metroName: string;
@@ -68,7 +69,43 @@ export type SharedDayGeography = Readonly<{
    localAreaName: string;
 }>;
 
-export type SharedDaySnapshot = Readonly<{
+export type SharedDayGeographyV2 = Readonly<{
+   countryCode: string;
+   countryName: string;
+
+   regionCode: string;
+   regionName: string;
+
+   timezone: string;
+
+   metroRegionId: string;
+   metroSlug: string;
+   metroName: string;
+   stateOrRegion: string;
+
+   municipalityId: string;
+   municipalityName: string;
+
+   localAreaId: string;
+   localAreaName: string;
+}>;
+
+export type SharedDayGeography = SharedDayGeographyV1 | SharedDayGeographyV2;
+
+export type SharedDaySnapshotV1 = Readonly<{
+   version: typeof legacySharedDaySnapshotVersion;
+
+   createdAt: string;
+   expiresAt: string;
+
+   planningDate: string;
+
+   geography: SharedDayGeographyV1;
+
+   stops: readonly SharedDayStop[];
+}>;
+
+export type SharedDaySnapshotV2 = Readonly<{
    version: typeof sharedDaySnapshotVersion;
 
    createdAt: string;
@@ -76,10 +113,12 @@ export type SharedDaySnapshot = Readonly<{
 
    planningDate: string;
 
-   geography: SharedDayGeography;
+   geography: SharedDayGeographyV2;
 
    stops: readonly SharedDayStop[];
 }>;
+
+export type SharedDaySnapshot = SharedDaySnapshotV1 | SharedDaySnapshotV2;
 
 export type SharedDayCreateResponse = Readonly<{
    token: string;

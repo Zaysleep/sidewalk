@@ -11,12 +11,15 @@ import { DayTray } from "@/components/planning/day-tray";
 import { LocationSelect } from "@/components/planning/location-select";
 import { PlanningDateSelector } from "@/components/planning/planning-date";
 import { PeriodSwitcher } from "@/components/planning/period-switcher";
+import { getCountryByCode } from "@/data/geography/countries";
 import { localAreas } from "@/data/geography/local-areas";
 import { municipalities } from "@/data/geography/municipalities";
 import { metroRegions } from "@/data/metros/metro-regions";
+import { getDestinationIsoDate } from "@/lib/geography/destination-date";
 import { getLocalAreasForMunicipality } from "@/lib/geography/get-local-areas-for-municipality";
 import { getMunicipalitiesForMetro } from "@/lib/geography/get-municipalities-for-metro";
 import { createRecentMetroSlugs, readRecentMetroSlugs, saveRecentMetroSlugs } from "@/lib/geography/recent-metros";
+import { resolveGeography } from "@/lib/geography/resolve-geography";
 import { trackProductSignal } from "@/lib/analytics/product-signal-client";
 import { fetchPeriodRecommendations } from "@/lib/places/period-recommendation-client";
 import { getFeedbackExcludedPlaceIds, readRecommendationFeedback, recordRecommendationFeedback, saveRecommendationFeedback, type RecommendationFeedbackReason, type RecommendationFeedbackSignal } from "@/lib/places/recommendation-feedback";
@@ -137,6 +140,16 @@ const activeMetroRegions = metroRegions
 const activeMetroSlugs = activeMetroRegions.map((metroRegion) => metroRegion.slug);
 
 const defaultMetroSlug = "san-diego";
+
+function getTodayPlanningDateForMetroSlug(metroSlug: string): string {
+   const metroRegion = activeMetroRegions.find((candidate) => candidate.slug === metroSlug) ?? activeMetroRegions.find((candidate) => candidate.slug === defaultMetroSlug) ?? activeMetroRegions[0];
+
+   if (!metroRegion) {
+      return new Date().toISOString().slice(0, 10);
+   }
+
+   return getDestinationIsoDate(metroRegion.timezone);
+}
 
 const planningSessionStorageKey = "sidewalk-active-planning-session-v5";
 
@@ -298,18 +311,6 @@ function createSharedTripSourceKey(folio: TripFolio | null): string {
          sourceKey: createTripFolioDaySourceKey(day),
       })),
    });
-}
-
-function getLocalIsoDate(date: Date): string {
-   const year = date.getFullYear();
-   const month = String(date.getMonth() + 1).padStart(2, "0");
-   const day = String(date.getDate()).padStart(2, "0");
-
-   return `${year}-${month}-${day}`;
-}
-
-function getTodayPlanningDate(): string {
-   return getLocalIsoDate(new Date());
 }
 
 function isPlanningDate(value: unknown): value is string {
@@ -785,6 +786,12 @@ export function SidewalkPlanner() {
 
    const selectedMetro = activeMetroRegions.find((metroRegion) => metroRegion.slug === selectedMetroSlug) ?? activeMetroRegions[0];
 
+   const selectedMetroRegionLabel = selectedMetro
+      ? selectedMetro.countryCode === "US"
+         ? selectedMetro.stateOrRegion
+         : getCountryByCode(selectedMetro.countryCode)?.name ?? selectedMetro.countryCode
+      : "";
+
    const availableMunicipalities = selectedMetro ? getMunicipalitiesForMetro(selectedMetro.id) : [];
 
    const availableLocalAreas = selectedMunicipalityId ? getLocalAreasForMunicipality(selectedMunicipalityId) : [];
@@ -793,6 +800,15 @@ export function SidewalkPlanner() {
 
    const selectedLocalArea = availableLocalAreas.find((localArea) => localArea.id === selectedLocalAreaId) ?? null;
 
+   const selectedGeography =
+      selectedMetro && selectedMunicipality && selectedLocalArea
+         ? resolveGeography({
+              metroRegionId: selectedMetro.id,
+              municipalityId: selectedMunicipality.id,
+              localAreaId: selectedLocalArea.id,
+           })
+         : null;
+
    const activeActivityDirection = activityDirectionsByPeriod[activeDayPeriod];
 
    const activeChapterRefreshState = chapterRefreshStates[activeDayPeriod];
@@ -800,20 +816,28 @@ export function SidewalkPlanner() {
    const sharedDaySourceKey = createSharedDaySourceKey(planningDate, selectedMetro?.id ?? "", selectedMunicipality?.id ?? "", selectedLocalArea?.id ?? "", dayStops);
 
    const currentTripDay =
-      selectedMetro && selectedMunicipality && selectedLocalArea && planningDate && dayStops.length >= 2
+      selectedGeography && planningDate && dayStops.length >= 2
          ? createTripFolioDay({
               planningDate,
 
-              metroRegionId: selectedMetro.id,
-              metroSlug: selectedMetro.slug,
-              metroName: selectedMetro.name,
-              stateOrRegion: selectedMetro.stateOrRegion,
+              countryCode: selectedGeography.country.code,
+              countryName: selectedGeography.country.name,
 
-              municipalityId: selectedMunicipality.id,
-              municipalityName: selectedMunicipality.name,
+              regionCode: selectedGeography.region.code,
+              regionName: selectedGeography.region.name,
 
-              localAreaId: selectedLocalArea.id,
-              localAreaName: selectedLocalArea.name,
+              timezone: selectedGeography.timezone,
+
+              metroRegionId: selectedGeography.metroRegion.id,
+              metroSlug: selectedGeography.metroRegion.slug,
+              metroName: selectedGeography.metroRegion.name,
+              stateOrRegion: selectedGeography.metroRegion.stateOrRegion,
+
+              municipalityId: selectedGeography.municipality.id,
+              municipalityName: selectedGeography.municipality.name,
+
+              localAreaId: selectedGeography.localArea.id,
+              localAreaName: selectedGeography.localArea.name,
 
               stops: dayStops,
            })
@@ -834,8 +858,6 @@ export function SidewalkPlanner() {
          // Ignore unavailable browser storage.
       }
 
-      const today = getTodayPlanningDate();
-
       const hasSimilarDayRequest = new URL(window.location.href).searchParams.get("similar") === "1";
 
       const similarDayContext = hasSimilarDayRequest ? readSimilarDayContext() : null;
@@ -845,6 +867,8 @@ export function SidewalkPlanner() {
       }
 
       if (similarDayContext) {
+         const today = getTodayPlanningDateForMetroSlug(similarDayContext.metroSlug);
+
          const nextSessionSeed = generateAnonymousSessionSeed();
 
          try {
@@ -888,6 +912,8 @@ export function SidewalkPlanner() {
          const metroStillExists = activeMetroRegions.some((metroRegion) => metroRegion.slug === storedSession.selectedMetroSlug);
 
          if (metroStillExists) {
+            const today = getTodayPlanningDateForMetroSlug(storedSession.selectedMetroSlug);
+
             const planningDateIsCurrent = storedSession.planningDate >= today;
 
             const restoredStops = planningDateIsCurrent ? sortDayStops(storedSession.dayStops) : [];
@@ -922,7 +948,7 @@ export function SidewalkPlanner() {
          }
       }
 
-      setPlanningDate(today);
+      setPlanningDate(getTodayPlanningDateForMetroSlug(defaultMetroSlug));
       setSessionSeed(getOrCreateSessionSeed());
       setIsSessionReady(true);
    }, []);
@@ -1382,7 +1408,15 @@ export function SidewalkPlanner() {
          return;
       }
 
+      const nextMetro = activeMetroRegions.find((candidate) => candidate.slug === nextMetroSlug) ?? null;
+
+      if (!nextMetro) {
+         return;
+      }
+
       const hadDayStops = dayStops.length > 0;
+
+      const destinationToday = getDestinationIsoDate(nextMetro.timezone);
 
       setSelectedMetroSlug(nextMetroSlug);
 
@@ -1393,6 +1427,10 @@ export function SidewalkPlanner() {
       setSelectedMunicipalityId("");
 
       setSelectedLocalAreaId("");
+
+      if (!planningDate || planningDate < destinationToday) {
+         setPlanningDate(destinationToday);
+      }
 
       clearAllGeneratedPlanning(true, true);
 
@@ -2279,19 +2317,21 @@ export function SidewalkPlanner() {
    function resolveTripDayGeography(tripDay: TripFolioDay) {
       const metroRegion = activeMetroRegions.find((candidate) => candidate.id === tripDay.metroRegionId || candidate.slug === tripDay.metroSlug) ?? null;
 
-      const municipality = municipalities.find((candidate) => candidate.id === tripDay.municipalityId && candidate.metroRegionId === metroRegion?.id) ?? null;
-
-      const localArea = localAreas.find((candidate) => candidate.id === tripDay.localAreaId && candidate.municipalityId === municipality?.id) ?? null;
-
-      if (!metroRegion || !municipality || !localArea) {
+      if (!metroRegion) {
          return null;
       }
 
-      return {
-         metroRegion,
-         municipality,
-         localArea,
-      };
+      const geography = resolveGeography({
+         metroRegionId: metroRegion.id,
+         municipalityId: tripDay.municipalityId,
+         localAreaId: tripDay.localAreaId,
+      });
+
+      if (!geography || !geography.metroRegion.isActive || geography.metroRegion.coverageStatus !== "active") {
+         return null;
+      }
+
+      return geography;
    }
 
    function resetRecommendationWorkspace(nextSessionSeed: string) {
@@ -2502,7 +2542,7 @@ export function SidewalkPlanner() {
                            {selectedMetro.name}
                         </h1>
 
-                        <p className="planning-view__region">{selectedMetro.stateOrRegion}</p>
+                        <p className="planning-view__region">{selectedMetroRegionLabel}</p>
                      </header>
 
                      <p className="sr-only" aria-live="polite" aria-atomic="true">
@@ -2550,7 +2590,7 @@ export function SidewalkPlanner() {
                            <span className="planning-step__label">Plan for</span>
 
                            <div className="planning-step__control">
-                              <PlanningDateSelector value={planningDate} disabled={!selectedLocalArea} onChange={handlePlanningDateChange} />
+                              <PlanningDateSelector value={planningDate} timezone={selectedMetro.timezone} disabled={!selectedLocalArea} onChange={handlePlanningDateChange} />
                            </div>
                         </li>
 

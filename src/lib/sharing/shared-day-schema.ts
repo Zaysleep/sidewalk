@@ -1,6 +1,15 @@
 import { dayPeriods, type DayPeriod } from "@/types/day-period";
 import type { DayStop } from "@/types/day-plan";
-import { sharedDayLimits, sharedDaySnapshotVersion, type SharedDayCreateRequest, type SharedDaySnapshot, type SharedDayStop } from "@/types/shared-day";
+import {
+   legacySharedDaySnapshotVersion,
+   sharedDayLimits,
+   sharedDaySnapshotVersion,
+   type SharedDayCreateRequest,
+   type SharedDayGeographyV1,
+   type SharedDayGeographyV2,
+   type SharedDaySnapshot,
+   type SharedDayStop,
+} from "@/types/shared-day";
 
 const safeIdentifierPattern = /^[a-zA-Z0-9_-]+$/;
 
@@ -12,7 +21,23 @@ const requestKeys = ["planningDate", "metroRegionId", "municipalityId", "localAr
 
 const snapshotKeys = ["version", "createdAt", "expiresAt", "planningDate", "geography", "stops"] as const;
 
-const geographyKeys = ["metroRegionId", "metroSlug", "metroName", "stateOrRegion", "municipalityId", "municipalityName", "localAreaId", "localAreaName"] as const;
+const geographyV1Keys = ["metroRegionId", "metroSlug", "metroName", "stateOrRegion", "municipalityId", "municipalityName", "localAreaId", "localAreaName"] as const;
+
+const geographyV2Keys = [
+   "countryCode",
+   "countryName",
+   "regionCode",
+   "regionName",
+   "timezone",
+   "metroRegionId",
+   "metroSlug",
+   "metroName",
+   "stateOrRegion",
+   "municipalityId",
+   "municipalityName",
+   "localAreaId",
+   "localAreaName",
+] as const;
 
 const stopKeys = ["dayPeriod", "bestWindow", "placeId", "placeName", "summary", "reason", "visitDurationMinutes", "locationUrl", "photoResourceName"] as const;
 
@@ -133,7 +158,6 @@ function hasValidStopCollection(stops: readonly SharedDayStop[]): boolean {
    }
 
    const periods = stops.map((stop) => stop.dayPeriod);
-
    const placeIds = stops.map((stop) => stop.placeId);
 
    return new Set(periods).size === periods.length && new Set(placeIds).size === placeIds.length;
@@ -149,42 +173,77 @@ export function isSharedDayCreateRequest(value: unknown): value is SharedDayCrea
 
 function hasValidSnapshotLifetime(createdAt: string, expiresAt: string): boolean {
    const createdAtTimestamp = Date.parse(createdAt);
-
    const expiresAtTimestamp = Date.parse(expiresAt);
-
    const clockSkewMilliseconds = sharedDayLimits.maximumClockSkewMinutes * 60 * 1_000;
-
    const maximumLifetimeMilliseconds = sharedDayLimits.expirationDays * 24 * 60 * 60 * 1_000 + clockSkewMilliseconds;
 
    return createdAtTimestamp <= Date.now() + clockSkewMilliseconds && expiresAtTimestamp > createdAtTimestamp && expiresAtTimestamp - createdAtTimestamp <= maximumLifetimeMilliseconds;
 }
 
-export function isSharedDaySnapshot(value: unknown): value is SharedDaySnapshot {
-   if (!isRecord(value) || !hasExactlyKeys(value, snapshotKeys) || value.version !== sharedDaySnapshotVersion || !isRecord(value.geography) || !hasExactlyKeys(value.geography, geographyKeys) || !Array.isArray(value.stops)) {
+export function isSharedDayGeographyV1(value: unknown): value is SharedDayGeographyV1 {
+   if (!isRecord(value) || !hasExactlyKeys(value, geographyV1Keys)) {
       return false;
    }
 
-   const geography = value.geography;
+   return (
+      isSafeIdentifier(value.metroRegionId) &&
+      isSafeIdentifier(value.metroSlug) &&
+      isSafeText(value.metroName, sharedDayLimits.maximumPlaceNameLength) &&
+      isSafeText(value.stateOrRegion, sharedDayLimits.maximumPlaceNameLength) &&
+      isSafeIdentifier(value.municipalityId) &&
+      isSafeText(value.municipalityName, sharedDayLimits.maximumPlaceNameLength) &&
+      isSafeIdentifier(value.localAreaId) &&
+      isSafeText(value.localAreaName, sharedDayLimits.maximumPlaceNameLength)
+   );
+}
+
+export function isSharedDayGeographyV2(value: unknown): value is SharedDayGeographyV2 {
+   if (!isRecord(value) || !hasExactlyKeys(value, geographyV2Keys)) {
+      return false;
+   }
+
+   return (
+      isSafeIdentifier(value.countryCode) &&
+      isSafeText(value.countryName, sharedDayLimits.maximumPlaceNameLength) &&
+      isSafeIdentifier(value.regionCode) &&
+      isSafeText(value.regionName, sharedDayLimits.maximumPlaceNameLength) &&
+      isSafeText(value.timezone, sharedDayLimits.maximumPlaceNameLength) &&
+      isSafeIdentifier(value.metroRegionId) &&
+      isSafeIdentifier(value.metroSlug) &&
+      isSafeText(value.metroName, sharedDayLimits.maximumPlaceNameLength) &&
+      isSafeText(value.stateOrRegion, sharedDayLimits.maximumPlaceNameLength) &&
+      isSafeIdentifier(value.municipalityId) &&
+      isSafeText(value.municipalityName, sharedDayLimits.maximumPlaceNameLength) &&
+      isSafeIdentifier(value.localAreaId) &&
+      isSafeText(value.localAreaName, sharedDayLimits.maximumPlaceNameLength)
+   );
+}
+
+export function isSharedDaySnapshot(value: unknown): value is SharedDaySnapshot {
+   if (!isRecord(value) || !hasExactlyKeys(value, snapshotKeys) || !isRecord(value.geography) || !Array.isArray(value.stops)) {
+      return false;
+   }
 
    if (
       !isIsoTimestamp(value.createdAt) ||
       !isIsoTimestamp(value.expiresAt) ||
       !hasValidSnapshotLifetime(value.createdAt, value.expiresAt) ||
       !isPlanningDate(value.planningDate) ||
-      !isSafeIdentifier(geography.metroRegionId) ||
-      !isSafeIdentifier(geography.metroSlug) ||
-      !isSafeText(geography.metroName, sharedDayLimits.maximumPlaceNameLength) ||
-      !isSafeText(geography.stateOrRegion, sharedDayLimits.maximumPlaceNameLength) ||
-      !isSafeIdentifier(geography.municipalityId) ||
-      !isSafeText(geography.municipalityName, sharedDayLimits.maximumPlaceNameLength) ||
-      !isSafeIdentifier(geography.localAreaId) ||
-      !isSafeText(geography.localAreaName, sharedDayLimits.maximumPlaceNameLength) ||
-      !value.stops.every(isSharedDayStop)
+      !value.stops.every(isSharedDayStop) ||
+      !hasValidStopCollection(value.stops)
    ) {
       return false;
    }
 
-   return hasValidStopCollection(value.stops);
+   if (value.version === legacySharedDaySnapshotVersion) {
+      return isSharedDayGeographyV1(value.geography);
+   }
+
+   if (value.version === sharedDaySnapshotVersion) {
+      return isSharedDayGeographyV2(value.geography);
+   }
+
+   return false;
 }
 
 type CurrentPlanForSharing = Readonly<{
@@ -217,20 +276,15 @@ export function createSharedDayRequestFromPlan(plan: CurrentPlanForSharing): Sha
 
       stops: orderedStops.map((stop) => ({
          dayPeriod: stop.dayPeriod,
-
          bestWindow: stop.bestWindow.trim(),
-
          placeId: stop.placeId.trim(),
          placeName: stop.placeName.trim(),
-
          summary: stop.summary?.trim() ?? "",
          reason: stop.reason?.trim() ?? "",
-
          visitDurationMinutes: {
             minimum: stop.visitDurationMinutes.minimum,
             maximum: stop.visitDurationMinutes.maximum,
          },
-
          locationUrl: stop.locationUrl,
          photoResourceName: stop.photoResourceName?.trim() || null,
       })),

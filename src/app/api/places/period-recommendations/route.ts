@@ -2,9 +2,8 @@ import { createHash, randomUUID } from "node:crypto";
 
 import { NextResponse } from "next/server";
 
-import { localAreas } from "@/data/geography/local-areas";
-import { municipalities } from "@/data/geography/municipalities";
-import { metroRegions } from "@/data/metros/metro-regions";
+import { isPlanningDateInDestinationRange } from "@/lib/geography/destination-date";
+import { resolveGeography } from "@/lib/geography/resolve-geography";
 import { getPeriodRecommendations, PlacesProviderTimeoutError } from "@/lib/places/google-period-provider";
 import { activityDirections, activityKinds, type ActivityDirection, type ActivityKind } from "@/types/activity";
 import { dayPeriods, type DayPeriod } from "@/types/day-period";
@@ -152,50 +151,6 @@ function isVariationIndex(value: unknown): value is number {
    return typeof value === "number" && Number.isInteger(value) && value >= 0 && value <= maxPeriodRecommendationRefreshes;
 }
 
-function parsePlanningDate(value: unknown): number | null {
-   if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-      return null;
-   }
-
-   const [yearText, monthText, dayText] = value.split("-");
-
-   const year = Number(yearText);
-   const month = Number(monthText);
-   const day = Number(dayText);
-
-   const timestamp = Date.UTC(year, month - 1, day);
-
-   const parsedDate = new Date(timestamp);
-
-   if (parsedDate.getUTCFullYear() !== year || parsedDate.getUTCMonth() !== month - 1 || parsedDate.getUTCDate() !== day) {
-      return null;
-   }
-
-   return timestamp;
-}
-
-function isPlanningDateInSupportedRange(value: unknown): value is string {
-   const timestamp = parsePlanningDate(value);
-
-   if (timestamp === null) {
-      return false;
-   }
-
-   const now = new Date();
-
-   const utcToday = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
-
-   /**
-    * One day of tolerance prevents a valid local "today" from being rejected
-    * when the Vercel server has already crossed midnight in UTC.
-    */
-   const minimumDate = utcToday - 24 * 60 * 60 * 1000;
-
-   const maximumDate = utcToday + periodRecommendationLimits.maximumPlanningDaysAhead * 24 * 60 * 60 * 1000;
-
-   return timestamp >= minimumDate && timestamp <= maximumDate;
-}
-
 function hasUniqueValues(values: readonly string[]): boolean {
    return new Set(values).size === values.length;
 }
@@ -330,10 +285,6 @@ export async function POST(request: Request) {
       return errorResponse("The recommendation request is incomplete.", 400, "INVALID_REQUEST", requestId);
    }
 
-   if (!isPlanningDateInSupportedRange(body.planningDate)) {
-      return errorResponse("The planning date is outside Sidewalk’s supported range.", 400, "INVALID_DATE", requestId);
-   }
-
    if (body.excludedPlaceIds.length > periodRecommendationLimits.maximumExcludedPlaceIds || !body.excludedPlaceIds.every(isSafeIdentifier) || !hasUniqueValues(body.excludedPlaceIds as readonly string[])) {
       return errorResponse("The excluded-place list is invalid.", 400, "INVALID_REQUEST", requestId);
    }
@@ -342,18 +293,18 @@ export async function POST(request: Request) {
       return errorResponse("The committed day context is invalid.", 400, "INVALID_REQUEST", requestId);
    }
 
-   const metroRegion = metroRegions.find((candidate) => candidate.id === body.metroRegionId) ?? null;
+   const geography = resolveGeography({
+      metroRegionId: body.metroRegionId,
+      municipalityId: body.municipalityId,
+      localAreaId: body.localAreaId,
+   });
 
-   const municipality = municipalities.find((candidate) => candidate.id === body.municipalityId) ?? null;
-
-   const localArea = localAreas.find((candidate) => candidate.id === body.localAreaId) ?? null;
-
-   if (!metroRegion || !municipality || !localArea) {
+   if (!geography || !geography.metroRegion.isActive || geography.metroRegion.coverageStatus !== "active") {
       return errorResponse("The selected geography could not be found.", 404, "INVALID_GEOGRAPHY", requestId);
    }
 
-   if (municipality.metroRegionId !== metroRegion.id || localArea.municipalityId !== municipality.id) {
-      return errorResponse("The selected geography is inconsistent.", 400, "INVALID_GEOGRAPHY", requestId);
+   if (!isPlanningDateInDestinationRange(body.planningDate, geography.timezone, periodRecommendationLimits.maximumPlanningDaysAhead, 1)) {
+      return errorResponse("The planning date is outside Sidewalk’s supported range.", 400, "INVALID_DATE", requestId);
    }
 
    const variationIndex = body.variationIndex ?? 0;
@@ -374,15 +325,23 @@ export async function POST(request: Request) {
 
    try {
       const recommendations = await getPeriodRecommendations({
-         metroRegionId: metroRegion.id,
-         metroRegionName: metroRegion.name,
+         countryCode: geography.country.code,
+         countryName: geography.country.name,
 
-         municipalityId: municipality.id,
-         municipalityName: municipality.name,
-         stateOrRegion: municipality.stateOrRegion,
+         regionCode: geography.region.code,
+         regionName: geography.region.name,
 
-         localAreaId: localArea.id,
-         localAreaName: localArea.name,
+         timezone: geography.timezone,
+
+         metroRegionId: geography.metroRegion.id,
+         metroRegionName: geography.metroRegion.name,
+
+         municipalityId: geography.municipality.id,
+         municipalityName: geography.municipality.name,
+         stateOrRegion: geography.municipality.stateOrRegion,
+
+         localAreaId: geography.localArea.id,
+         localAreaName: geography.localArea.name,
 
          dayPeriod: body.dayPeriod,
          activityDirection: body.activityDirection,

@@ -3,6 +3,7 @@ import "server-only";
 import type { ActivityDirection, ActivityKind } from "@/types/activity";
 import { dayPeriodDefinitions, dayPeriods, type DayPeriod } from "@/types/day-period";
 import type { CommittedStopContext, PeriodRecommendation } from "@/types/period-recommendation";
+import { getDestinationIsoDate } from "@/lib/geography/destination-date";
 import { getLocalAreaSearchAuthority } from "@/data/geography/local-area-search-authority";
 import type { Place, PlaceCategory, ProviderBusinessStatus, ProviderPeriodAvailability } from "@/types/place";
 
@@ -104,11 +105,24 @@ type ActivityDistanceRules = Readonly<{
 }>;
 
 export type PeriodSearchContext = Readonly<{
+   countryCode: string;
+   countryName: string;
+
+   regionCode: string;
+   regionName: string;
+
+   timezone: string;
+
    metroRegionId: string;
    metroRegionName: string;
 
    municipalityId: string;
    municipalityName: string;
+
+   /**
+    * Compatibility/display value retained while Geography V2 migrates.
+    * Provider queries use canonical regionName instead.
+    */
    stateOrRegion: string;
 
    localAreaId: string;
@@ -880,10 +894,12 @@ function parsePlanningDate(planningDate: string): Readonly<{
    };
 }
 
-function getPlaceLocalIsoDate(utcOffsetMinutes: number | undefined): string {
-   const safeOffset = typeof utcOffsetMinutes === "number" ? utcOffsetMinutes : 0;
+function getPlaceLocalIsoDate(utcOffsetMinutes: number | undefined, destinationTimezone: string): string {
+   if (typeof utcOffsetMinutes !== "number") {
+      return getDestinationIsoDate(destinationTimezone);
+   }
 
-   const localDate = new Date(Date.now() + safeOffset * 60 * 1000);
+   const localDate = new Date(Date.now() + utcOffsetMinutes * 60 * 1000);
 
    const year = localDate.getUTCFullYear();
    const month = String(localDate.getUTCMonth() + 1).padStart(2, "0");
@@ -907,12 +923,13 @@ function formatClockTime(minuteOfDay: number): string {
 function getOpeningHoursSource(
    place: GooglePlace,
    planningDate: string,
+   destinationTimezone: string,
 ): Readonly<{
    hours: GoogleOpeningHours;
    source: "current-hours" | "regular-hours";
    confidence: Exclude<AvailabilityConfidence, "unknown">;
 }> | null {
-   const isTodayAtPlace = planningDate === getPlaceLocalIsoDate(place.utcOffsetMinutes);
+   const isTodayAtPlace = planningDate === getPlaceLocalIsoDate(place.utcOffsetMinutes, destinationTimezone);
 
    if (isTodayAtPlace && place.currentOpeningHours) {
       return {
@@ -933,8 +950,8 @@ function getOpeningHoursSource(
    return null;
 }
 
-function analyzePeriodAvailability(place: GooglePlace, dayPeriod: DayPeriod, planningDate: string): PeriodAvailabilityAnalysis {
-   const openingHoursSource = getOpeningHoursSource(place, planningDate);
+function analyzePeriodAvailability(place: GooglePlace, dayPeriod: DayPeriod, planningDate: string, destinationTimezone: string): PeriodAvailabilityAnalysis {
+   const openingHoursSource = getOpeningHoursSource(place, planningDate, destinationTimezone);
 
    if (!openingHoursSource) {
       return {
@@ -1131,7 +1148,7 @@ function createAreaCenterCacheKey(context: PeriodSearchContext): string {
 function getAreaSearchQuery(context: PeriodSearchContext): string {
    const authority = getLocalAreaSearchAuthority(context.localAreaId);
 
-   return authority?.searchQuery ?? [context.localAreaName, context.municipalityName, context.stateOrRegion].join(", ");
+   return authority?.searchQuery ?? [context.localAreaName, context.municipalityName, context.regionName, context.countryName].join(", ");
 }
 
 function getAreaSearchRadiusMeters(context: PeriodSearchContext, activity: ActivityKind, stage: DistanceStage): number {
@@ -2232,7 +2249,7 @@ function isCandidateEligible(
 
    const distanceMeters = calculateDistanceMeters(areaCenter, coordinates);
 
-   const availabilityAnalysis = analyzePeriodAvailability(place, context.dayPeriod, context.planningDate);
+   const availabilityAnalysis = analyzePeriodAvailability(place, context.dayPeriod, context.planningDate, context.timezone);
 
    const availability = availabilityAnalysis.availability;
 
@@ -2414,7 +2431,7 @@ async function fetchAreaCenter(context: PeriodSearchContext, cacheKey: string): 
 
             languageCode: "en",
 
-            regionCode: "US",
+            regionCode: context.countryCode,
 
             maxResultCount: 5,
 
@@ -2546,7 +2563,7 @@ async function searchProfile(profile: ActivityProfile, context: PeriodSearchCont
 
             languageCode: "en",
 
-            regionCode: "US",
+            regionCode: context.countryCode,
 
             maxResultCount: 10,
 

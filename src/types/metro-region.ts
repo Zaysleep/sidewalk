@@ -1,8 +1,8 @@
 /**
  * Coverage tiers describe Sidewalk's editorial maturity in a metro region.
  *
- * These values are deliberately lowercase because they will eventually map
- * cleanly to database values and URL-safe application logic.
+ * These values are deliberately lowercase because they map cleanly to
+ * database values and URL-safe application logic.
  */
 export const coverageTiers = ["signature", "established", "growing"] as const;
 
@@ -11,27 +11,36 @@ export type CoverageTier = (typeof coverageTiers)[number];
 /**
  * Coverage status describes whether an edition is currently available to the
  * product. It is separate from editorial maturity.
- *
- * A Growing metro can still be active, while a Signature metro could
- * temporarily be paused without changing its maturity tier.
  */
 export const coverageStatuses = ["draft", "active", "paused"] as const;
 
 export type CoverageStatus = (typeof coverageStatuses)[number];
 
 /**
- * MetroRegion is the highest geographic boundary in a Sidewalk planning
- * session.
+ * MetroRegion represents the practical destination boundary Sidewalk plans
+ * within. A metro may cross administrative-region boundaries, so Geography V2
+ * stores both a deterministic primary region and every region the metro spans.
  *
- * It may include multiple municipalities, counties, or closely connected urban
- * areas. The type intentionally avoids treating every metro as a single city.
+ * `stateOrRegion` remains during the migration because existing UI, persisted
+ * browser data, and public share snapshots still use that human-readable
+ * label. New geography decisions must use countryCode / primaryRegionCode /
+ * regionCodes instead of parsing that string.
  */
 export type MetroRegion = Readonly<{
    id: string;
    name: string;
    slug: string;
+
    stateOrRegion: string;
+
    countryCode: string;
+
+   primaryRegionCode: string;
+   regionCodes: readonly string[];
+
+   /**
+    * Canonical IANA timezone for destination-local planning.
+    */
    timezone: string;
 
    coverageTier: CoverageTier;
@@ -46,9 +55,6 @@ export type MetroRegion = Readonly<{
 
 /**
  * Public-facing language for each internal coverage tier.
- *
- * Keeping these definitions outside the UI prevents different components from
- * describing the same coverage tier inconsistently.
  */
 export type CoverageTierDefinition = Readonly<{
    label: string;

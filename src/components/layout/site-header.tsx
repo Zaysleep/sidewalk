@@ -3,11 +3,10 @@
 import Image from "next/image";
 import type { ChangeEvent } from "react";
 
+import { countries, getCountryByCode } from "@/data/geography/countries";
+import { getRegionByCode } from "@/data/geography/regions";
 import type { MetroRegion } from "@/types/metro-region";
 
-/**
- * Props for Sidewalk's global product header.
- */
 type SiteHeaderProps = Readonly<{
    metroRegions: readonly MetroRegion[];
    selectedMetroSlug: string;
@@ -20,44 +19,23 @@ type MetroRegionGroup = Readonly<{
    metroRegions: readonly MetroRegion[];
 }>;
 
-const regionalMetroGroupLabel = "Regional Metros";
-
-function getMetroRegionGroupLabel(metroRegion: MetroRegion): string {
-   return metroRegion.stateOrRegion.includes("/") ? regionalMetroGroupLabel : metroRegion.stateOrRegion;
-}
-
-/**
- * Groups single-state metros by state and places cross-state regions in one
- * predictable Regional Metros section.
- */
 function groupMetroRegions(metroRegions: readonly MetroRegion[]): readonly MetroRegionGroup[] {
    const groupedRegions = new Map<string, MetroRegion[]>();
 
    for (const metroRegion of metroRegions) {
-      const groupLabel = getMetroRegionGroupLabel(metroRegion);
-
+      const primaryRegion = getRegionByCode(metroRegion.primaryRegionCode);
+      const groupLabel = primaryRegion?.name ?? metroRegion.stateOrRegion;
       const existingGroup = groupedRegions.get(groupLabel);
 
       if (existingGroup) {
          existingGroup.push(metroRegion);
-         continue;
+      } else {
+         groupedRegions.set(groupLabel, [metroRegion]);
       }
-
-      groupedRegions.set(groupLabel, [metroRegion]);
    }
 
    return Array.from(groupedRegions.entries())
-      .sort(([firstLabel], [secondLabel]) => {
-         if (firstLabel === regionalMetroGroupLabel) {
-            return 1;
-         }
-
-         if (secondLabel === regionalMetroGroupLabel) {
-            return -1;
-         }
-
-         return firstLabel.localeCompare(secondLabel);
-      })
+      .sort(([firstLabel], [secondLabel]) => firstLabel.localeCompare(secondLabel))
       .map(([label, regions]) => ({
          label,
          metroRegions: regions.slice().sort((firstMetro, secondMetro) => firstMetro.name.localeCompare(secondMetro.name)),
@@ -65,19 +43,59 @@ function groupMetroRegions(metroRegions: readonly MetroRegion[]): readonly Metro
 }
 
 /**
- * SiteHeader keeps Sidewalk's identity and metro switcher continuously
- * available without turning the metro catalog into a browsing screen.
+ * Country navigation stays deliberately small: one native country select, one
+ * metro select, and the existing Recent Metros shortcut. Countries are derived
+ * from active metro coverage so future additions do not require another UI
+ * branch or a permanently visible empty destination.
  */
 export function SiteHeader({ metroRegions, selectedMetroSlug, recentMetroSlugs, onMetroChange }: SiteHeaderProps) {
-   const metroRegionGroups = groupMetroRegions(metroRegions);
+   const selectedMetro = metroRegions.find((candidate) => candidate.slug === selectedMetroSlug) ?? metroRegions[0] ?? null;
+
+   const activeCountryCodes = new Set(metroRegions.map((metroRegion) => metroRegion.countryCode));
+   const activeCountries = countries.filter((country) => activeCountryCodes.has(country.code));
+
+   const selectedCountryCode = selectedMetro?.countryCode ?? activeCountries[0]?.code ?? "US";
+   const countryMetroRegions = metroRegions.filter((metroRegion) => metroRegion.countryCode === selectedCountryCode);
+   const metroRegionGroups = groupMetroRegions(countryMetroRegions);
 
    const recentMetroRegions = recentMetroSlugs.flatMap((metroSlug) => {
       const metroRegion = metroRegions.find((candidate) => candidate.slug === metroSlug);
-
       return metroRegion ? [metroRegion] : [];
    });
 
-   function handleSelectionChange(event: ChangeEvent<HTMLSelectElement>) {
+   const recentCountries = new Set(recentMetroRegions.map((metroRegion) => metroRegion.countryCode));
+   const showRecentCountryName = recentCountries.size > 1;
+
+   function handleCountryChange(event: ChangeEvent<HTMLSelectElement>) {
+      const nextCountryCode = event.target.value;
+
+      if (nextCountryCode === selectedCountryCode) {
+         return;
+      }
+
+      const nextCountry = getCountryByCode(nextCountryCode);
+      const availableMetros = metroRegions.filter((metroRegion) => metroRegion.countryCode === nextCountryCode);
+
+      if (availableMetros.length === 0) {
+         return;
+      }
+
+      /**
+       * A recent metro is the least surprising destination if someone has
+       * already planned in this country. Otherwise use the country's explicit
+       * default rather than relying on alphabetical order.
+       */
+      const recentMetro = recentMetroSlugs
+         .map((metroSlug) => availableMetros.find((metroRegion) => metroRegion.slug === metroSlug) ?? null)
+         .find((metroRegion): metroRegion is MetroRegion => metroRegion !== null);
+
+      const defaultMetro = nextCountry ? availableMetros.find((metroRegion) => metroRegion.slug === nextCountry.defaultMetroSlug) ?? null : null;
+      const nextMetro = recentMetro ?? defaultMetro ?? availableMetros[0];
+
+      onMetroChange(nextMetro.slug);
+   }
+
+   function handleMetroChange(event: ChangeEvent<HTMLSelectElement>) {
       onMetroChange(event.target.value);
    }
 
@@ -85,17 +103,34 @@ export function SiteHeader({ metroRegions, selectedMetroSlug, recentMetroSlugs, 
       <header className="site-header">
          <a className="site-header__brand-group" href="/" aria-label="Sidewalk home">
             <Image className="site-header__logo" src="/icon.png" alt="Sidewalk" width={512} height={512} priority />
-
             <span className="site-header__edition">A Kin city guide</span>
          </a>
 
          <div className="metro-control">
+            <label className="metro-control__label" htmlFor="sidewalk-country-select">
+               Country
+            </label>
+
+            <div className="metro-control__field">
+               <select id="sidewalk-country-select" className="metro-control__select" value={selectedCountryCode} onChange={handleCountryChange}>
+                  {activeCountries.map((country) => (
+                     <option key={country.code} value={country.code}>
+                        {country.name}
+                     </option>
+                  ))}
+               </select>
+
+               <span className="metro-control__icon" aria-hidden="true">
+                  ⌄
+               </span>
+            </div>
+
             <label className="metro-control__label" htmlFor="metro-region-select">
                Metro region
             </label>
 
             <div className="metro-control__field">
-               <select id="metro-region-select" className="metro-control__select" value={selectedMetroSlug} onChange={handleSelectionChange}>
+               <select id="metro-region-select" className="metro-control__select" value={selectedMetroSlug} onChange={handleMetroChange}>
                   {metroRegionGroups.map((group) => (
                      <optgroup key={group.label} label={group.label}>
                         {group.metroRegions.map((metroRegion) => (
@@ -119,10 +154,19 @@ export function SiteHeader({ metroRegions, selectedMetroSlug, recentMetroSlugs, 
                   <div className="metro-recent__list">
                      {recentMetroRegions.map((metroRegion) => {
                         const isCurrentMetro = metroRegion.slug === selectedMetroSlug;
+                        const country = getCountryByCode(metroRegion.countryCode);
+                        const label = showRecentCountryName && country ? `${metroRegion.name} · ${country.name}` : metroRegion.name;
 
                         return (
-                           <button key={metroRegion.id} type="button" className="metro-recent__button" aria-current={isCurrentMetro ? "page" : undefined} data-current={isCurrentMetro} onClick={() => onMetroChange(metroRegion.slug)}>
-                              {metroRegion.name}
+                           <button
+                              key={metroRegion.id}
+                              type="button"
+                              className="metro-recent__button"
+                              aria-current={isCurrentMetro ? "page" : undefined}
+                              data-current={isCurrentMetro}
+                              onClick={() => onMetroChange(metroRegion.slug)}
+                           >
+                              {label}
                            </button>
                         );
                      })}
