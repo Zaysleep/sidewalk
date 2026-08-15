@@ -52,7 +52,8 @@
 .story {
    width: min(100%, 78rem);
    margin-inline: auto;
-   padding: clamp(var(--sw-space-12), 9vw, var(--sw-space-24)) var(--sw-page-inline);
+   padding: clamp(var(--sw-space-12), 9vw, var(--sw-space-24))
+      var(--sw-page-inline);
 }
 
 .hero {
@@ -189,6 +190,15 @@
    border-bottom: var(--sw-border-width) solid var(--sw-color-border);
 }
 
+/*
+ * Give each saved stop a little breathing room after the previous divider.
+ * This keeps the next period label from visually touching the stop above it
+ * without turning the shared itinerary into an overly loose feed.
+ */
+.itineraryItem + .itineraryItem {
+   margin-top: clamp(var(--sw-space-4), 2vw, var(--sw-space-7));
+}
+
 .stop {
    display: grid;
    min-width: 0;
@@ -303,7 +313,14 @@
    display: grid;
    place-items: center;
    border: var(--sw-border-width) solid var(--sw-color-border);
-   background: linear-gradient(135deg, transparent 0 48%, color-mix(in srgb, var(--sw-color-olive) 14%, transparent) 48% 52%, transparent 52% 100%), var(--sw-color-surface-muted);
+   background:
+      linear-gradient(
+         135deg,
+         transparent 0 48%,
+         color-mix(in srgb, var(--sw-color-olive) 14%, transparent) 48% 52%,
+         transparent 52% 100%
+      ),
+      var(--sw-color-surface-muted);
 }
 
 .photoFallback span {
@@ -345,7 +362,8 @@
    display: grid;
    min-height: 70svh;
    align-items: center;
-   padding: clamp(var(--sw-space-12), 9vw, var(--sw-space-24)) var(--sw-page-inline);
+   padding: clamp(var(--sw-space-12), 9vw, var(--sw-space-24))
+      var(--sw-page-inline);
 }
 
 .unavailableCard {
@@ -425,5 +443,55 @@
    .photo,
    .photoFallback {
       min-height: 15rem;
+   }
+}
+
+/* -------------------------------------------------------------------------- */
+/* E2B — Compact shared-trip stop ownership                                   */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * On a single-column shared trip, the photo should introduce the place it
+ * belongs to. Keeping the image above its own title prevents the previous
+ * stop's photo from looking like artwork for the next stop.
+ */
+@media (max-width: 47.99rem) {
+   .photo,
+   .photoFallback {
+      order: -1;
+      margin-bottom: var(--sw-space-1);
+   }
+
+   .stop {
+      gap: var(--sw-space-5);
+      padding-block: var(--sw-space-6);
+   }
+
+   /*
+    * Treat every stop as one obvious visual unit. The divider and breathing
+    * room begin before the next stop's photo, so the previous stop's actions
+    * cannot look like they belong to the place that follows.
+    */
+   .itineraryItem {
+      border-bottom: 0;
+   }
+
+   .itineraryItem + .itineraryItem {
+      margin-top: var(--sw-space-7);
+      padding-top: var(--sw-space-7);
+      border-top: var(--sw-border-strong-width) solid var(--sw-color-border);
+   }
+
+   .stopFooter {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      align-items: stretch;
+      gap: var(--sw-space-3);
+   }
+
+   .locationLink {
+      width: 100%;
+      white-space: normal;
+      text-align: center;
    }
 }

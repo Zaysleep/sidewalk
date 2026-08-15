@@ -973,7 +973,9 @@
       top: 0;
       z-index: 2;
       min-height: 4.25rem;
-      padding-inline: max(var(--sw-space-4), env(safe-area-inset-left)) max(var(--sw-space-4), env(safe-area-inset-right));
+      padding-inline:
+         max(var(--sw-space-4), env(safe-area-inset-left))
+         max(var(--sw-space-4), env(safe-area-inset-right));
       background: var(--sw-color-warm-white);
    }
 
@@ -988,7 +990,11 @@
    .content {
       max-height: min(82svh, 52rem);
       gap: var(--sw-space-4);
-      padding: var(--sw-space-5) max(var(--sw-space-4), env(safe-area-inset-right)) max(var(--sw-space-8), env(safe-area-inset-bottom)) max(var(--sw-space-4), env(safe-area-inset-left));
+      padding:
+         var(--sw-space-5)
+         max(var(--sw-space-4), env(safe-area-inset-right))
+         max(var(--sw-space-8), env(safe-area-inset-bottom))
+         max(var(--sw-space-4), env(safe-area-inset-left));
    }
 
    .heading {
@@ -1093,8 +1099,10 @@
    }
 }
 
+
+
 /* -------------------------------------------------------------------------- */
-/* P2A â€” Day Tray simplification                                               */
+/* P2A — Day Tray simplification                                               */
 /* -------------------------------------------------------------------------- */
 
 .tripTitleSummaryRow {
@@ -1491,8 +1499,9 @@
    }
 }
 
+
 /* -------------------------------------------------------------------------- */
-/* P2A.1 â€” Trip title + sharing clarity                                       */
+/* P2A.1 — Trip title + sharing clarity                                       */
 /* -------------------------------------------------------------------------- */
 
 .srOnly {
@@ -1689,8 +1698,9 @@
    }
 }
 
+
 /* -------------------------------------------------------------------------- */
-/* P2A.2 â€” Tabbed Day Tray                                                    */
+/* P2A.2 — Tabbed Day Tray                                                    */
 /* -------------------------------------------------------------------------- */
 
 .tabBar {
@@ -1976,7 +1986,7 @@
 }
 
 /* -------------------------------------------------------------------------- */
-/* P2 â€” Quiet day sanity note                                                  */
+/* P2 — Quiet day sanity note                                                  */
 /* -------------------------------------------------------------------------- */
 
 .sanityNote {
@@ -2002,4 +2012,69 @@
    color: var(--sw-color-text-secondary);
    font-size: var(--sw-text-sm);
    line-height: 1.55;
+}
+
+
+/* -------------------------------------------------------------------------- */
+/* E2A — Day Tray Clarity                                                     */
+/* -------------------------------------------------------------------------- */
+
+/* Sharing is a core day action, not a hidden utility. Give it the strongest
+   action treatment once the day is complete so first-time users can find it. */
+.shareButton {
+   width: 100%;
+   min-height: var(--sw-touch-target);
+   justify-self: stretch;
+   padding: var(--sw-space-3) var(--sw-space-5);
+   border: var(--sw-border-width) solid var(--sw-color-ink);
+   border-radius: var(--sw-radius-sm);
+   background: var(--sw-color-ink);
+   color: var(--sw-color-warm-white);
+   font-size: var(--sw-text-sm);
+   font-weight: 750;
+   text-decoration: none;
+}
+
+.shareButton:hover {
+   border-color: var(--sw-color-forest);
+   background: var(--sw-color-forest);
+   color: var(--sw-color-warm-white);
+}
+
+/* Day-to-trip context should read as one compact explanation followed by the
+   next useful action, rather than another nested product surface. */
+.tripStart .tripShareCopy,
+.tripShare .tripShareCopy {
+   display: grid;
+   gap: var(--sw-space-1);
+}
+
+.tripStart .tripShareDescription,
+.tripPrimaryActions .tripShareDescription,
+.tripShare .tripShareDescription {
+   margin: 0;
+}
+
+.tripStart .tripShareUtilityActions {
+   align-items: center;
+}
+
+/* Keep the two primary workflows visually predictable. */
+.footerActions,
+.tripPrimaryActions {
+   gap: var(--sw-space-2);
+}
+
+/* On narrow screens, primary actions should never compete side-by-side. */
+@media (max-width: 39.99rem) {
+   .tripStart .tripShareUtilityActions {
+      display: grid;
+      grid-template-columns: 1fr;
+   }
+
+   .tripStart .tripFolioButton,
+   .tripStart .tripShareUtilityButton,
+   .tripShare .tripShareButton {
+      width: 100%;
+   }
 }

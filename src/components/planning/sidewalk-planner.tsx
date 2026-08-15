@@ -151,6 +151,48 @@ function getTodayPlanningDateForMetroSlug(metroSlug: string): string {
    return getDestinationIsoDate(metroRegion.timezone);
 }
 
+/**
+ * A fresh plan for Today should meet someone where they actually are in the
+ * day. The browser clock is intentionally used here because this is a UI
+ * starting-point preference, not provider/opening-hours logic.
+ *
+ * Future trip days still start at Early Morning so a new day opens as a clean
+ * full-day canvas.
+ */
+function getCurrentDayPeriodFromDeviceClock(now = new Date()): DayPeriod {
+   const minutes = now.getHours() * 60 + now.getMinutes();
+
+   if (minutes < 2 * 60) {
+      return "night";
+   }
+
+   if (minutes < 9 * 60) {
+      return "early-morning";
+   }
+
+   if (minutes < 12 * 60) {
+      return "morning";
+   }
+
+   if (minutes < 17 * 60) {
+      return "afternoon";
+   }
+
+   if (minutes < 21 * 60) {
+      return "evening";
+   }
+
+   return "night";
+}
+
+function getStartingDayPeriod(planningDate: string, timezone: string | null | undefined): DayPeriod {
+   if (!planningDate || !timezone) {
+      return "early-morning";
+   }
+
+   return planningDate === getDestinationIsoDate(timezone) ? getCurrentDayPeriodFromDeviceClock() : "early-morning";
+}
+
 const planningSessionStorageKey = "sidewalk-active-planning-session-v5";
 
 const legacyPlanningSessionStorageKey = "sidewalk-active-planning-session-v4";
@@ -928,7 +970,7 @@ export function SidewalkPlanner() {
 
             setActivityDirectionsByPeriod(storedSession.activityDirectionsByPeriod);
 
-            setActiveDayPeriod(planningDateIsCurrent ? storedSession.activeDayPeriod : "early-morning");
+            setActiveDayPeriod(planningDateIsCurrent ? storedSession.activeDayPeriod : getCurrentDayPeriodFromDeviceClock());
 
             setSessionSeed(storedSession.sessionSeed);
 
@@ -949,6 +991,7 @@ export function SidewalkPlanner() {
       }
 
       setPlanningDate(getTodayPlanningDateForMetroSlug(defaultMetroSlug));
+      setActiveDayPeriod(getCurrentDayPeriodFromDeviceClock());
       setSessionSeed(getOrCreateSessionSeed());
       setIsSessionReady(true);
    }, []);
@@ -1327,12 +1370,12 @@ export function SidewalkPlanner() {
       requestControllersReference.current = {};
    }
 
-   function clearAllGeneratedPlanning(clearActivities: boolean, clearSimilarDayShape = false) {
+   function clearAllGeneratedPlanning(clearActivities: boolean, clearSimilarDayShape = false, startingDayPeriod?: DayPeriod) {
       abortAllRequests();
 
       shouldFocusPeriodPanelReference.current = true;
 
-      setActiveDayPeriod("early-morning");
+      setActiveDayPeriod(startingDayPeriod ?? getStartingDayPeriod(planningDate, selectedMetro?.timezone));
 
       setRecommendationsByPeriod(createEmptyRecommendations());
 
@@ -1428,11 +1471,13 @@ export function SidewalkPlanner() {
 
       setSelectedLocalAreaId("");
 
-      if (!planningDate || planningDate < destinationToday) {
-         setPlanningDate(destinationToday);
+      const nextPlanningDate = !planningDate || planningDate < destinationToday ? destinationToday : planningDate;
+
+      if (nextPlanningDate !== planningDate) {
+         setPlanningDate(nextPlanningDate);
       }
 
-      clearAllGeneratedPlanning(true, true);
+      clearAllGeneratedPlanning(true, true, getStartingDayPeriod(nextPlanningDate, nextMetro.timezone));
 
       if (hadDayStops) {
          setDayPlanAnnouncement("Your day was cleared because the metro region changed.");
@@ -1487,7 +1532,7 @@ export function SidewalkPlanner() {
 
       setPlanningDate(nextPlanningDate);
 
-      clearAllGeneratedPlanning(false);
+      clearAllGeneratedPlanning(false, false, getStartingDayPeriod(nextPlanningDate, selectedMetro?.timezone));
 
       setTripFolioMessage("");
 
