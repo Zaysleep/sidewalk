@@ -5,6 +5,7 @@ import { siteConfig } from "@/lib/site/site-config";
 
 import styles from "./page.module.css";
 
+
 export const viewport: Viewport = {
    width: "device-width",
    initialScale: 1,
@@ -23,7 +24,15 @@ export const metadata: Metadata = {
 
    applicationName: siteConfig.name,
 
-   keywords: ["city guide", "day planner", "local recommendations", "neighborhood guide", "things to do", "Sidewalk", "Kin"],
+   keywords: [
+      "city guide",
+      "day planner",
+      "local recommendations",
+      "neighborhood guide",
+      "things to do",
+      "Sidewalk",
+      "Kin",
+   ],
 
    authors: [
       {
@@ -36,6 +45,21 @@ export const metadata: Metadata = {
 
    alternates: {
       canonical: "/",
+   },
+
+   icons: {
+      icon: [
+         {
+            url: "/sidewalk-app-icon-v2.png",
+            type: "image/png",
+         },
+         {
+            url: "/sidewalk-favicon-v2.ico",
+            type: "image/x-icon",
+         },
+      ],
+      shortcut: "/sidewalk-favicon-v2.ico",
+      apple: "/sidewalk-apple-touch-icon-v2.png",
    },
 
    manifest: "/manifest.webmanifest",
@@ -73,7 +97,6 @@ export const metadata: Metadata = {
    robots: {
       index: true,
       follow: true,
-
       googleBot: {
          index: true,
          follow: true,
@@ -85,5 +108,16 @@ export const metadata: Metadata = {
 };
 
 export default function HomePage() {
-   return <SidewalkPlanner />;
+   return (
+      <>
+         <a
+            className={styles.skipLink}
+            href="#main-content"
+         >
+            Skip to main content
+         </a>
+
+         <SidewalkPlanner />
+      </>
+   );
 }

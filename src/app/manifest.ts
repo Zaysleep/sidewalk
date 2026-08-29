@@ -19,13 +19,13 @@ export default function manifest(): MetadataRoute.Manifest {
 
       icons: [
          {
-            src: "/sidewalk-icon.png",
+            src: "/sidewalk-app-icon-v2.png",
             sizes: "512x512",
             type: "image/png",
             purpose: "any",
          },
          {
-            src: "/sidewalk-apple-icon.png",
+            src: "/sidewalk-apple-touch-icon-v2.png",
             sizes: "180x180",
             type: "image/png",
             purpose: "any",
