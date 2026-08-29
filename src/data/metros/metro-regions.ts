@@ -3235,6 +3235,12 @@ export const metroRegions = [
       description: "A growing Sidewalk edition for Yokosuka, focused on the central station districts and a few locally distinct areas.", isActive: true,
    },
    {
+      id: "metro-shonan-coast", name: "Shonan Coast", slug: "shonan-coast", stateOrRegion: "Kanagawa", countryCode: "JP",
+      primaryRegionCode: "JP-14", regionCodes: ["JP-14"], timezone: "Asia/Tokyo",
+      coverageTier: "growing", coverageStatus: "active", centerLatitude: 35.3068, centerLongitude: 139.5144,
+      description: "A growing Sidewalk edition for the Shonan Coast, connecting Zushi and Fujisawa with a restrained focus on the coast around Enoshima.", isActive: true,
+   },
+   {
       id: "metro-kyoto", name: "Kyoto", slug: "kyoto", stateOrRegion: "Kyoto", countryCode: "JP",
       primaryRegionCode: "JP-26", regionCodes: ["JP-26"], timezone: "Asia/Tokyo",
       coverageTier: "growing", coverageStatus: "active", centerLatitude: 35.0116, centerLongitude: 135.7681,

@@ -2408,6 +2408,8 @@ export const municipalities = [
    { id: "municipality-tokyo-setagaya", metroRegionId: "metro-tokyo", name: "Setagaya", slug: "setagaya", regionCode: "JP-13", stateOrRegion: "Tokyo" },
    { id: "municipality-yokohama-yokohama", metroRegionId: "metro-yokohama", name: "Yokohama", slug: "yokohama", regionCode: "JP-14", stateOrRegion: "Kanagawa" },
    { id: "municipality-yokosuka-yokosuka", metroRegionId: "metro-yokosuka", name: "Yokosuka", slug: "yokosuka", regionCode: "JP-14", stateOrRegion: "Kanagawa" },
+   { id: "municipality-shonan-zushi", metroRegionId: "metro-shonan-coast", name: "Zushi", slug: "zushi", regionCode: "JP-14", stateOrRegion: "Kanagawa" },
+   { id: "municipality-shonan-fujisawa", metroRegionId: "metro-shonan-coast", name: "Fujisawa", slug: "fujisawa", regionCode: "JP-14", stateOrRegion: "Kanagawa" },
    { id: "municipality-kyoto-kyoto", metroRegionId: "metro-kyoto", name: "Kyoto", slug: "kyoto", regionCode: "JP-26", stateOrRegion: "Kyoto" },
    { id: "municipality-osaka-osaka", metroRegionId: "metro-osaka", name: "Osaka", slug: "osaka", regionCode: "JP-27", stateOrRegion: "Osaka" },
 

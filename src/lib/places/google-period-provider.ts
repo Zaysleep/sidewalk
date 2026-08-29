@@ -199,11 +199,12 @@ const recommendationQualityCalibration = {
    minimumReliableRating: 3.5,
    minimumStrongerReliableRating: 3.8,
 
-   sidewalkChoiceStrongScore: 66,
-   directedChoiceStrongScore: 76,
+   sidewalkChoiceStrongScore: 70,
+   directedChoiceStrongScore: 80,
 
-   maximumSeedVariationBonus: 4,
-   nationalChainPenalty: 14,
+   // Keep refreshes fresh without letting randomness outrank a clearly stronger place.
+   maximumSeedVariationBonus: 2,
+   nationalChainPenalty: 18,
 } as const;
 
 /**
@@ -1470,18 +1471,18 @@ function calculateEditorialSpecificityScore(place: GooglePlace, activity: Activi
    const specificMatches = matchingTypes.filter((type) => !genericActivityTypes.has(type));
 
    if (specificMatches.length >= 2) {
-      return 6;
+      return 8;
    }
 
    if (specificMatches.length === 1) {
-      return 3;
+      return 4;
    }
 
    if (matchingTypes.length > 0) {
-      return -3;
+      return -4;
    }
 
-   return -8;
+   return -10;
 }
 
 function getStrongCandidateMinimumScore(context: PeriodSearchContext): number {
@@ -1727,13 +1728,13 @@ function scoreCandidate(place: GooglePlace, activity: ActivityKind, providerInde
    const contextFitScore = calculatePeriodContextScore(place, activity, context.dayPeriod);
 
    return (
-      activityFit * 22 +
-      distanceFit * 28 +
-      municipalityFit * 10 +
-      ratingQuality * 18 +
-      providerRelevance * 7 +
+      activityFit * 24 +
+      distanceFit * 24 +
+      municipalityFit * 9 +
+      ratingQuality * 20 +
+      providerRelevance * 5 +
       preferredActivity * 10 +
-      operationalFit * 5 +
+      operationalFit * 6 +
       coherenceScore +
       routeSanityScore +
       availabilityScore +

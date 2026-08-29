@@ -31,7 +31,7 @@ import { createSharedTripRequestFromFolio } from "@/lib/sharing/shared-trip-sche
 import { activityDirections, activityKinds, type ActivityDirection, type ActivityKind } from "@/types/activity";
 import { dayPeriodDefinitions, dayPeriods, type DayPeriod } from "@/types/day-period";
 import type { DayStop } from "@/types/day-plan";
-import { maxPeriodRecommendationRefreshes, type CommittedStopContext, type PeriodRecommendation, type PeriodRecommendationStatus } from "@/types/period-recommendation";
+import { maxPeriodRecommendationRefreshes, periodRecommendationLimits, type CommittedStopContext, type PeriodRecommendation, type PeriodRecommendationStatus } from "@/types/period-recommendation";
 import { tripFolioLimits, type TripFolio, type TripFolioDay } from "@/types/trip-folio";
 
 import plannerStyles from "./period-planner.module.css";
@@ -397,8 +397,9 @@ function createPeriodRequestKey(
    sessionSeed: string,
    variationIndex: number,
    committedStopsSegment: string,
+   tripPlaceIdsSegment: string,
 ): string {
-   return [metroRegionId, municipalityId, localAreaId, dayPeriod, activityDirection, planningDate, sessionSeed, variationIndex, committedStopsSegment].join("|");
+   return [metroRegionId, municipalityId, localAreaId, dayPeriod, activityDirection, planningDate, sessionSeed, variationIndex, committedStopsSegment, tripPlaceIdsSegment].join("|");
 }
 
 function mergePlaceIds(currentIds: readonly string[], nextIds: readonly string[]): readonly string[] {
@@ -473,6 +474,43 @@ function createCommittedStopsRequestSegment(committedStops: readonly CommittedSt
       .sort((first, second) => dayPeriods.indexOf(first.dayPeriod) - dayPeriods.indexOf(second.dayPeriod))
       .map((stop) => [stop.dayPeriod, stop.placeId, stop.resolvedActivity, stop.latitude ?? "none", stop.longitude ?? "none"].join("~"))
       .join(",");
+}
+
+/**
+ * A Trip Folio is one experience, even when it spans several days or metros.
+ * Once a place has been saved anywhere in the active trip, its stable place ID
+ * becomes a hard recommendation exclusion until that trip is removed.
+ */
+function getTripFolioPlaceIds(tripFolio: TripFolio | null): readonly string[] {
+   if (!tripFolio) {
+      return [];
+   }
+
+   return Array.from(
+      new Set(
+         tripFolio.days.flatMap((day) =>
+            day.stops.map((stop) => stop.placeId),
+         ),
+      ),
+   );
+}
+
+function createPlaceIdsRequestSegment(placeIds: readonly string[]): string {
+   return [...placeIds].sort().join(",");
+}
+
+/**
+ * Keep the request inside the server's existing exclusion bound while
+ * protecting the most important IDs first: current-day stops and trip stops.
+ */
+function addExcludedPlaceIds(target: Set<string>, placeIds: readonly string[]) {
+   for (const placeId of placeIds) {
+      if (target.size >= periodRecommendationLimits.maximumExcludedPlaceIds) {
+         return;
+      }
+
+      target.add(placeId);
+   }
 }
 
 function getNextUnfilledPeriod(currentPeriod: DayPeriod, stops: readonly DayStop[], preferredPeriods: readonly DayPeriod[] = []): DayPeriod | null {
@@ -1121,11 +1159,14 @@ export function SidewalkPlanner() {
 
       const committedStopsSegment = createCommittedStopsRequestSegment(committedStops);
 
+      const tripPlaceIds = getTripFolioPlaceIds(tripFolio);
+      const tripPlaceIdsSegment = createPlaceIdsRequestSegment(tripPlaceIds);
+
       const chapterRefreshState = chapterRefreshStates[dayPeriod];
 
       const variationIndex = chapterRefreshState.refreshCount;
 
-      const requestKey = createPeriodRequestKey(selectedMetro.id, selectedMunicipality.id, selectedLocalArea.id, dayPeriod, activeActivityDirection, planningDate, sessionSeed, variationIndex, committedStopsSegment);
+      const requestKey = createPeriodRequestKey(selectedMetro.id, selectedMunicipality.id, selectedLocalArea.id, dayPeriod, activeActivityDirection, planningDate, sessionSeed, variationIndex, committedStopsSegment, tripPlaceIdsSegment);
 
       if (loadedRequestKeys[dayPeriod] === requestKey) {
          return;
@@ -1146,28 +1187,39 @@ export function SidewalkPlanner() {
          }));
       }
 
-      const excludedPlaceIds = new Set<string>(getFeedbackExcludedPlaceIds(recommendationFeedback));
+      const excludedPlaceIds = new Set<string>();
+
+      // Current selections and the full Trip Folio are hard exclusions.
+      addExcludedPlaceIds(
+         excludedPlaceIds,
+         dayStops.map((stop) => stop.placeId),
+      );
+      addExcludedPlaceIds(excludedPlaceIds, tripPlaceIds);
+
+      // Feedback and already-seen recommendations fill the remaining budget.
+      addExcludedPlaceIds(
+         excludedPlaceIds,
+         getFeedbackExcludedPlaceIds(recommendationFeedback),
+      );
 
       if (variationIndex > 0) {
-         chapterRefreshState.shownPlaceIds.forEach((placeId) => {
-            excludedPlaceIds.add(placeId);
-         });
+         addExcludedPlaceIds(
+            excludedPlaceIds,
+            chapterRefreshState.shownPlaceIds,
+         );
       }
-
-      dayStops.forEach((stop) => {
-         if (stop.dayPeriod !== dayPeriod) {
-            excludedPlaceIds.add(stop.placeId);
-         }
-      });
 
       dayPeriods.forEach((otherPeriod) => {
          if (otherPeriod === dayPeriod) {
             return;
          }
 
-         recommendationsByPeriod[otherPeriod].forEach((recommendation) => {
-            excludedPlaceIds.add(recommendation.place.id);
-         });
+         addExcludedPlaceIds(
+            excludedPlaceIds,
+            recommendationsByPeriod[otherPeriod].map(
+               (recommendation) => recommendation.place.id,
+            ),
+         );
       });
 
       const metro = selectedMetro;
@@ -1303,7 +1355,7 @@ export function SidewalkPlanner() {
       return () => {
          controller.abort();
       };
-   }, [activeActivityDirection, activeDayPeriod, chapterRefreshStates, dayStops, isSessionReady, loadedRequestKeys, recommendationsByPeriod, planningDate, selectedLocalArea, selectedMetro, selectedMunicipality, sessionSeed]);
+   }, [activeActivityDirection, activeDayPeriod, chapterRefreshStates, dayStops, isSessionReady, loadedRequestKeys, recommendationsByPeriod, planningDate, selectedLocalArea, selectedMetro, selectedMunicipality, sessionSeed, tripFolio]);
 
    if (!selectedMetro) {
       return (
@@ -1649,26 +1701,44 @@ export function SidewalkPlanner() {
 
       const committedStopsSegment = createCommittedStopsRequestSegment(coherenceStops);
 
-      const requestKey = createPeriodRequestKey(selectedMetro.id, selectedMunicipality.id, selectedLocalArea.id, dayPeriod, activeActivityDirection, planningDate, sessionSeed, nextVariationIndex, committedStopsSegment);
+      const tripPlaceIds = getTripFolioPlaceIds(tripFolio);
+      const tripPlaceIdsSegment = createPlaceIdsRequestSegment(tripPlaceIds);
 
-      const excludedPlaceIds = new Set<string>([...currentRefreshState.shownPlaceIds, ...getFeedbackExcludedPlaceIds(recommendationFeedback)]);
+      const requestKey = createPeriodRequestKey(selectedMetro.id, selectedMunicipality.id, selectedLocalArea.id, dayPeriod, activeActivityDirection, planningDate, sessionSeed, nextVariationIndex, committedStopsSegment, tripPlaceIdsSegment);
 
-      currentRecommendations.forEach((recommendation) => {
-         excludedPlaceIds.add(recommendation.place.id);
-      });
+      const excludedPlaceIds = new Set<string>();
 
-      dayStops.forEach((stop) => {
-         excludedPlaceIds.add(stop.placeId);
-      });
+      addExcludedPlaceIds(
+         excludedPlaceIds,
+         dayStops.map((stop) => stop.placeId),
+      );
+      addExcludedPlaceIds(excludedPlaceIds, tripPlaceIds);
+      addExcludedPlaceIds(
+         excludedPlaceIds,
+         currentRefreshState.shownPlaceIds,
+      );
+      addExcludedPlaceIds(
+         excludedPlaceIds,
+         getFeedbackExcludedPlaceIds(recommendationFeedback),
+      );
+      addExcludedPlaceIds(
+         excludedPlaceIds,
+         currentRecommendations.map(
+            (recommendation) => recommendation.place.id,
+         ),
+      );
 
       dayPeriods.forEach((otherPeriod) => {
          if (otherPeriod === dayPeriod) {
             return;
          }
 
-         recommendationsByPeriod[otherPeriod].forEach((recommendation) => {
-            excludedPlaceIds.add(recommendation.place.id);
-         });
+         addExcludedPlaceIds(
+            excludedPlaceIds,
+            recommendationsByPeriod[otherPeriod].map(
+               (recommendation) => recommendation.place.id,
+            ),
+         );
       });
 
       try {

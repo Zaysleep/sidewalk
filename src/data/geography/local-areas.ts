@@ -5109,6 +5109,15 @@ export const localAreas = [
    { id: "area-e1d-yokosuka-shioiri", municipalityId: "municipality-yokosuka-yokosuka", name: "Shioiri", slug: "shioiri", kind: "area" },
    { id: "area-e1d-yokosuka-kurihama", municipalityId: "municipality-yokosuka-yokosuka", name: "Kurihama", slug: "kurihama", kind: "area" },
 
+   /* E2C — Shonan Coast */
+   { id: "area-e2c-zushi-coast", municipalityId: "municipality-shonan-zushi", name: "Zushi Coast", slug: "zushi-coast", kind: "area" },
+   { id: "area-e2c-zushi-station", municipalityId: "municipality-shonan-zushi", name: "Zushi Station", slug: "zushi-station", kind: "district" },
+   { id: "area-e2c-zushi-kotsubo", municipalityId: "municipality-shonan-zushi", name: "Kotsubo", slug: "kotsubo", kind: "area" },
+
+   { id: "area-e2c-fujisawa-enoshima", municipalityId: "municipality-shonan-fujisawa", name: "Enoshima", slug: "enoshima", kind: "area" },
+   { id: "area-e2c-fujisawa-katase-enoshima", municipalityId: "municipality-shonan-fujisawa", name: "Katase-Enoshima", slug: "katase-enoshima", kind: "district" },
+   { id: "area-e2c-fujisawa-kugenuma-coast", municipalityId: "municipality-shonan-fujisawa", name: "Kugenuma Coast", slug: "kugenuma-coast", kind: "area" },
+
    /* E1D — Kyoto */
    { id: "area-e1d-kyoto-gion", municipalityId: "municipality-kyoto-kyoto", name: "Gion", slug: "gion", kind: "district" },
    { id: "area-e1d-kyoto-higashiyama", municipalityId: "municipality-kyoto-kyoto", name: "Higashiyama", slug: "higashiyama", kind: "area" },
