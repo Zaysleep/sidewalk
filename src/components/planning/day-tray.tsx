@@ -358,6 +358,11 @@ export function DayTray({
 
    const daySanityNote = isComplete ? getPrimaryDaySanityNote(orderedStops) : null;
 
+   const dayLocationLabel =
+      orderedStops.length > 0
+         ? `${orderedStops[0].localAreaName}, ${orderedStops[0].municipalityName}`
+         : "";
+
    const isLocalTripShare = (() => {
       if (!tripShareUrl) {
          return false;
@@ -398,6 +403,15 @@ export function DayTray({
       setIsClearConfirmationOpen(false);
       setCopyMessage("");
       setIsSharePanelOpen(true);
+
+      /*
+       * Sharing should be one obvious action. If Sidewalk does not already
+       * have a link, the first tap starts creating it instead of opening a
+       * second confirmation step that asks the user to create the link again.
+       */
+      if (shareStatus === "idle" || shareStatus === "error") {
+         onCreateShare();
+      }
    }
 
    function handleCloseSharePanel() {
@@ -469,6 +483,35 @@ export function DayTray({
          setCopyMessage("Link copied.");
       } catch {
          setCopyMessage("Sidewalk could not copy the link. Open the shared page and copy it from the address bar.");
+      }
+   }
+
+   async function handleShareDayLink() {
+      if (!shareUrl) {
+         return;
+      }
+
+      const shareData = {
+         title: `${formattedPlanningDate || "A Sidewalk day"} · Sidewalk`,
+         text: "Here’s a Sidewalk day worth keeping.",
+         url: shareUrl,
+      };
+
+      try {
+         if (typeof navigator.share === "function") {
+            await navigator.share(shareData);
+            setCopyMessage("Day shared.");
+            return;
+         }
+
+         await handleCopyShareLink();
+         setCopyMessage("Sharing isn’t available in this browser, so Sidewalk copied the link instead.");
+      } catch (error: unknown) {
+         if (error instanceof Error && error.name === "AbortError") {
+            return;
+         }
+
+         setCopyMessage("Sidewalk couldn’t open the share sheet. Copy the link instead.");
       }
    }
 
@@ -563,9 +606,11 @@ export function DayTray({
             <span className={styles.summaryHeading}>{visibleTrayTab === "trip" && hasTripFolio ? "Your trip" : "Your day"}</span>
 
             <span className={styles.summaryPlace}>
-               {visibleTrayTab === "trip" && hasTripFolio
-                  ? `${tripTitle} · ${tripTabLabel}`
-                  : `${formattedPlanningDate || "New day"} · ${dayTabLabel}`}
+               {isOpen
+                  ? ""
+                  : visibleTrayTab === "trip" && hasTripFolio
+                    ? `${tripTitle} · ${tripTabLabel}`
+                    : `${formattedPlanningDate || "New day"} · ${dayTabLabel}`}
             </span>
 
             <span className={styles.summaryAction}>{isOpen ? "Close" : "Open"}</span>
@@ -608,17 +653,91 @@ export function DayTray({
 
             {visibleTrayTab === "day" ? (
                <section id="sidewalk-day-panel" className={styles.tabPanel} role={hasTripFolio ? "tabpanel" : undefined} aria-labelledby={hasTripFolio ? "sidewalk-day-tab" : undefined}>
-                  <header className={styles.heading}>
-                     <div>
-                        <p className={styles.eyebrow}>Day plan</p>
+                  <header className={styles.dayHeader}>
+                     <h2 ref={trayHeadingReference} id={trayTitleId} className={styles.title} tabIndex={-1}>
+                        {formattedPlanningDate || "Plan a day"}
+                     </h2>
 
-                        <h2 ref={trayHeadingReference} id={trayTitleId} className={styles.title} tabIndex={-1}>
-                           {formattedPlanningDate || "Plan a day"}
-                        </h2>
-                     </div>
-
-                     <p className={styles.count}>{dayTabLabel}</p>
+                     {dayLocationLabel ? (
+                        <p className={styles.dayContext}>
+                           {dayLocationLabel}
+                           {!hasTripFolio ? ` · ${dayTabLabel}` : ""}
+                        </p>
+                     ) : null}
                   </header>
+
+                  {isComplete ? (
+                     <div className={styles.daySharePrimary}>
+                        <button
+                           ref={shareDayButtonReference}
+                           type="button"
+                           className={styles.shareButton}
+                           aria-expanded={isSharePanelOpen}
+                           aria-controls="sidewalk-share-day-panel"
+                           onClick={isSharePanelOpen ? handleCloseSharePanel : handleOpenSharePanel}
+                        >
+                           Share this day
+                        </button>
+                     </div>
+                  ) : null}
+
+                  {isSharePanelOpen ? (
+                     <section id="sidewalk-share-day-panel" className={styles.sharePanel} aria-labelledby={sharePanelTitleId} aria-describedby={sharePanelDescriptionId}>
+                        <div className={styles.sharePanelHeading}>
+                           <h3 id={sharePanelTitleId} className={styles.shareTitle}>
+                              Share link
+                           </h3>
+                        </div>
+
+                        <p id={sharePanelDescriptionId} className={styles.shareDescription}>
+                           Anyone with the link can view this day. They cannot change your plan.
+                        </p>
+
+                        {shareStatus === "loading" ? (
+                           <p className={styles.shareStatus} role="status">
+                              Creating link…
+                           </p>
+                        ) : null}
+
+                        {shareStatus === "error" ? (
+                           <>
+                              <p className={styles.shareError} role="alert">
+                                 {shareMessage || "Sidewalk could not create the link right now."}
+                              </p>
+
+                              <button type="button" className={styles.createShareButton} onClick={onCreateShare}>
+                                 Try again
+                              </button>
+                           </>
+                        ) : null}
+
+                        {shareStatus === "ready" && shareUrl ? (
+                           <>
+                              <p className={styles.shareStatus} role="status">
+                                 Ready to share. This link will work for 30 days.
+                              </p>
+
+                              <div className={styles.shareReadyActions}>
+                                 <button type="button" className={styles.copyLinkButton} onClick={() => void handleShareDayLink()}>
+                                    Share day
+                                 </button>
+
+                                 <button type="button" className={styles.viewSharedDayLink} onClick={() => void handleCopyShareLink()}>
+                                    Copy link
+                                 </button>
+
+                                 <a className={styles.viewSharedDayLink} href={shareUrl} target="_blank" rel="noreferrer noopener" referrerPolicy="no-referrer">
+                                    View shared day
+                                 </a>
+                              </div>
+                           </>
+                        ) : null}
+
+                        <p className={styles.copyMessage} aria-live="polite">
+                           {copyMessage}
+                        </p>
+                     </section>
+                  ) : null}
 
                   {orderedStops.length > 0 ? (
                      <div className={styles.stopList}>
@@ -691,12 +810,6 @@ export function DayTray({
                            </button>
                         ) : null}
 
-                        {isComplete ? (
-                           <button ref={shareDayButtonReference} type="button" className={styles.shareButton} aria-expanded={isSharePanelOpen} aria-controls="sidewalk-share-day-panel" onClick={handleOpenSharePanel}>
-                              Share this day
-                           </button>
-                        ) : null}
-
                         {isComplete && canAddAnotherStop ? (
                            <button type="button" className={styles.optionalButton} onClick={onContinuePlanning}>
                               Add another stop
@@ -704,88 +817,14 @@ export function DayTray({
                         ) : null}
                      </div>
 
-                     {isSharePanelOpen ? (
-                        <section id="sidewalk-share-day-panel" className={styles.sharePanel} aria-labelledby={sharePanelTitleId} aria-describedby={sharePanelDescriptionId}>
-                           <div className={styles.sharePanelHeading}>
-                              <p className={styles.shareEyebrow}>Share this day</p>
-
-                              <h3 id={sharePanelTitleId} className={styles.shareTitle}>
-                                 Create a read-only link
-                              </h3>
-                           </div>
-
-                           <p id={sharePanelDescriptionId} className={styles.shareDescription}>
-                              Anyone with the link can view this day. They cannot change your plan.
-                           </p>
-
-                           {shareStatus === "loading" ? (
-                              <p className={styles.shareStatus} role="status">
-                                 Creating link…
-                              </p>
-                           ) : null}
-
-                           {shareStatus === "error" ? (
-                              <p className={styles.shareError} role="alert">
-                                 {shareMessage || "Sidewalk could not create the link right now."}
-                              </p>
-                           ) : null}
-
-                           {shareStatus === "ready" && shareUrl ? (
-                              <>
-                                 <p className={styles.shareStatus} role="status">
-                                    Link ready. It will work for 30 days.
-                                 </p>
-
-                                 <div className={styles.shareReadyActions}>
-                                    <button type="button" className={styles.copyLinkButton} onClick={() => void handleCopyShareLink()}>
-                                       Copy link
-                                    </button>
-
-                                    <a className={styles.viewSharedDayLink} href={shareUrl} target="_blank" rel="noreferrer noopener" referrerPolicy="no-referrer">
-                                       View shared day
-                                    </a>
-                                 </div>
-                              </>
-                           ) : null}
-
-                           {shareStatus === "idle" || shareStatus === "error" ? (
-                              <div className={styles.shareConfirmationActions}>
-                                 <button type="button" className={styles.createShareButton} onClick={onCreateShare}>
-                                    {shareStatus === "error" ? "Try again" : "Create share link"}
-                                 </button>
-
-                                 <button type="button" className={styles.cancelShareButton} onClick={handleCloseSharePanel}>
-                                    Cancel
-                                 </button>
-                              </div>
-                           ) : null}
-
-                           {shareStatus === "loading" ? (
-                              <button type="button" className={styles.cancelShareButton} onClick={handleCloseSharePanel}>
-                                 Cancel
-                              </button>
-                           ) : null}
-
-                           {shareStatus === "ready" ? (
-                              <button type="button" className={styles.cancelShareButton} onClick={handleCloseSharePanel}>
-                                 Done
-                              </button>
-                           ) : null}
-
-                           <p className={styles.copyMessage} aria-live="polite">
-                              {copyMessage}
-                           </p>
-                        </section>
-                     ) : null}
-
                      {isComplete && !hasTripFolio ? (
                         <section className={styles.tripStart} aria-labelledby="sidewalk-start-trip-title">
                            <div className={styles.tripShareCopy}>
-                              <p className={styles.tripFolioEyebrow}>Planning more than one day?</p>
-                              <h3 id="sidewalk-start-trip-title" className={styles.tripFolioTitle}>
-                                 Start a trip with this day.
+                              <h3 id="sidewalk-start-trip-title" className={styles.tripStatusTitle}>
+                                 Planning another day?
                               </h3>
-                              <p className={styles.tripShareDescription}>Keep multiple days together so you can reopen, edit, and share the whole trip later.</p>
+
+                              <p className={styles.tripShareDescription}>Keep this day with the rest of your trip.</p>
                            </div>
 
                            <button type="button" className={styles.tripFolioButton} onClick={onSaveToTrip}>
@@ -795,32 +834,30 @@ export function DayTray({
                      ) : null}
 
                      {hasTripFolio ? (
-                        <section className={styles.tripStart} aria-label="Current day trip status">
-                           <div className={styles.tripShareCopy}>
-                              <p className={styles.tripFolioEyebrow}>Trip</p>
-
-                              <h3 className={styles.tripFolioTitle}>
+                        <section className={styles.tripStatus} aria-label="Current day trip status">
+                           <div className={styles.tripStatusCopy}>
+                              <p className={styles.tripStatusTitle}>
                                  {tripDayStatus === "saved"
-                                    ? `Saved to ${tripTitle}`
+                                    ? `Saved in ${tripTitle}`
                                     : tripDayStatus === "changed"
-                                      ? `Save changes to ${tripTitle}`
+                                      ? `Changes not saved in ${tripTitle}`
                                       : isComplete
-                                        ? `Add this day to ${tripTitle}`
-                                        : `This day is not in ${tripTitle} yet`}
-                              </h3>
-
-                              <p className={styles.tripShareDescription}>
-                                 {tripDayStatus === "saved"
-                                    ? "This day is already part of your trip."
-                                    : tripDayStatus === "changed"
-                                      ? "You changed this day since it was last saved."
-                                      : isComplete
-                                        ? "Save this day with the rest of your trip."
-                                        : "Choose at least two stops before saving this day to the trip."}
+                                        ? `Not yet saved in ${tripTitle}`
+                                        : `${tripTitle}`}
                               </p>
+
+                              {tripDayStatus !== "saved" ? (
+                                 <p className={styles.tripShareDescription}>
+                                    {tripDayStatus === "changed"
+                                       ? "Save the changes when this day looks right."
+                                       : isComplete
+                                         ? "Add this day when it is ready."
+                                         : "Choose at least two stops before saving this day."}
+                                 </p>
+                              ) : null}
                            </div>
 
-                           <div className={styles.tripShareUtilityActions}>
+                           <div className={styles.tripStatusActions}>
                               {isComplete && tripDayStatus !== "saved" ? (
                                  <button type="button" className={styles.tripFolioButton} onClick={onSaveToTrip}>
                                     {tripDayStatus === "changed" ? "Save changes" : "Save to trip"}
@@ -840,8 +877,8 @@ export function DayTray({
                         </p>
                      ) : null}
 
-                     <div className={styles.trayActions}>
-                        {orderedStops.length > 0 ? (
+                     {orderedStops.length > 0 ? (
+                        <div className={styles.dayUtilities}>
                            <button
                               ref={clearDayButtonReference}
                               type="button"
@@ -856,19 +893,8 @@ export function DayTray({
                            >
                               Clear day
                            </button>
-                        ) : null}
-
-                        <button
-                           type="button"
-                           className={styles.doneButton}
-                           onClick={() => {
-                              shouldRestoreTriggerFocusReference.current = true;
-                              onDone();
-                           }}
-                        >
-                           Done
-                        </button>
-                     </div>
+                        </div>
+                     ) : null}
 
                      {isClearConfirmationOpen ? (
                         <div id="sidewalk-clear-day-confirmation" className={styles.clearConfirmation} role="alertdialog" aria-modal="false" aria-labelledby={clearConfirmationTitleId} aria-describedby={clearConfirmationDescriptionId}>
@@ -899,8 +925,6 @@ export function DayTray({
                <section id="sidewalk-trip-panel" className={styles.tabPanel} role="tabpanel" aria-labelledby="sidewalk-trip-tab">
                   <header className={styles.tripTabHeader}>
                      <div className={styles.tripTabIdentity}>
-                        <p className={styles.tripFolioEyebrow}>Your trip</p>
-
                         {isTripRenameOpen ? (
                            <form
                               className={styles.headerRenameForm}
@@ -949,8 +973,6 @@ export function DayTray({
                            </h2>
                         )}
                      </div>
-
-                     <p className={styles.count}>{tripTabLabel}</p>
                   </header>
 
                   {visibleTripMessage ? (
@@ -958,6 +980,60 @@ export function DayTray({
                         {visibleTripMessage}
                      </p>
                   ) : null}
+
+                  {canShareTrip ? (
+                     <section className={styles.tripShare} aria-labelledby="sidewalk-trip-share-title">
+                        <div className={styles.tripShareCopy}>
+                           <p id="sidewalk-trip-share-title" className={styles.tripShareLabel}>
+                              Share the whole trip
+                           </p>
+
+                           <p className={styles.tripShareDescription}>One read-only link for every saved day.</p>
+                        </div>
+
+                        {tripDayStatus === "changed" ? (
+                           <button type="button" className={styles.tripShareButton} onClick={onSaveToTrip}>
+                              Save changes to share
+                           </button>
+                        ) : tripShareStatus === "ready" && tripShareUrl ? (
+                           <button type="button" className={styles.tripShareButton} onClick={() => void handleShareTripLink()}>
+                              Share this trip
+                           </button>
+                        ) : (
+                           <button type="button" className={styles.tripShareButton} disabled={tripShareStatus === "loading"} onClick={onCreateTripShare}>
+                              {tripShareStatus === "loading" ? "Creating link…" : tripShareStatus === "error" ? "Try sharing again" : "Share this trip"}
+                           </button>
+                        )}
+
+                        {tripShareStatus === "ready" && tripShareUrl ? (
+                           <div className={styles.tripShareUtilityActions}>
+                              <button type="button" className={styles.tripShareUtilityButton} onClick={() => void handleCopyTripLink()}>
+                                 Copy link
+                              </button>
+
+                              <a className={styles.tripShareUtilityLink} href={tripShareUrl} target="_blank" rel="noreferrer noopener" referrerPolicy="no-referrer">
+                                 View shared trip
+                              </a>
+                           </div>
+                        ) : null}
+
+                        {isLocalTripShare ? <p className={styles.tripShareMessage}>Local links only work on this computer. Create the final link from deployed Sidewalk.</p> : null}
+
+                        {tripShareMessage ? (
+                           <p className={styles.tripShareMessage} aria-live="polite">
+                              {tripShareMessage}
+                           </p>
+                        ) : null}
+
+                        {tripCopyMessage ? (
+                           <p className={styles.tripShareMessage} aria-live="polite">
+                              {tripCopyMessage}
+                           </p>
+                        ) : null}
+                     </section>
+                  ) : (
+                     <p className={styles.tripShareHint}>Add one more day to share this trip.</p>
+                  )}
 
                   <section className={styles.savedDaysSection} aria-labelledby="sidewalk-saved-days-title">
                      <div className={styles.savedDaysHeading}>
@@ -975,7 +1051,7 @@ export function DayTray({
                                  <div className={styles.tripDayCopy}>
                                     <div className={styles.tripDayDateRow}>
                                        <p className={styles.tripDayDate}>{formatTripDayDate(tripDay.planningDate)}</p>
-                                       {isCurrentTripDay ? <span className={styles.tripDayCurrent}>Open now</span> : null}
+                                       {isCurrentTripDay ? <span className={styles.tripDayCurrent}>Current day</span> : null}
                                     </div>
 
                                     <p className={styles.tripDayArea}>
@@ -1016,79 +1092,6 @@ export function DayTray({
                      ) : (
                         <p className={styles.tripLimitNote}>This trip has all five available days.</p>
                      )}
-                  </div>
-
-                  <section className={styles.tripShare} aria-labelledby="sidewalk-trip-share-title">
-                     <div className={styles.tripShareCopy}>
-                        <p id="sidewalk-trip-share-title" className={styles.tripShareLabel}>
-                           Share this trip
-                        </p>
-
-                        <p className={styles.tripShareDescription}>
-                           {!canShareTrip
-                              ? "Add one more day to share the whole trip with one link."
-                              : tripDayStatus === "changed"
-                                ? "Save the open day's changes so the shared trip is up to date."
-                                : "Create one read-only link for every saved day in this trip."}
-                        </p>
-                     </div>
-
-                     {canShareTrip && tripDayStatus === "changed" ? (
-                        <button type="button" className={styles.tripShareButton} onClick={onSaveToTrip}>
-                           Save changes
-                        </button>
-                     ) : null}
-
-                     {canShareTrip && tripDayStatus !== "changed" && tripShareStatus === "ready" && tripShareUrl ? (
-                        <button type="button" className={styles.tripShareButton} onClick={() => void handleShareTripLink()}>
-                           Share trip
-                        </button>
-                     ) : null}
-
-                     {canShareTrip && tripDayStatus !== "changed" && !(tripShareStatus === "ready" && tripShareUrl) ? (
-                        <button type="button" className={styles.tripShareButton} disabled={tripShareStatus === "loading"} onClick={onCreateTripShare}>
-                           {tripShareStatus === "loading" ? "Creating link…" : tripShareStatus === "error" ? "Try again" : "Create trip link"}
-                        </button>
-                     ) : null}
-
-                     {tripShareStatus === "ready" && tripShareUrl ? (
-                        <div className={styles.tripShareUtilityActions}>
-                           <button type="button" className={styles.tripShareUtilityButton} onClick={() => void handleCopyTripLink()}>
-                              Copy link
-                           </button>
-
-                           <a className={styles.tripShareUtilityLink} href={tripShareUrl} target="_blank" rel="noreferrer noopener" referrerPolicy="no-referrer">
-                              View shared trip
-                           </a>
-                        </div>
-                     ) : null}
-
-                     {isLocalTripShare ? <p className={styles.tripShareMessage}>Local links only work on this computer. Create the final link from deployed Sidewalk.</p> : null}
-
-                     {tripShareMessage ? (
-                        <p className={styles.tripShareMessage} aria-live="polite">
-                           {tripShareMessage}
-                        </p>
-                     ) : null}
-
-                     {tripCopyMessage ? (
-                        <p className={styles.tripShareMessage} aria-live="polite">
-                           {tripCopyMessage}
-                        </p>
-                     ) : null}
-                  </section>
-
-                  <div className={styles.tripTabActions}>
-                     <button
-                        type="button"
-                        className={styles.doneButton}
-                        onClick={() => {
-                           shouldRestoreTriggerFocusReference.current = true;
-                           onDone();
-                        }}
-                     >
-                        Done
-                     </button>
                   </div>
                </section>
             ) : null}
