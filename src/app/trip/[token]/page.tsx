@@ -229,6 +229,13 @@ function getPeriodLabel(
    );
 }
 
+function formatTripDayPlace(day: SharedTripDaySnapshot): string {
+   const geography = day.geography;
+   const regionName = "regionName" in geography && geography.regionName ? geography.regionName : geography.stateOrRegion;
+
+   return `${geography.municipalityName}, ${regionName}`;
+}
+
 function sortStops(
    stops: readonly SharedDayStop[],
 ): readonly SharedDayStop[] {
@@ -243,42 +250,6 @@ function sortStops(
          return stop ? [stop] : [];
       },
    );
-}
-
-function formatDuration(
-   minimumMinutes: number,
-   maximumMinutes: number,
-): string {
-   if (
-      minimumMinutes ===
-      maximumMinutes
-   ) {
-      return `${minimumMinutes} minutes`;
-   }
-
-   return `${minimumMinutes}–${maximumMinutes} minutes`;
-}
-
-function formatDayDuration(
-   stops: readonly SharedDayStop[],
-): string {
-   const minimum = stops.reduce(
-      (total, stop) =>
-         total +
-         stop.visitDurationMinutes.minimum,
-      0,
-   );
-
-   const maximum = stops.reduce(
-      (total, stop) =>
-         total +
-         stop.visitDurationMinutes.maximum,
-      0,
-   );
-
-   return minimum === maximum
-      ? `${minimum} minutes at places`
-      : `${minimum}–${maximum} minutes at places`;
 }
 
 function getPublicSiteUrl(): URL {
@@ -708,32 +679,10 @@ export default async function SharedTripPage({
                                        }
                                     </p>
 
-                                    <p>
-                                       {
-                                          day
-                                             .geography
-                                             .municipalityName
-                                       }{" "}
-                                       ·{" "}
-                                       {
-                                          day
-                                             .geography
-                                             .metroName
-                                       }
-                                    </p>
+                                    <p>{formatTripDayPlace(day)}</p>
 
                                     <p>
-                                       {
-                                          orderedStops.length
-                                       }{" "}
-                                       {orderedStops.length ===
-                                       1
-                                          ? "stop"
-                                          : "stops"}{" "}
-                                       ·{" "}
-                                       {formatDayDuration(
-                                          orderedStops,
-                                       )}
+                                       {orderedStops.length} {orderedStops.length === 1 ? "stop" : "stops"}
                                     </p>
                                  </div>
                               </header>
@@ -847,21 +796,6 @@ export default async function SharedTripPage({
                                                          styles.stopFooter
                                                       }
                                                    >
-                                                      <p
-                                                         className={
-                                                            styles.duration
-                                                         }
-                                                      >
-                                                         {formatDuration(
-                                                            stop
-                                                               .visitDurationMinutes
-                                                               .minimum,
-                                                            stop
-                                                               .visitDurationMinutes
-                                                               .maximum,
-                                                         )}
-                                                      </p>
-
                                                       {stop.locationUrl ? (
                                                          <a
                                                             className={

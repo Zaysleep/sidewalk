@@ -15,6 +15,7 @@ import {
    type PeriodRecommendationErrorResponse,
    type PeriodRecommendationRequest,
    type PeriodRecommendationResponse,
+   type TripRecommendationContext,
 } from "@/types/period-recommendation";
 
 export const runtime = "nodejs";
@@ -149,6 +150,42 @@ function isCommittedStopContext(value: unknown): value is CommittedStopContext {
 
 function isVariationIndex(value: unknown): value is number {
    return typeof value === "number" && Number.isInteger(value) && value >= 0 && value <= maxPeriodRecommendationRefreshes;
+}
+
+function isTripRecommendationContext(value: unknown): value is TripRecommendationContext {
+   if (typeof value !== "object" || value === null || Array.isArray(value)) {
+      return false;
+   }
+
+   const candidate = value as Partial<TripRecommendationContext>;
+   const counts = candidate.activityCounts;
+
+   if (typeof counts !== "object" || counts === null || Array.isArray(counts)) {
+      return false;
+   }
+
+   const hasValidCounts = activityKinds.every((activity) => {
+      const count = (counts as Record<string, unknown>)[activity];
+
+      return typeof count === "number" && Number.isInteger(count) && count >= 0 && count <= periodRecommendationLimits.maximumTripContextStops;
+   });
+
+   const totalActivityCount = activityKinds.reduce((total, activity) => {
+      const count = (counts as Record<string, number>)[activity] ?? 0;
+
+      return total + count;
+   }, 0);
+
+   if (
+      !hasValidCounts ||
+      totalActivityCount > periodRecommendationLimits.maximumTripContextStops ||
+      !Array.isArray(candidate.primaryTypes) ||
+      candidate.primaryTypes.length > periodRecommendationLimits.maximumTripPrimaryTypes
+   ) {
+      return false;
+   }
+
+   return candidate.primaryTypes.every((primaryType) => isSafeIdentifier(primaryType));
 }
 
 function hasUniqueValues(values: readonly string[]): boolean {
@@ -293,6 +330,14 @@ export async function POST(request: Request) {
       return errorResponse("The committed day context is invalid.", 400, "INVALID_REQUEST", requestId);
    }
 
+   if (body.tripContext !== undefined && !isTripRecommendationContext(body.tripContext)) {
+      return errorResponse("The trip recommendation context is invalid.", 400, "INVALID_REQUEST", requestId);
+   }
+
+   if (body.replacementActivity !== undefined && body.replacementActivity !== null && !isActivityKind(body.replacementActivity)) {
+      return errorResponse("The replacement context is invalid.", 400, "INVALID_REQUEST", requestId);
+   }
+
    const geography = resolveGeography({
       metroRegionId: body.metroRegionId,
       municipalityId: body.municipalityId,
@@ -313,6 +358,13 @@ export async function POST(request: Request) {
 
    const committedStops = body.committedStops ?? [];
 
+   const tripContext = body.tripContext ?? {
+      activityCounts: { outdoors: 0, culture: 0, browse: 0, food: 0 },
+      primaryTypes: [],
+   };
+
+   const replacementActivity = body.replacementActivity ?? null;
+
    console.info("Sidewalk recommendation request", {
       requestId,
       stage: "accepted",
@@ -321,6 +373,8 @@ export async function POST(request: Request) {
       variationIndex,
       excludedCount: excludedPlaceIds.length,
       committedStopCount: committedStops.length,
+      tripContextStopCount: activityKinds.reduce((total, activity) => total + tripContext.activityCounts[activity], 0),
+      replacementActivity,
    });
 
    try {
@@ -353,6 +407,8 @@ export async function POST(request: Request) {
 
          excludedPlaceIds,
          committedStops,
+         tripContext,
+         replacementActivity,
       });
 
       const elapsedMilliseconds = Math.round(performance.now() - requestStartedAt);

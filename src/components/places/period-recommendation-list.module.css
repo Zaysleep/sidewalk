@@ -98,6 +98,14 @@
    white-space: nowrap;
 }
 
+
+.shortlistNote {
+   max-width: 36rem;
+   color: var(--sw-color-text-secondary);
+   font-size: var(--sw-text-sm);
+   line-height: 1.55;
+}
+
 .refreshPanel {
    display: grid;
    justify-items: start;

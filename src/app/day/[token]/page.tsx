@@ -85,24 +85,11 @@ function sortStops(stops: readonly SharedDayStop[]): readonly SharedDayStop[] {
    });
 }
 
-function formatDuration(minimumMinutes: number, maximumMinutes: number): string {
-   if (minimumMinutes === maximumMinutes) {
-      return `${minimumMinutes} minutes`;
-   }
+function formatSharedDayPlace(snapshot: SharedDaySnapshot): string {
+   const geography = snapshot.geography;
+   const regionName = "regionName" in geography && geography.regionName ? geography.regionName : geography.stateOrRegion;
 
-   return `${minimumMinutes}–${maximumMinutes} minutes`;
-}
-
-function formatTotalDuration(stops: readonly SharedDayStop[]): string {
-   const minimumMinutes = stops.reduce((total, stop) => total + stop.visitDurationMinutes.minimum, 0);
-
-   const maximumMinutes = stops.reduce((total, stop) => total + stop.visitDurationMinutes.maximum, 0);
-
-   if (minimumMinutes === maximumMinutes) {
-      return `${minimumMinutes} minutes at places`;
-   }
-
-   return `${minimumMinutes}–${maximumMinutes} minutes at places`;
+   return `${geography.municipalityName}, ${regionName}`;
 }
 
 function createPageDescription(snapshot: SharedDaySnapshot): string {
@@ -269,9 +256,7 @@ export default async function SharedDayPage({ params }: SharedDayPageProps) {
 
                   <p className={styles.introduction}>{pageDescription}</p>
 
-                  <p className={styles.geography}>
-                     {snapshot.geography.municipalityName} · {snapshot.geography.metroName} · {snapshot.geography.stateOrRegion}
-                  </p>
+                  <p className={styles.geography}>{formatSharedDayPlace(snapshot)}</p>
                </header>
 
                <ol className={styles.itinerary} aria-label={`Itinerary for ${pageTitle}`}>
@@ -299,8 +284,6 @@ export default async function SharedDayPage({ params }: SharedDayPageProps) {
                                  {stop.reason ? <p className={styles.reason}>{stop.reason}</p> : null}
 
                                  <div className={styles.stopFooter}>
-                                    <p className={styles.duration}>{formatDuration(stop.visitDurationMinutes.minimum, stop.visitDurationMinutes.maximum)}</p>
-
                                     {stop.locationUrl ? (
                                        <a className={styles.locationLink} href={stop.locationUrl} target="_blank" rel="noreferrer noopener" referrerPolicy="no-referrer" aria-label={`Open ${stop.placeName} location in a new tab`}>
                                           Open location
@@ -321,7 +304,7 @@ export default async function SharedDayPage({ params }: SharedDayPageProps) {
                      <p className={styles.footerLabel}>The shape of the day</p>
 
                      <p className={styles.footerSummary}>
-                        {orderedStops.length} {orderedStops.length === 1 ? "stop" : "stops"} · {formatTotalDuration(orderedStops)}
+                        {orderedStops.length} {orderedStops.length === 1 ? "stop" : "stops"}
                      </p>
                   </div>
 

@@ -11,7 +11,10 @@ type SiteHeaderProps = Readonly<{
    metroRegions: readonly MetroRegion[];
    selectedMetroSlug: string;
    recentMetroSlugs: readonly string[];
+   tripTitle?: string | null;
+   tripDayCount?: number;
    onMetroChange: (metroSlug: string) => void;
+   onResumeTrip?: () => void;
 }>;
 
 type MetroRegionGroup = Readonly<{
@@ -48,7 +51,7 @@ function groupMetroRegions(metroRegions: readonly MetroRegion[]): readonly Metro
  * from active metro coverage so future additions do not require another UI
  * branch or a permanently visible empty destination.
  */
-export function SiteHeader({ metroRegions, selectedMetroSlug, recentMetroSlugs, onMetroChange }: SiteHeaderProps) {
+export function SiteHeader({ metroRegions, selectedMetroSlug, recentMetroSlugs, tripTitle = null, tripDayCount = 0, onMetroChange, onResumeTrip }: SiteHeaderProps) {
    const selectedMetro = metroRegions.find((candidate) => candidate.slug === selectedMetroSlug) ?? metroRegions[0] ?? null;
 
    const activeCountryCodes = new Set(metroRegions.map((metroRegion) => metroRegion.countryCode));
@@ -172,6 +175,16 @@ export function SiteHeader({ metroRegions, selectedMetroSlug, recentMetroSlugs, 
                      })}
                   </div>
                </nav>
+            ) : null}
+
+            {tripTitle && tripDayCount > 0 && onResumeTrip ? (
+               <div className="metro-trip-resume">
+                  <span className="metro-trip-resume__label">Saved trip</span>
+
+                  <button type="button" className="metro-trip-resume__button" onClick={onResumeTrip}>
+                     Continue {tripTitle} · {tripDayCount} {tripDayCount === 1 ? "day" : "days"}
+                  </button>
+               </div>
             ) : null}
          </div>
       </header>

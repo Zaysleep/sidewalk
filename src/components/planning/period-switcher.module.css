@@ -94,3 +94,7 @@
       transition: none;
    }
 }
+
+.tab[data-past="true"] {
+   opacity: 0.42;
+}

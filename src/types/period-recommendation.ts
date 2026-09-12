@@ -10,6 +10,8 @@ export const periodRecommendationLimits = {
    maximumRequestBodyBytes: 32_768,
    maximumExcludedPlaceIds: 50,
    maximumCommittedStops: 5,
+   maximumTripContextStops: 25,
+   maximumTripPrimaryTypes: 25,
    maximumSessionSeedLength: 128,
    maximumIdentifierLength: 160,
    maximumPlaceNameLength: 200,
@@ -17,6 +19,12 @@ export const periodRecommendationLimits = {
 } as const;
 
 export type PeriodRecommendationErrorCode = "INVALID_JSON" | "REQUEST_TOO_LARGE" | "INVALID_REQUEST" | "INVALID_DATE" | "INVALID_GEOGRAPHY" | "PROVIDER_TIMEOUT" | "PROVIDER_ERROR" | "RATE_LIMITED";
+
+
+export type TripRecommendationContext = Readonly<{
+   activityCounts: Readonly<Record<ActivityKind, number>>;
+   primaryTypes: readonly string[];
+}>;
 
 export type CommittedStopContext = Readonly<{
    placeId: string;
@@ -68,6 +76,19 @@ export type PeriodRecommendationRequest = Readonly<{
    excludedPlaceIds: readonly string[];
 
    committedStops?: readonly CommittedStopContext[];
+
+   /**
+    * Trip-wide experience memory used only for soft variety scoring. It never
+    * changes route-distance math or overrides an explicit activity request.
+    */
+   tripContext?: TripRecommendationContext;
+
+   /**
+    * When someone chooses Change, Sidewalk may gently prefer a different
+    * activity when the direction is Sidewalk Choice. Explicit user directions
+    * remain authoritative.
+    */
+   replacementActivity?: ActivityKind | null;
 }>;
 
 export type PeriodRecommendationResponse = Readonly<{

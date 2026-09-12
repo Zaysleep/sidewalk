@@ -1,7 +1,7 @@
 .masthead {
    display: flex;
    align-items: center;
-   justify-content: space-between;
+   justify-content: flex-end;
    gap: var(--sw-space-4);
    padding: var(--sw-space-5) var(--sw-page-inline);
    border-bottom: var(--sw-border-width) solid var(--sw-color-border);

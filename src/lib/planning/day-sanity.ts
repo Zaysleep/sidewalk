@@ -3,7 +3,7 @@ import { dayPeriodDefinitions, dayPeriods, type DayPeriod } from "@/types/day-pe
 import type { DayStop } from "@/types/day-plan";
 
 export type DaySanityNote = Readonly<{
-   id: "long-jump" | "long-gap" | "same-direction";
+   id: "limited-hours" | "long-jump" | "long-gap" | "same-direction";
    message: string;
 }>;
 
@@ -46,6 +46,21 @@ function sortStops(stops: readonly DayStop[]): readonly DayStop[] {
 
       return stop ? [stop] : [];
    });
+}
+
+function getLimitedHoursNote(stops: readonly DayStop[]): DaySanityNote | null {
+   const limitedStop = stops.find((stop) => stop.availabilityStatus === "open-part-of-window" && stop.availabilityLabel);
+
+   if (!limitedStop || !limitedStop.availabilityLabel) {
+      return null;
+   }
+
+   const timingCopy = `${limitedStop.availabilityLabel.charAt(0).toLowerCase()}${limitedStop.availabilityLabel.slice(1)}`;
+
+   return {
+      id: "limited-hours",
+      message: `${limitedStop.placeName}: ${timingCopy}. Check the timing before you go so the stop does not feel rushed.`,
+   };
 }
 
 function getLongJumpNote(stops: readonly DayStop[]): DaySanityNote | null {
@@ -118,5 +133,5 @@ export function getPrimaryDaySanityNote(stops: readonly DayStop[]): DaySanityNot
 
    const orderedStops = sortStops(stops);
 
-   return getLongJumpNote(orderedStops) ?? getLongGapNote(orderedStops) ?? getRepeatedDirectionNote(orderedStops);
+   return getLimitedHoursNote(orderedStops) ?? getLongJumpNote(orderedStops) ?? getLongGapNote(orderedStops) ?? getRepeatedDirectionNote(orderedStops);
 }

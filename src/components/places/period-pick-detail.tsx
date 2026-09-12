@@ -29,14 +29,6 @@ function formatRatingCount(count: number): string {
    return new Intl.NumberFormat("en-US").format(count);
 }
 
-function formatVisitDuration(minimum: number, maximum: number): string {
-   if (minimum === maximum) {
-      return `${minimum} minutes`;
-   }
-
-   return `${minimum}–${maximum} minutes`;
-}
-
 export function PeriodPickDetail({ dayPeriod, recommendation, areaName, hasPeriodStop, isCurrentPeriodStop, nextPeriodLabel, onAddToDay, onContinue, onFeedback }: PeriodPickDetailProps) {
    const [imageFailed, setImageFailed] = useState(false);
 
@@ -53,8 +45,6 @@ export function PeriodPickDetail({ dayPeriod, recommendation, areaName, hasPerio
    useEffect(() => {
       setImageFailed(false);
    }, [photoResourceName]);
-
-   const duration = formatVisitDuration(place.editorial.visitDurationMinutes.minimum, place.editorial.visitDurationMinutes.maximum);
 
    const locationUrl = place.provider.mapsUrl ?? place.provider.websiteUrl ?? null;
 
@@ -105,12 +95,6 @@ export function PeriodPickDetail({ dayPeriod, recommendation, areaName, hasPerio
                   </div>
                ) : null}
 
-               <div className={styles.fact}>
-                  <dt>Best window</dt>
-
-                  <dd>{recommendation.bestWindow}</dd>
-               </div>
-
                {availability ? (
                   <div className={styles.fact}>
                      <dt>Hours</dt>
@@ -119,12 +103,18 @@ export function PeriodPickDetail({ dayPeriod, recommendation, areaName, hasPerio
                         {availability.label}
                      </dd>
                   </div>
-               ) : null}
+               ) : (
+                  <div className={styles.fact}>
+                     <dt>Hours</dt>
+
+                     <dd className={styles.availability} data-status="hours-unavailable">Check hours for this date</dd>
+                  </div>
+               )}
 
                <div className={styles.fact}>
-                  <dt>Visit length</dt>
+                  <dt>Best window</dt>
 
-                  <dd>{duration}</dd>
+                  <dd>{recommendation.bestWindow}</dd>
                </div>
             </dl>
 

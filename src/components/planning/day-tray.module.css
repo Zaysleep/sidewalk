@@ -2079,212 +2079,120 @@
    }
 }
 
-/* -------------------------------------------------------------------------- */
-/* E2D — Day / Trip tray simplification                                       */
-/* -------------------------------------------------------------------------- */
+/* MK III keeps the day tray compact: primary actions live together and each
+ * saved stop reveals its controls only when the person asks for them. */
+.dayActionCluster {
+   display: grid;
+   grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
+   gap: var(--sw-space-2);
+}
 
-/*
- * The open tray already has a persistent DAY / TRIP switch. Keep the inner
- * header focused on the selected plan instead of repeating "YOUR DAY",
- * "DAY PLAN", dates, and counts in several adjacent rows.
- */
-.dayHeader {
+.dayActionCluster > * {
+   width: 100%;
+   min-width: 0;
+}
+
+.dayTripStatus {
+   color: var(--sw-color-olive);
+   font-size: var(--sw-text-sm);
+   font-weight: 750;
+   line-height: 1.4;
+}
+
+.stop {
+   gap: 0;
+   padding-block: 0;
+}
+
+.stopDisclosure {
+   min-width: 0;
+}
+
+.stopSummary {
+   display: grid;
+   grid-template-columns: minmax(0, 1fr) auto;
+   align-items: center;
+   gap: var(--sw-space-3);
+   padding-block: var(--sw-space-4);
+   cursor: pointer;
+   list-style: none;
+}
+
+.stopSummary::-webkit-details-marker {
+   display: none;
+}
+
+.stopSummaryCopy {
+   display: grid;
+   min-width: 0;
+   gap: var(--sw-space-2);
+}
+
+.stopDisclosureIcon {
+   display: grid;
+   width: 1.9rem;
+   height: 1.9rem;
+   place-items: center;
+   border: var(--sw-border-width) solid var(--sw-color-border);
+   border-radius: 999px;
+   color: var(--sw-color-text-secondary);
+   font-size: 1.2rem;
+   line-height: 1;
+   transition: transform var(--sw-duration-fast) var(--sw-ease-standard);
+}
+
+.stopDisclosure[open] .stopDisclosureIcon {
+   transform: rotate(45deg);
+}
+
+.stopDisclosure[open] .stopSummary {
+   padding-bottom: var(--sw-space-3);
+}
+
+.stopDisclosure .stopActions {
+   margin-top: 0;
+   padding: 0 0 var(--sw-space-4);
+}
+
+.editButton:disabled {
+   cursor: not-allowed;
+   opacity: 0.45;
+}
+
+.tripNextDayAction {
    display: grid;
    gap: var(--sw-space-2);
-   padding-bottom: var(--sw-space-3);
-   border-bottom: var(--sw-border-width) solid var(--sw-color-border);
 }
 
-.dayHeader .title {
-   margin-top: 0;
-}
-
-.dayContext {
-   margin: 0;
-   color: var(--sw-color-text-secondary);
-   font-size: var(--sw-text-sm);
-   font-weight: 650;
-   line-height: 1.45;
-}
-
-/* Share is the first completed-day action, before the itinerary. */
-.daySharePrimary {
-   display: grid;
-}
-
-.daySharePrimary .shareButton {
+.tripNextDayAction .addTripDayButton {
    width: 100%;
 }
 
-/*
- * Once a user chooses Share, Sidewalk begins creating the link immediately.
- * The resulting panel is intentionally compact: one explanation, one primary
- * share action, and two quiet utilities.
- */
-.sharePanel {
-   gap: var(--sw-space-3);
+@media (max-width: 26rem) {
+   .dayActionCluster {
+      grid-template-columns: 1fr;
+   }
 }
 
-.sharePanelHeading {
-   gap: 0;
+@media (prefers-reduced-motion: reduce) {
+   .stopDisclosureIcon {
+      transition: none;
+   }
 }
 
-.shareTitle {
-   max-width: none;
-   font-size: clamp(1.25rem, 4vw, 1.55rem);
-}
-
-.shareReadyActions {
-   grid-template-columns: minmax(0, 1.2fr) repeat(2, minmax(0, 1fr));
-}
-
-.shareReadyActions .copyLinkButton {
-   border-color: var(--sw-color-ink);
-   background: var(--sw-color-ink);
-}
-
-.shareReadyActions .viewSharedDayLink {
-   padding-inline: var(--sw-space-3);
-}
-
-/* Day-to-trip state should read as a compact status, not another card. */
-.tripStatus {
-   display: grid;
-   gap: var(--sw-space-3);
-   padding-top: var(--sw-space-4);
-   border-top: var(--sw-border-width) solid var(--sw-color-border);
-}
-
-.tripStatusCopy {
+.dayHeader {
    display: grid;
    gap: var(--sw-space-1);
 }
 
-.tripStatusTitle {
-   margin: 0;
-   color: var(--sw-color-text-primary);
+.dayContext,
+.tripShareHint {
+   color: var(--sw-color-text-secondary);
    font-size: var(--sw-text-sm);
-   font-weight: 800;
-   line-height: 1.4;
-}
-
-.tripStatusActions {
-   display: flex;
-   flex-wrap: wrap;
-   align-items: center;
-   gap: var(--sw-space-3);
-}
-
-.tripStatusActions .tripFolioButton {
-   width: auto;
+   line-height: 1.45;
 }
 
 .dayUtilities {
    display: flex;
    justify-content: flex-start;
-   padding-top: var(--sw-space-2);
-   border-top: var(--sw-border-width) solid var(--sw-color-border);
 }
-
-/* Clear remains available, but it no longer competes with Share/Add actions. */
-.dayUtilities .clearDayButton {
-   width: auto;
-   min-height: var(--sw-touch-target);
-   padding: var(--sw-space-2) 0;
-   border: 0;
-   background: transparent;
-   color: var(--sw-color-text-secondary);
-   text-decoration: underline;
-   text-underline-offset: 0.22em;
-}
-
-.dayUtilities .clearDayButton:hover {
-   border: 0;
-   background: transparent;
-   color: var(--sw-color-terracotta);
-}
-
-/* The trip title is enough identity here; the tab already carries the day count. */
-.tripTabHeader {
-   display: grid;
-   gap: var(--sw-space-2);
-   padding-bottom: var(--sw-space-2);
-}
-
-.tripTabHeader .title {
-   margin-top: 0;
-}
-
-.tripShareHint {
-   margin: 0;
-   padding: var(--sw-space-3) 0;
-   border-block: var(--sw-border-width) solid var(--sw-color-border);
-   color: var(--sw-color-text-secondary);
-   font-size: var(--sw-text-sm);
-   line-height: 1.5;
-}
-
-/* When trip sharing is available, surface it before Saved Days. */
-.tripShare {
-   padding-block: var(--sw-space-3);
-   border-block: var(--sw-border-width) solid var(--sw-color-border);
-}
-
-.tripShare .tripShareButton {
-   width: 100%;
-   border-color: var(--sw-color-ink);
-   background: var(--sw-color-ink);
-   color: var(--sw-color-warm-white);
-}
-
-.tripShare .tripShareButton:hover:not(:disabled) {
-   border-color: var(--sw-color-forest);
-   background: var(--sw-color-forest);
-   color: var(--sw-color-warm-white);
-}
-
-/* "Current day" is status language, not an opening-hours badge. */
-.tripDayCurrent {
-   padding: 0;
-   border-radius: 0;
-   background: transparent;
-   color: var(--sw-color-olive);
-   font-size: var(--sw-text-xs);
-   font-weight: 800;
-}
-
-/* The large bottom Done action duplicated the always-visible Close control. */
-.tripTabActions,
-.trayActions {
-   display: none;
-}
-
-@media (max-width: 63.99rem) {
-   .summaryPlace:empty {
-      min-width: 0;
-   }
-
-   .dayHeader {
-      padding-top: var(--sw-space-1);
-   }
-
-   .shareReadyActions {
-      grid-template-columns: 1fr;
-   }
-
-   .tripStatusActions {
-      display: grid;
-      grid-template-columns: 1fr;
-   }
-
-   .tripStatusActions .tripFolioButton {
-      width: 100%;
-   }
-}
-
-@media (min-width: 64rem) {
-   .shareReadyActions {
-      grid-template-columns: 1fr;
-   }
-}
-

@@ -130,6 +130,12 @@ export function PeriodRecommendationList({ dayPeriod, recommendations, selectedP
             </div>
          </fieldset>
 
+         {!hasCompleteSet && recommendations.length > 0 ? (
+            <p className={styles.shortlistNote} role="status">
+               Sidewalk found {recommendations.length === 1 ? "one stronger option" : `${recommendations.length} stronger options`} here and left weaker filler out.
+            </p>
+         ) : null}
+
          {hasCompleteSet ? (
             <div className={styles.refreshPanel}>
                <button

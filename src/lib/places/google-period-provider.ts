@@ -1,8 +1,8 @@
 import "server-only";
 
-import type { ActivityDirection, ActivityKind } from "@/types/activity";
+import { activityKinds, type ActivityDirection, type ActivityKind } from "@/types/activity";
 import { dayPeriodDefinitions, dayPeriods, type DayPeriod } from "@/types/day-period";
-import type { CommittedStopContext, PeriodRecommendation } from "@/types/period-recommendation";
+import type { CommittedStopContext, PeriodRecommendation, TripRecommendationContext } from "@/types/period-recommendation";
 import { getDestinationIsoDate } from "@/lib/geography/destination-date";
 import { getLocalAreaSearchAuthority } from "@/data/geography/local-area-search-authority";
 import type { Place, PlaceCategory, ProviderBusinessStatus, ProviderPeriodAvailability } from "@/types/place";
@@ -141,6 +141,10 @@ export type PeriodSearchContext = Readonly<{
    excludedPlaceIds: readonly string[];
 
    committedStops: readonly CommittedStopContext[];
+
+   tripContext: TripRecommendationContext;
+
+   replacementActivity: ActivityKind | null;
 }>;
 
 type ScoredCandidate = Readonly<{
@@ -205,6 +209,10 @@ const recommendationQualityCalibration = {
    // Keep refreshes fresh without letting randomness outrank a clearly stronger place.
    maximumSeedVariationBonus: 2,
    nationalChainPenalty: 18,
+
+   // Do not pad a shortlist with a place that is materially below the strong tier.
+   maximumFallbackScoreGap: 12,
+   qualityLeadBeforeVariety: 5,
 } as const;
 
 /**
@@ -227,6 +235,20 @@ const dayVarietyCalibration = {
    adjacentDifferentActivityBonus: 3,
 
    saturatedActivityPenalty: 4,
+} as const;
+
+/**
+ * Trip memory stays deliberately softer than same-day variety. A saved trip
+ * should influence Sidewalk Choice without preventing someone from explicitly
+ * asking for another museum, restaurant, or outdoor stop.
+ */
+const tripVarietyCalibration = {
+   unseenActivityBonus: 2,
+   repeatedActivityPenalty: 2,
+   maximumActivityPenalty: 8,
+   repeatedPrimaryTypePenalty: 3,
+   maximumPrimaryTypePenalty: 9,
+   replacementActivityPenalty: 7,
 } as const;
 
 /**
@@ -1184,6 +1206,9 @@ function createRecommendationCacheKey(context: PeriodSearchContext): string {
       getRecommendationHoursCacheSegment(),
       [...context.excludedPlaceIds].sort().join(","),
       createCommittedStopsCacheSegment(context.committedStops),
+      activityKinds.map((activity) => `${activity}=${context.tripContext.activityCounts[activity]}`).join(","),
+      [...context.tripContext.primaryTypes].sort().join(","),
+      context.replacementActivity ?? "none",
    ].join(":");
 }
 
@@ -1546,6 +1571,30 @@ function calculateDayVarietyScore(activity: ActivityKind, context: PeriodSearchC
    return score;
 }
 
+function calculateTripVarietyScore(place: GooglePlace, activity: ActivityKind, context: PeriodSearchContext): number {
+   if (context.activityDirection !== "sidewalk-choice") {
+      return 0;
+   }
+
+   const activityCount = context.tripContext.activityCounts[activity] ?? 0;
+   const primaryType = place.primaryType ?? "";
+   const primaryTypeCount = primaryType
+      ? context.tripContext.primaryTypes.filter((type) => type === primaryType).length
+      : 0;
+
+   let score = activityCount === 0 ? tripVarietyCalibration.unseenActivityBonus : -Math.min(tripVarietyCalibration.maximumActivityPenalty, activityCount * tripVarietyCalibration.repeatedActivityPenalty);
+
+   if (primaryTypeCount > 0) {
+      score -= Math.min(tripVarietyCalibration.maximumPrimaryTypePenalty, primaryTypeCount * tripVarietyCalibration.repeatedPrimaryTypePenalty);
+   }
+
+   if (context.replacementActivity === activity) {
+      score -= tripVarietyCalibration.replacementActivityPenalty;
+   }
+
+   return score;
+}
+
 function getReferenceCommittedStop(context: PeriodSearchContext): CommittedStopContext | null {
    if (context.committedStops.length === 0) {
       return null;
@@ -1715,6 +1764,8 @@ function scoreCandidate(place: GooglePlace, activity: ActivityKind, providerInde
 
    const coherenceScore = calculateDayCoherenceScore(place, activity, context);
 
+   const tripVarietyScore = calculateTripVarietyScore(place, activity, context);
+
    const routeSanityScore = calculateRouteSanityScore(place, context);
 
    const availabilityScore = calculateAvailabilityScore(availabilityAnalysis);
@@ -1736,6 +1787,7 @@ function scoreCandidate(place: GooglePlace, activity: ActivityKind, providerInde
       preferredActivity * 10 +
       operationalFit * 6 +
       coherenceScore +
+      tripVarietyScore +
       routeSanityScore +
       availabilityScore +
       specificityScore +
@@ -2274,6 +2326,12 @@ function orderStrongCandidatesForDayVariety(candidates: readonly ScoredCandidate
    }
 
    return [...candidates].sort((first, second) => {
+      const qualityDifference = second.qualityScore - first.qualityScore;
+
+      if (Math.abs(qualityDifference) >= recommendationQualityCalibration.qualityLeadBeforeVariety) {
+         return qualityDifference;
+      }
+
       const firstCount = getCommittedActivityCount(context, first.activity);
 
       const secondCount = getCommittedActivityCount(context, second.activity);
@@ -2380,9 +2438,15 @@ function selectThree(candidates: readonly ScoredCandidate[], context: PeriodSear
     * Sparse-market fallback: eligible lower-tier candidates may fill any
     * remaining slots, but only after every strong candidate has had a chance.
     */
+   const fallbackMinimumScore = getStrongCandidateMinimumScore(context) - recommendationQualityCalibration.maximumFallbackScoreGap;
+
    for (const candidate of sorted) {
       if (recommendations.length >= 3) {
          break;
+      }
+
+      if (candidate.qualityScore < fallbackMinimumScore) {
+         continue;
       }
 
       tryAddCandidate(candidate, false);
@@ -2747,6 +2811,8 @@ async function buildPeriodRecommendations(context: PeriodSearchContext, cacheKey
       selectedCount: recommendations.length,
       selectedChainCount: recommendations.filter((recommendation) => nationalChainBrandKeys.has(createBrandKey(recommendation.place.provider.name))).length,
       committedActivities: context.committedStops.map((stop) => stop.resolvedActivity),
+      tripActivityCounts: context.tripContext.activityCounts,
+      replacementActivity: context.replacementActivity,
       selectedActivities: recommendations.map((recommendation) => recommendation.resolvedActivity),
       selectedPrimaryTypes: recommendations.map((recommendation) => recommendation.place.provider.primaryType),
       selectedAvailability: recommendations.map((recommendation) => recommendation.place.provider.periodAvailability?.label ?? "hours unavailable"),

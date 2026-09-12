@@ -31,10 +31,15 @@ type DayTrayProps = Readonly<{
    tripShareUrl: string | null;
    tripShareMessage: string;
 
+   requestedTab?: "day" | "trip" | null;
+   requestedTabVersion?: number;
+
    onToggle: () => void;
    onDone: () => void;
    onRemove: (stopId: string) => void;
    onClearDay: () => void;
+   unavailablePeriods: readonly DayPeriod[];
+   canAddAnotherStop: boolean;
    onEditPeriod: (period: DayPeriod) => void;
    onContinuePlanning: () => void;
    onCreateShare: () => void;
@@ -45,14 +50,6 @@ type DayTrayProps = Readonly<{
    onCreateTripShare: () => void;
    onRenameTrip: (title: string) => void;
 }>;
-
-function formatDuration(minimumMinutes: number, maximumMinutes: number): string {
-   if (minimumMinutes === maximumMinutes) {
-      return `${minimumMinutes} minutes`;
-   }
-
-   return `${minimumMinutes}–${maximumMinutes} minutes`;
-}
 
 function formatPlanningDate(planningDate: string): string {
    const [yearText, monthText, dayText] = planningDate.split("-");
@@ -140,10 +137,14 @@ export function DayTray({
    tripShareStatus,
    tripShareUrl,
    tripShareMessage,
+   requestedTab = null,
+   requestedTabVersion = 0,
    onToggle,
    onDone,
    onRemove,
    onClearDay,
+   unavailablePeriods,
+   canAddAnotherStop,
    onEditPeriod,
    onContinuePlanning,
    onCreateShare,
@@ -315,13 +316,23 @@ export function DayTray({
       }
    }, [tripTitle]);
 
+   useEffect(() => {
+      if (!requestedTab) {
+         return;
+      }
+
+      if (requestedTab === "trip" && !hasTripFolio) {
+         return;
+      }
+
+      setActiveTrayTab(requestedTab);
+   }, [hasTripFolio, requestedTab, requestedTabVersion]);
+
    if (stops.length === 0 && !hasTripFolio) {
       return null;
    }
 
    const orderedStops = sortStops(stops);
-
-   const canAddAnotherStop = orderedStops.length < dayPeriods.length;
 
    const formattedPlanningDate = formatPlanningDate(planningDate);
 
@@ -437,6 +448,13 @@ export function DayTray({
             behavior: "auto",
          });
       });
+   }
+
+   function handleStartTripFromDay() {
+      setActiveTrayTab("trip");
+      setIsSharePanelOpen(false);
+      setIsClearConfirmationOpen(false);
+      onSaveToTrip();
    }
 
    function handleAddTripDayFromTripTab() {
@@ -666,8 +684,8 @@ export function DayTray({
                      ) : null}
                   </header>
 
-                  {isComplete ? (
-                     <div className={styles.daySharePrimary}>
+                  <div className={styles.dayActionCluster} aria-label="Day actions">
+                     {isComplete ? (
                         <button
                            ref={shareDayButtonReference}
                            type="button"
@@ -678,7 +696,29 @@ export function DayTray({
                         >
                            Share this day
                         </button>
-                     </div>
+                     ) : null}
+
+                     {orderedStops.length > 0 && canAddAnotherStop ? (
+                        <button type="button" className={isComplete ? styles.optionalButton : styles.continueButton} onClick={onContinuePlanning}>
+                           {isComplete ? "Add another stop" : "Choose one more stop"}
+                        </button>
+                     ) : null}
+
+                     {isComplete && !hasTripFolio ? (
+                        <button type="button" className={styles.tripFolioButton} onClick={handleStartTripFromDay}>
+                           Start a trip
+                        </button>
+                     ) : null}
+
+                     {hasTripFolio && isComplete && tripDayStatus !== "saved" ? (
+                        <button type="button" className={styles.tripFolioButton} onClick={onSaveToTrip}>
+                           {tripDayStatus === "changed" ? "Save changes" : "Save to trip"}
+                        </button>
+                     ) : null}
+                  </div>
+
+                  {hasTripFolio && tripDayStatus === "saved" ? (
+                     <p className={styles.dayTripStatus}>Saved in {tripTitle}</p>
                   ) : null}
 
                   {isSharePanelOpen ? (
@@ -743,44 +783,55 @@ export function DayTray({
                      <div className={styles.stopList}>
                         {orderedStops.map((stop) => {
                            const periodLabel = getPeriodLabel(stop.dayPeriod);
+                           const isPastPeriod = unavailablePeriods.includes(stop.dayPeriod);
 
                            return (
                               <article key={stop.id} className={styles.stop} aria-labelledby={`day-stop-title-${stop.id}`}>
-                                 <div className={styles.stopHeading}>
-                                    <p className={styles.stopLabel}>{periodLabel}</p>
-                                    <p className={styles.window}>{stop.bestWindow}</p>
-                                 </div>
+                                 <details className={styles.stopDisclosure}>
+                                    <summary className={styles.stopSummary}>
+                                       <span className={styles.stopSummaryCopy}>
+                                          <span className={styles.stopHeading}>
+                                             <span className={styles.stopLabel}>{periodLabel}</span>
+                                             <span className={styles.window}>{stop.bestWindow}</span>
+                                          </span>
 
-                                 <h3 id={`day-stop-title-${stop.id}`} className={styles.stopName}>
-                                    {stop.placeName}
-                                 </h3>
+                                          <span id={`day-stop-title-${stop.id}`} className={styles.stopName}>
+                                             {stop.placeName}
+                                          </span>
+                                       </span>
 
-                                 <p className={styles.stopMeta}>
-                                    {stop.localAreaName}, {stop.municipalityName} · {formatDuration(stop.visitDurationMinutes.minimum, stop.visitDurationMinutes.maximum)}
-                                 </p>
+                                       <span className={styles.stopDisclosureIcon} aria-hidden="true">+</span>
+                                    </summary>
 
-                                 <div className={styles.stopActions}>
-                                    {stop.locationUrl ? (
-                                       <a className={styles.locationLink} href={stop.locationUrl} target="_blank" rel="noreferrer" aria-label={`Open ${stop.placeName} location in a new tab`}>
-                                          Open location
-                                       </a>
-                                    ) : null}
+                                    <div className={styles.stopActions}>
+                                       {stop.locationUrl ? (
+                                          <a className={styles.locationLink} href={stop.locationUrl} target="_blank" rel="noreferrer" aria-label={`Open ${stop.placeName} location in a new tab`}>
+                                             Open location
+                                          </a>
+                                       ) : null}
 
-                                    <button type="button" className={styles.editButton} aria-label={`Change the ${periodLabel} stop`} onClick={() => onEditPeriod(stop.dayPeriod)}>
-                                       Change
-                                    </button>
+                                       <button
+                                          type="button"
+                                          className={styles.editButton}
+                                          aria-label={isPastPeriod ? `${periodLabel} has already passed` : `Change the ${periodLabel} stop`}
+                                          disabled={isPastPeriod}
+                                          onClick={() => onEditPeriod(stop.dayPeriod)}
+                                       >
+                                          Change
+                                       </button>
 
-                                    <button
-                                       type="button"
-                                       className={styles.removeButton}
-                                       aria-label={`Remove ${stop.placeName} from ${periodLabel}`}
-                                       onClick={() => {
-                                          preserveTrayScroll(() => onRemove(stop.id));
-                                       }}
-                                    >
-                                       Remove
-                                    </button>
-                                 </div>
+                                       <button
+                                          type="button"
+                                          className={styles.removeButton}
+                                          aria-label={`Remove ${stop.placeName} from ${periodLabel}`}
+                                          onClick={() => {
+                                             preserveTrayScroll(() => onRemove(stop.id));
+                                          }}
+                                       >
+                                          Remove
+                                       </button>
+                                    </div>
+                                 </details>
                               </article>
                            );
                         })}
@@ -803,72 +854,8 @@ export function DayTray({
                         </div>
                      ) : null}
 
-                     <div className={styles.footerActions}>
-                        {!isComplete && orderedStops.length > 0 && canAddAnotherStop ? (
-                           <button type="button" className={styles.continueButton} onClick={onContinuePlanning}>
-                              Choose one more stop
-                           </button>
-                        ) : null}
-
-                        {isComplete && canAddAnotherStop ? (
-                           <button type="button" className={styles.optionalButton} onClick={onContinuePlanning}>
-                              Add another stop
-                           </button>
-                        ) : null}
-                     </div>
-
-                     {isComplete && !hasTripFolio ? (
-                        <section className={styles.tripStart} aria-labelledby="sidewalk-start-trip-title">
-                           <div className={styles.tripShareCopy}>
-                              <h3 id="sidewalk-start-trip-title" className={styles.tripStatusTitle}>
-                                 Planning another day?
-                              </h3>
-
-                              <p className={styles.tripShareDescription}>Keep this day with the rest of your trip.</p>
-                           </div>
-
-                           <button type="button" className={styles.tripFolioButton} onClick={onSaveToTrip}>
-                              Start a trip
-                           </button>
-                        </section>
-                     ) : null}
-
-                     {hasTripFolio ? (
-                        <section className={styles.tripStatus} aria-label="Current day trip status">
-                           <div className={styles.tripStatusCopy}>
-                              <p className={styles.tripStatusTitle}>
-                                 {tripDayStatus === "saved"
-                                    ? `Saved in ${tripTitle}`
-                                    : tripDayStatus === "changed"
-                                      ? `Changes not saved in ${tripTitle}`
-                                      : isComplete
-                                        ? `Not yet saved in ${tripTitle}`
-                                        : `${tripTitle}`}
-                              </p>
-
-                              {tripDayStatus !== "saved" ? (
-                                 <p className={styles.tripShareDescription}>
-                                    {tripDayStatus === "changed"
-                                       ? "Save the changes when this day looks right."
-                                       : isComplete
-                                         ? "Add this day when it is ready."
-                                         : "Choose at least two stops before saving this day."}
-                                 </p>
-                              ) : null}
-                           </div>
-
-                           <div className={styles.tripStatusActions}>
-                              {isComplete && tripDayStatus !== "saved" ? (
-                                 <button type="button" className={styles.tripFolioButton} onClick={onSaveToTrip}>
-                                    {tripDayStatus === "changed" ? "Save changes" : "Save to trip"}
-                                 </button>
-                              ) : null}
-
-                              <button type="button" className={styles.tripShareUtilityButton} onClick={() => handleSelectTrayTab("trip")}>
-                                 View trip
-                              </button>
-                           </div>
-                        </section>
+                     {!isComplete && orderedStops.length > 0 && !canAddAnotherStop ? (
+                        <p className={styles.completionNote}>There are no remaining time windows to add today.</p>
                      ) : null}
 
                      {visibleTripMessage && hasTripFolio ? (
@@ -981,6 +968,22 @@ export function DayTray({
                      </p>
                   ) : null}
 
+                  <div className={styles.tripNextDayAction}>
+                     {canAddTripDay ? (
+                        <>
+                           <button type="button" className={styles.addTripDayButton} disabled={!canStartAnotherTripDay} onClick={handleAddTripDayFromTripTab}>
+                              Start next day
+                           </button>
+
+                           {currentDayNeedsTripSave && !isComplete ? (
+                              <p className={styles.tripShareDescription}>Finish this day before starting the next one.</p>
+                           ) : null}
+                        </>
+                     ) : (
+                        <p className={styles.tripLimitNote}>This trip has all five available days.</p>
+                     )}
+                  </div>
+
                   {canShareTrip ? (
                      <section className={styles.tripShare} aria-labelledby="sidewalk-trip-share-title">
                         <div className={styles.tripShareCopy}>
@@ -1076,23 +1079,6 @@ export function DayTray({
                      </ol>
                   </section>
 
-                  <div className={styles.tripPrimaryActions}>
-                     {canAddTripDay ? (
-                        <>
-                           <button type="button" className={styles.addTripDayButton} disabled={!canStartAnotherTripDay} onClick={handleAddTripDayFromTripTab}>
-                              Add another day
-                           </button>
-
-                           {currentDayNeedsTripSave ? (
-                              <p className={styles.tripShareDescription}>
-                                 {isComplete ? "Your current day will be saved first." : "Finish this day before adding another."}
-                              </p>
-                           ) : null}
-                        </>
-                     ) : (
-                        <p className={styles.tripLimitNote}>This trip has all five available days.</p>
-                     )}
-                  </div>
                </section>
             ) : null}
          </div>

@@ -23,6 +23,8 @@ export function SiteFooter({ hasDayTray = false }: SiteFooterProps) {
             <Link href="/terms">Terms</Link>
 
             <Link href="/feedback">Send feedback</Link>
+
+            <a href="/?help=1">Help</a>
          </nav>
       </footer>
    );

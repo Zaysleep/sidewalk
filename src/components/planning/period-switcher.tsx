@@ -9,70 +9,74 @@ import styles from "./period-switcher.module.css";
 type PeriodSwitcherProps = Readonly<{
    activePeriod: DayPeriod;
    completedPeriods: readonly DayPeriod[];
-
+   unavailablePeriods?: readonly DayPeriod[];
    disabled?: boolean;
-
    onChange: (period: DayPeriod) => void;
 }>;
 
-export function PeriodSwitcher({ activePeriod, completedPeriods, disabled = false, onChange }: PeriodSwitcherProps) {
+export function PeriodSwitcher({ activePeriod, completedPeriods, unavailablePeriods = [], disabled = false, onChange }: PeriodSwitcherProps) {
    const tabReferences = useRef<Array<HTMLButtonElement | null>>([]);
 
-   function moveToTab(nextIndex: number) {
-      const nextPeriod = dayPeriodDefinitions[nextIndex];
-
-      if (!nextPeriod) {
-         return;
-      }
-
-      onChange(nextPeriod.id);
-
-      window.requestAnimationFrame(() => {
-         tabReferences.current[nextIndex]?.focus();
-      });
+   function isUnavailable(period: DayPeriod) {
+      return unavailablePeriods.includes(period);
    }
 
-   /**
-    * The period rail follows the standard horizontal tab pattern. Arrow keys
-    * wrap through all five periods, while Home and End jump to the edges.
-    */
+   function moveToTab(nextIndex: number, direction: 1 | -1) {
+      const total = dayPeriodDefinitions.length;
+
+      for (let offset = 0; offset < total; offset += 1) {
+         const candidateIndex = (nextIndex + offset * direction + total) % total;
+         const nextPeriod = dayPeriodDefinitions[candidateIndex];
+
+         if (!nextPeriod || isUnavailable(nextPeriod.id)) {
+            continue;
+         }
+
+         onChange(nextPeriod.id);
+
+         window.requestAnimationFrame(() => {
+            tabReferences.current[candidateIndex]?.focus();
+         });
+
+         return;
+      }
+   }
+
    function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>, currentIndex: number) {
       const finalIndex = dayPeriodDefinitions.length - 1;
 
-      let nextIndex: number | null = null;
-
       switch (event.key) {
          case "ArrowRight":
-            nextIndex = currentIndex === finalIndex ? 0 : currentIndex + 1;
-            break;
+            event.preventDefault();
+            moveToTab(currentIndex === finalIndex ? 0 : currentIndex + 1, 1);
+            return;
 
          case "ArrowLeft":
-            nextIndex = currentIndex === 0 ? finalIndex : currentIndex - 1;
-            break;
+            event.preventDefault();
+            moveToTab(currentIndex === 0 ? finalIndex : currentIndex - 1, -1);
+            return;
 
          case "Home":
-            nextIndex = 0;
-            break;
+            event.preventDefault();
+            moveToTab(0, 1);
+            return;
 
          case "End":
-            nextIndex = finalIndex;
-            break;
+            event.preventDefault();
+            moveToTab(finalIndex, -1);
+            return;
 
          default:
             return;
       }
-
-      event.preventDefault();
-
-      moveToTab(nextIndex);
    }
 
    return (
       <div className={styles.switcher} role="tablist" aria-label="Choose a part of the day" aria-orientation="horizontal">
          {dayPeriodDefinitions.map((period, index) => {
             const isActive = period.id === activePeriod;
-
             const isComplete = completedPeriods.includes(period.id);
+            const isPast = isUnavailable(period.id);
 
             return (
                <button
@@ -86,11 +90,12 @@ export function PeriodSwitcher({ activePeriod, completedPeriods, disabled = fals
                   className={styles.tab}
                   aria-selected={isActive}
                   aria-controls="sidewalk-period-panel"
-                  aria-label={`${period.label}, ${period.rangeLabel}${isComplete ? ", chosen" : ", not chosen"}`}
+                  aria-label={`${period.label}, ${period.rangeLabel}${isComplete ? ", chosen" : ""}${isPast ? ", already passed" : ""}`}
                   tabIndex={isActive ? 0 : -1}
-                  disabled={disabled}
+                  disabled={disabled || isPast}
                   data-active={isActive}
                   data-complete={isComplete}
+                  data-past={isPast}
                   onClick={() => onChange(period.id)}
                   onKeyDown={(event) => handleKeyDown(event, index)}
                >

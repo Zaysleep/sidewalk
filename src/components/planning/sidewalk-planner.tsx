@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
+import { SidewalkTutorial } from "@/components/onboarding/sidewalk-tutorial";
 import { PeriodPickDetail } from "@/components/places/period-pick-detail";
 import { PeriodRecommendationList } from "@/components/places/period-recommendation-list";
 import { ActivityDirectionSelector } from "@/components/planning/activity-direction";
@@ -19,6 +20,7 @@ import { getDestinationIsoDate } from "@/lib/geography/destination-date";
 import { getLocalAreasForMunicipality } from "@/lib/geography/get-local-areas-for-municipality";
 import { getMunicipalitiesForMetro } from "@/lib/geography/get-municipalities-for-metro";
 import { createRecentMetroSlugs, readRecentMetroSlugs, saveRecentMetroSlugs } from "@/lib/geography/recent-metros";
+import { hasCompletedSidewalkTutorial, markSidewalkTutorialCompleted } from "@/lib/onboarding/tutorial-storage";
 import { resolveGeography } from "@/lib/geography/resolve-geography";
 import { trackProductSignal } from "@/lib/analytics/product-signal-client";
 import { fetchPeriodRecommendations } from "@/lib/places/period-recommendation-client";
@@ -31,7 +33,7 @@ import { createSharedTripRequestFromFolio } from "@/lib/sharing/shared-trip-sche
 import { activityDirections, activityKinds, type ActivityDirection, type ActivityKind } from "@/types/activity";
 import { dayPeriodDefinitions, dayPeriods, type DayPeriod } from "@/types/day-period";
 import type { DayStop } from "@/types/day-plan";
-import { maxPeriodRecommendationRefreshes, periodRecommendationLimits, type CommittedStopContext, type PeriodRecommendation, type PeriodRecommendationStatus } from "@/types/period-recommendation";
+import { maxPeriodRecommendationRefreshes, periodRecommendationLimits, type CommittedStopContext, type PeriodRecommendation, type PeriodRecommendationStatus, type TripRecommendationContext } from "@/types/period-recommendation";
 import { tripFolioLimits, type TripFolio, type TripFolioDay } from "@/types/trip-folio";
 
 import plannerStyles from "./period-planner.module.css";
@@ -45,6 +47,8 @@ type SelectedRecommendations = Partial<Record<DayPeriod, PeriodRecommendation>>;
 type ActivityDirectionsByPeriod = Record<DayPeriod, ActivityDirection | null>;
 
 type RequestKeysByPeriod = Record<DayPeriod, string | null>;
+
+type ReplacementActivitiesByPeriod = Partial<Record<DayPeriod, ActivityKind>>;
 
 type SharedDayCreationStatus = "idle" | "loading" | "ready" | "error";
 
@@ -185,12 +189,73 @@ function getCurrentDayPeriodFromDeviceClock(now = new Date()): DayPeriod {
    return "night";
 }
 
+function getDestinationMinutesOfDay(timezone: string, now = new Date()): number {
+   const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone,
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+   }).formatToParts(now);
+
+   const hour = Number(parts.find((part) => part.type === "hour")?.value);
+   const minute = Number(parts.find((part) => part.type === "minute")?.value);
+
+   if (!Number.isFinite(hour) || !Number.isFinite(minute)) {
+      return now.getHours() * 60 + now.getMinutes();
+   }
+
+   return hour * 60 + minute;
+}
+
+function getCurrentDayPeriodForDestination(timezone: string, now = new Date()): DayPeriod {
+   const minutes = getDestinationMinutesOfDay(timezone, now);
+
+   if (minutes < 2 * 60) {
+      return "night";
+   }
+
+   if (minutes < 9 * 60) {
+      return "early-morning";
+   }
+
+   if (minutes < 12 * 60) {
+      return "morning";
+   }
+
+   if (minutes < 17 * 60) {
+      return "afternoon";
+   }
+
+   if (minutes < 21 * 60) {
+      return "evening";
+   }
+
+   return "night";
+}
+
+function getPastPeriodsForPlanningDate(planningDate: string, timezone: string, now = new Date()): readonly DayPeriod[] {
+   const destinationToday = getDestinationIsoDate(timezone, now);
+
+   if (planningDate > destinationToday) {
+      return [];
+   }
+
+   if (planningDate < destinationToday) {
+      return dayPeriods;
+   }
+
+   const currentPeriod = getCurrentDayPeriodForDestination(timezone, now);
+   const currentIndex = dayPeriods.indexOf(currentPeriod);
+
+   return currentIndex <= 0 ? [] : dayPeriods.slice(0, currentIndex);
+}
+
 function getStartingDayPeriod(planningDate: string, timezone: string | null | undefined): DayPeriod {
    if (!planningDate || !timezone) {
       return "early-morning";
    }
 
-   return planningDate === getDestinationIsoDate(timezone) ? getCurrentDayPeriodFromDeviceClock() : "early-morning";
+   return planningDate === getDestinationIsoDate(timezone) ? getCurrentDayPeriodForDestination(timezone) : "early-morning";
 }
 
 const planningSessionStorageKey = "sidewalk-active-planning-session-v5";
@@ -317,6 +382,21 @@ function removeSimilarDayQueryParameters() {
    window.history.replaceState(window.history.state, "", nextUrl);
 }
 
+function consumeHelpTutorialRequest(): boolean {
+   const requestUrl = new URL(window.location.href);
+
+   if (requestUrl.searchParams.get("help") !== "1") {
+      return false;
+   }
+
+   requestUrl.searchParams.delete("help");
+
+   const nextUrl = `${requestUrl.pathname}${requestUrl.search}${requestUrl.hash}`;
+   window.history.replaceState(window.history.state, "", nextUrl);
+
+   return true;
+}
+
 function createSharedDaySourceKey(planningDate: string, metroRegionId: string, municipalityId: string, localAreaId: string, stops: readonly DayStop[]): string {
    return JSON.stringify({
       planningDate,
@@ -398,8 +478,23 @@ function createPeriodRequestKey(
    variationIndex: number,
    committedStopsSegment: string,
    tripPlaceIdsSegment: string,
+   tripContextSegment: string,
+   replacementActivity: ActivityKind | null,
 ): string {
-   return [metroRegionId, municipalityId, localAreaId, dayPeriod, activityDirection, planningDate, sessionSeed, variationIndex, committedStopsSegment, tripPlaceIdsSegment].join("|");
+   return [
+      metroRegionId,
+      municipalityId,
+      localAreaId,
+      dayPeriod,
+      activityDirection,
+      planningDate,
+      sessionSeed,
+      variationIndex,
+      committedStopsSegment,
+      tripPlaceIdsSegment,
+      tripContextSegment,
+      replacementActivity ?? "none",
+   ].join("|");
 }
 
 function mergePlaceIds(currentIds: readonly string[], nextIds: readonly string[]): readonly string[] {
@@ -499,6 +594,49 @@ function createPlaceIdsRequestSegment(placeIds: readonly string[]): string {
    return [...placeIds].sort().join(",");
 }
 
+function createTripRecommendationContext(folio: TripFolio | null, currentPlanningDate: string): TripRecommendationContext {
+   const activityCounts = {
+      outdoors: 0,
+      culture: 0,
+      browse: 0,
+      food: 0,
+   } satisfies Record<ActivityKind, number>;
+
+   const primaryTypes: string[] = [];
+
+   if (!folio) {
+      return { activityCounts, primaryTypes };
+   }
+
+   for (const day of folio.days) {
+      // The day currently being edited already has its own committed-stop
+      // context. Excluding it here prevents the trip memory from double-counting.
+      if (day.planningDate === currentPlanningDate) {
+         continue;
+      }
+
+      for (const stop of day.stops) {
+         activityCounts[stop.resolvedActivity] += 1;
+
+         if (stop.providerPrimaryType) {
+            primaryTypes.push(stop.providerPrimaryType);
+         }
+      }
+   }
+
+   return {
+      activityCounts,
+      primaryTypes: primaryTypes.slice(0, periodRecommendationLimits.maximumTripPrimaryTypes),
+   };
+}
+
+function createTripContextRequestSegment(context: TripRecommendationContext): string {
+   return [
+      activityKinds.map((activity) => `${activity}=${context.activityCounts[activity]}`).join(","),
+      [...context.primaryTypes].sort().join(","),
+   ].join("~");
+}
+
 /**
  * Keep the request inside the server's existing exclusion bound while
  * protecting the most important IDs first: current-day stops and trip stops.
@@ -513,29 +651,31 @@ function addExcludedPlaceIds(target: Set<string>, placeIds: readonly string[]) {
    }
 }
 
-function getNextUnfilledPeriod(currentPeriod: DayPeriod, stops: readonly DayStop[], preferredPeriods: readonly DayPeriod[] = []): DayPeriod | null {
+function getNextUnfilledPeriod(
+   currentPeriod: DayPeriod,
+   stops: readonly DayStop[],
+   preferredPeriods: readonly DayPeriod[] = [],
+   unavailablePeriods: readonly DayPeriod[] = [],
+): DayPeriod | null {
    const filledPeriods = new Set(stops.map((stop) => stop.dayPeriod));
-
-   if (preferredPeriods.length > 0) {
-      const currentPreferredIndex = preferredPeriods.indexOf(currentPeriod);
-
-      const preferredStartIndex = currentPreferredIndex >= 0 ? currentPreferredIndex + 1 : 0;
-
-      for (let offset = 0; offset < preferredPeriods.length; offset += 1) {
-         const candidate = preferredPeriods[(preferredStartIndex + offset) % preferredPeriods.length];
-
-         if (!filledPeriods.has(candidate)) {
-            return candidate;
-         }
-      }
-   }
-
+   const unavailable = new Set(unavailablePeriods);
    const currentIndex = dayPeriods.indexOf(currentPeriod);
 
-   for (let offset = 1; offset <= dayPeriods.length; offset += 1) {
-      const candidate = dayPeriods[(currentIndex + offset) % dayPeriods.length];
+   // Continue forward through the same day. Never wrap from Night back to
+   // Early Morning; that is a new calendar day and belongs to the Trip flow.
+   const eligiblePreferred = preferredPeriods.find((period) => {
+      const index = dayPeriods.indexOf(period);
+      return index > currentIndex && !filledPeriods.has(period) && !unavailable.has(period);
+   });
 
-      if (!filledPeriods.has(candidate)) {
+   if (eligiblePreferred) {
+      return eligiblePreferred;
+   }
+
+   for (let index = currentIndex + 1; index < dayPeriods.length; index += 1) {
+      const candidate = dayPeriods[index];
+
+      if (!filledPeriods.has(candidate) && !unavailable.has(candidate)) {
          return candidate;
       }
    }
@@ -543,16 +683,21 @@ function getNextUnfilledPeriod(currentPeriod: DayPeriod, stops: readonly DayStop
    return null;
 }
 
-function getFirstUnfilledPeriod(stops: readonly DayStop[], preferredPeriods: readonly DayPeriod[] = []): DayPeriod | null {
+function getFirstUnfilledPeriod(
+   stops: readonly DayStop[],
+   preferredPeriods: readonly DayPeriod[] = [],
+   unavailablePeriods: readonly DayPeriod[] = [],
+): DayPeriod | null {
    const filledPeriods = new Set(stops.map((stop) => stop.dayPeriod));
+   const unavailable = new Set(unavailablePeriods);
 
-   const preferredPeriod = preferredPeriods.find((period) => !filledPeriods.has(period));
+   const preferredPeriod = preferredPeriods.find((period) => !filledPeriods.has(period) && !unavailable.has(period));
 
    if (preferredPeriod) {
       return preferredPeriod;
    }
 
-   return dayPeriods.find((period) => !filledPeriods.has(period)) ?? null;
+   return dayPeriods.find((period) => !filledPeriods.has(period) && !unavailable.has(period)) ?? null;
 }
 
 function getPlanProgressCopy(stopCount: number): string {
@@ -653,6 +798,10 @@ function isStoredDayStop(value: unknown): value is DayStop {
       (value.summary === undefined || typeof value.summary === "string") &&
       (value.reason === undefined || typeof value.reason === "string") &&
       (value.photoResourceName === undefined || value.photoResourceName === null || typeof value.photoResourceName === "string") &&
+      (value.providerPrimaryType === undefined || value.providerPrimaryType === null || typeof value.providerPrimaryType === "string") &&
+      (value.availabilityStatus === undefined || ["open-through-window", "open-part-of-window", "closed-during-window", "hours-unavailable"].includes(String(value.availabilityStatus))) &&
+      (value.availabilitySource === undefined || ["current-hours", "regular-hours", "unavailable"].includes(String(value.availabilitySource))) &&
+      (value.availabilityLabel === undefined || typeof value.availabilityLabel === "string") &&
       typeof duration.minimum === "number" &&
       typeof duration.maximum === "number"
    );
@@ -816,6 +965,8 @@ export function SidewalkPlanner() {
 
    const [planningDate, setPlanningDate] = useState("");
 
+   const [clockNow, setClockNow] = useState(() => new Date());
+
    const [activityDirectionsByPeriod, setActivityDirectionsByPeriod] = useState<ActivityDirectionsByPeriod>(createEmptyActivityDirections);
 
    const [activeDayPeriod, setActiveDayPeriod] = useState<DayPeriod>("early-morning");
@@ -863,6 +1014,14 @@ export function SidewalkPlanner() {
    const [tripFolioMessage, setTripFolioMessage] = useState("");
 
    const [recommendationFeedback, setRecommendationFeedback] = useState<readonly RecommendationFeedbackSignal[]>([]);
+
+   const [replacementActivitiesByPeriod, setReplacementActivitiesByPeriod] = useState<ReplacementActivitiesByPeriod>({});
+
+   const [isTutorialOpen, setIsTutorialOpen] = useState(false);
+
+   const [requestedTrayTab, setRequestedTrayTab] = useState<"day" | "trip" | null>(null);
+
+   const [requestedTrayTabVersion, setRequestedTrayTabVersion] = useState(0);
 
    const selectedMetro = activeMetroRegions.find((metroRegion) => metroRegion.slug === selectedMetroSlug) ?? activeMetroRegions[0];
 
@@ -1035,12 +1194,49 @@ export function SidewalkPlanner() {
    }, []);
 
    useEffect(() => {
+      const helpRequested = consumeHelpTutorialRequest();
+
+      setIsTutorialOpen(helpRequested || !hasCompletedSidewalkTutorial());
+   }, []);
+
+   useEffect(() => {
       setTripFolio(readTripFolio());
    }, []);
 
    useEffect(() => {
       setRecommendationFeedback(readRecommendationFeedback());
    }, []);
+
+   useEffect(() => {
+      const intervalId = window.setInterval(() => {
+         setClockNow(new Date());
+      }, 60_000);
+
+      return () => {
+         window.clearInterval(intervalId);
+      };
+   }, []);
+
+   useEffect(() => {
+      if (!isSessionReady || !planningDate || !selectedMetro) {
+         return;
+      }
+
+      const pastPeriods = getPastPeriodsForPlanningDate(planningDate, selectedMetro.timezone, clockNow);
+
+      if (!pastPeriods.includes(activeDayPeriod)) {
+         return;
+      }
+
+      const nextAvailablePeriod = dayPeriods.find((period) => !pastPeriods.includes(period)) ?? null;
+
+      if (!nextAvailablePeriod) {
+         return;
+      }
+
+      setActiveDayPeriod(nextAvailablePeriod);
+      setDayPlanAnnouncement(`${getPeriodLabel(activeDayPeriod)} has already passed for this date. Sidewalk moved you to ${getPeriodLabel(nextAvailablePeriod)}.`);
+   }, [activeDayPeriod, clockNow, isSessionReady, planningDate, selectedMetro]);
 
    /**
     * A metro becomes recent only after the user has selected a local area.
@@ -1153,6 +1349,12 @@ export function SidewalkPlanner() {
          return;
       }
 
+      const unavailablePeriods = getPastPeriodsForPlanningDate(planningDate, selectedMetro.timezone, clockNow);
+
+      if (unavailablePeriods.includes(activeDayPeriod)) {
+         return;
+      }
+
       const dayPeriod = activeDayPeriod;
 
       const committedStops = createCommittedStopContext(dayStops, dayPeriod);
@@ -1162,11 +1364,28 @@ export function SidewalkPlanner() {
       const tripPlaceIds = getTripFolioPlaceIds(tripFolio);
       const tripPlaceIdsSegment = createPlaceIdsRequestSegment(tripPlaceIds);
 
+      const tripContext = createTripRecommendationContext(tripFolio, planningDate);
+      const tripContextSegment = createTripContextRequestSegment(tripContext);
+      const replacementActivity = replacementActivitiesByPeriod[dayPeriod] ?? null;
+
       const chapterRefreshState = chapterRefreshStates[dayPeriod];
 
       const variationIndex = chapterRefreshState.refreshCount;
 
-      const requestKey = createPeriodRequestKey(selectedMetro.id, selectedMunicipality.id, selectedLocalArea.id, dayPeriod, activeActivityDirection, planningDate, sessionSeed, variationIndex, committedStopsSegment, tripPlaceIdsSegment);
+      const requestKey = createPeriodRequestKey(
+         selectedMetro.id,
+         selectedMunicipality.id,
+         selectedLocalArea.id,
+         dayPeriod,
+         activeActivityDirection,
+         planningDate,
+         sessionSeed,
+         variationIndex,
+         committedStopsSegment,
+         tripPlaceIdsSegment,
+         tripContextSegment,
+         replacementActivity,
+      );
 
       if (loadedRequestKeys[dayPeriod] === requestKey) {
          return;
@@ -1251,6 +1470,10 @@ export function SidewalkPlanner() {
                   excludedPlaceIds: Array.from(excludedPlaceIds),
 
                   committedStops,
+
+                  tripContext,
+
+                  replacementActivity,
                },
 
                controller.signal,
@@ -1355,7 +1578,7 @@ export function SidewalkPlanner() {
       return () => {
          controller.abort();
       };
-   }, [activeActivityDirection, activeDayPeriod, chapterRefreshStates, dayStops, isSessionReady, loadedRequestKeys, recommendationsByPeriod, planningDate, selectedLocalArea, selectedMetro, selectedMunicipality, sessionSeed, tripFolio]);
+   }, [activeActivityDirection, activeDayPeriod, chapterRefreshStates, clockNow, dayStops, isSessionReady, loadedRequestKeys, recommendationsByPeriod, planningDate, replacementActivitiesByPeriod, selectedLocalArea, selectedMetro, selectedMunicipality, sessionSeed, tripFolio]);
 
    if (!selectedMetro) {
       return (
@@ -1384,6 +1607,8 @@ export function SidewalkPlanner() {
       label: localArea.name,
    }));
 
+   const pastDayPeriods = selectedMetro && planningDate ? getPastPeriodsForPlanningDate(planningDate, selectedMetro.timezone, clockNow) : [];
+
    const activeRecommendations = recommendationsByPeriod[activeDayPeriod];
 
    const activeStatus = recommendationStatuses[activeDayPeriod];
@@ -1396,9 +1621,11 @@ export function SidewalkPlanner() {
 
    const isCurrentPeriodStop = activeSelectedRecommendation !== null && activeDayStop?.placeId === activeSelectedRecommendation.place.id;
 
-   const nextUnfilledPeriod = activeDayStop ? getNextUnfilledPeriod(activeDayPeriod, dayStops, similarDayPeriods) : null;
+   const nextUnfilledPeriod = activeDayStop ? getNextUnfilledPeriod(activeDayPeriod, dayStops, similarDayPeriods, pastDayPeriods) : null;
 
    const nextUnfilledPeriodLabel = nextUnfilledPeriod ? getPeriodLabel(nextUnfilledPeriod) : null;
+
+   const canAddAnotherStop = getFirstUnfilledPeriod(dayStops, similarDayPeriods, pastDayPeriods) !== null;
 
    const similarDayPeriodLabels = similarDayPeriods.map(getPeriodLabel).join(" · ");
 
@@ -1411,6 +1638,22 @@ export function SidewalkPlanner() {
    const hasPersistentTray = dayStops.length > 0 || tripFolio !== null;
 
    const layoutClassName = hasPersistentTray ? "editorial-container planning-view__layout planning-view__layout--with-tray" : "editorial-container planning-view__layout";
+
+   function handleCloseTutorial() {
+      markSidewalkTutorialCompleted();
+      setIsTutorialOpen(false);
+   }
+
+   function handleResumeTrip() {
+      if (!tripFolio) {
+         return;
+      }
+
+      setRequestedTrayTab("trip");
+      setRequestedTrayTabVersion((currentVersion) => currentVersion + 1);
+      setIsDayTrayOpen(true);
+      setDayPlanAnnouncement(`${tripFolio.title} is open. Choose a saved day or add another day when you are ready.`);
+   }
 
    const mainClassName = hasPersistentTray ? "home-main home-main--with-day-tray" : "home-main";
 
@@ -1438,6 +1681,8 @@ export function SidewalkPlanner() {
       setLoadedRequestKeys(createEmptyRequestKeys());
 
       setChapterRefreshStates(createInitialChapterRefreshState());
+
+      setReplacementActivitiesByPeriod({});
 
       setDayStops([]);
 
@@ -1495,6 +1740,10 @@ export function SidewalkPlanner() {
          summary: recommendation.place.editorial.summary,
          reason: recommendation.reason,
          photoResourceName: recommendation.place.provider.photoResourceName ?? null,
+         providerPrimaryType: recommendation.place.provider.primaryType ?? null,
+         availabilityStatus: recommendation.place.provider.periodAvailability?.status,
+         availabilitySource: recommendation.place.provider.periodAvailability?.source,
+         availabilityLabel: recommendation.place.provider.periodAvailability?.label,
       };
    }
 
@@ -1653,6 +1902,12 @@ export function SidewalkPlanner() {
    }
 
    function handlePeriodChange(period: DayPeriod) {
+      if (pastDayPeriods.includes(period)) {
+         setDayPlanAnnouncement(`${getPeriodLabel(period)} has already passed for this date.`);
+
+         return;
+      }
+
       setActiveDayPeriod(period);
 
       const periodSelection = selectedRecommendations[period] ?? recommendationsByPeriod[period][0] ?? null;
@@ -1704,7 +1959,24 @@ export function SidewalkPlanner() {
       const tripPlaceIds = getTripFolioPlaceIds(tripFolio);
       const tripPlaceIdsSegment = createPlaceIdsRequestSegment(tripPlaceIds);
 
-      const requestKey = createPeriodRequestKey(selectedMetro.id, selectedMunicipality.id, selectedLocalArea.id, dayPeriod, activeActivityDirection, planningDate, sessionSeed, nextVariationIndex, committedStopsSegment, tripPlaceIdsSegment);
+      const tripContext = createTripRecommendationContext(tripFolio, planningDate);
+      const tripContextSegment = createTripContextRequestSegment(tripContext);
+      const replacementActivity = replacementActivitiesByPeriod[dayPeriod] ?? null;
+
+      const requestKey = createPeriodRequestKey(
+         selectedMetro.id,
+         selectedMunicipality.id,
+         selectedLocalArea.id,
+         dayPeriod,
+         activeActivityDirection,
+         planningDate,
+         sessionSeed,
+         nextVariationIndex,
+         committedStopsSegment,
+         tripPlaceIdsSegment,
+         tripContextSegment,
+         replacementActivity,
+      );
 
       const excludedPlaceIds = new Set<string>();
 
@@ -1763,6 +2035,10 @@ export function SidewalkPlanner() {
                excludedPlaceIds: Array.from(excludedPlaceIds),
 
                committedStops: requestCommittedStops,
+
+               tripContext,
+
+               replacementActivity,
             },
 
             controller.signal,
@@ -1774,7 +2050,7 @@ export function SidewalkPlanner() {
 
          const alternateRecommendations = response.recommendations.filter((recommendation) => !excludedPlaceIds.has(recommendation.place.id));
 
-         if (alternateRecommendations.length < 3) {
+         if (alternateRecommendations.length === 0) {
             setChapterRefreshStates((currentStates) => ({
                ...currentStates,
 
@@ -1782,11 +2058,11 @@ export function SidewalkPlanner() {
                   ...currentStates[dayPeriod],
                   isRefreshing: false,
                   canRefresh: false,
-                  message: "Sidewalk couldn’t find a stronger alternate set nearby.",
+                  message: "Sidewalk couldn’t find a stronger alternate nearby.",
                },
             }));
 
-            setDayPlanAnnouncement(`Sidewalk could not find a stronger alternate ${getPeriodLabel(dayPeriod).toLowerCase()} set nearby.`);
+            setDayPlanAnnouncement(`Sidewalk could not find a stronger alternate ${getPeriodLabel(dayPeriod).toLowerCase()} option nearby.`);
 
             return;
          }
@@ -1828,13 +2104,22 @@ export function SidewalkPlanner() {
 
                isRefreshing: false,
 
-               canRefresh: nextVariationIndex < maxPeriodRecommendationRefreshes,
+               canRefresh: alternateRecommendations.length >= 3 && nextVariationIndex < maxPeriodRecommendationRefreshes,
 
-               message: nextVariationIndex >= maxPeriodRecommendationRefreshes ? "These are the strongest nearby options." : "Three new options are ready.",
+               message:
+                  alternateRecommendations.length < 3
+                     ? `Sidewalk found ${alternateRecommendations.length === 1 ? "one stronger alternate" : `${alternateRecommendations.length} stronger alternates`} and left weaker filler out.`
+                     : nextVariationIndex >= maxPeriodRecommendationRefreshes
+                       ? "These are the strongest nearby options."
+                       : "Three new options are ready.",
             },
          }));
 
-         setDayPlanAnnouncement(`Three new ${getPeriodLabel(dayPeriod).toLowerCase()} options are ready.`);
+         setDayPlanAnnouncement(
+            alternateRecommendations.length < 3
+               ? `Sidewalk found ${alternateRecommendations.length === 1 ? "one stronger alternate" : `${alternateRecommendations.length} stronger alternates`} for ${getPeriodLabel(dayPeriod).toLowerCase()}.`
+               : `Three new ${getPeriodLabel(dayPeriod).toLowerCase()} options are ready.`,
+         );
       } catch (error: unknown) {
          if (error instanceof Error && error.name === "AbortError") {
             return;
@@ -1918,6 +2203,12 @@ export function SidewalkPlanner() {
    }
 
    function handleAddPeriodStop(period: DayPeriod, recommendation: PeriodRecommendation) {
+      if (pastDayPeriods.includes(period)) {
+         setDayPlanAnnouncement(`${getPeriodLabel(period)} has already passed for this date.`);
+
+         return;
+      }
+
       const duplicateStop = dayStops.find((stop) => stop.placeId === recommendation.place.id && stop.dayPeriod !== period);
 
       if (duplicateStop) {
@@ -1945,6 +2236,12 @@ export function SidewalkPlanner() {
       const nextStops = sortDayStops([...remainingStops, nextStop]);
 
       setDayStops(nextStops);
+
+      setReplacementActivitiesByPeriod((currentActivities) => {
+         const nextActivities = { ...currentActivities };
+         delete nextActivities[period];
+         return nextActivities;
+      });
 
       if (!existingPeriodStop) {
          trackProductSignal("stop_added", {
@@ -1991,7 +2288,7 @@ export function SidewalkPlanner() {
    }
 
    function handleContinueFromPeriod(period: DayPeriod) {
-      const nextPeriod = getNextUnfilledPeriod(period, dayStops, similarDayPeriods);
+      const nextPeriod = getNextUnfilledPeriod(period, dayStops, similarDayPeriods, pastDayPeriods);
 
       if (!nextPeriod) {
          setIsDayTrayOpen(true);
@@ -2010,11 +2307,55 @@ export function SidewalkPlanner() {
    }
 
    function handleEditPeriod(period: DayPeriod) {
+      if (pastDayPeriods.includes(period)) {
+         setDayPlanAnnouncement(`${getPeriodLabel(period)} has already passed for this date.`);
+
+         return;
+      }
+
+      const existingStop = dayStops.find((stop) => stop.dayPeriod === period) ?? null;
+
       shouldFocusPeriodPanelReference.current = true;
+      requestControllersReference.current[period]?.abort();
 
       setActiveDayPeriod(period);
-
       setIsDayTrayOpen(false);
+
+      if (existingStop) {
+         setReplacementActivitiesByPeriod((currentActivities) => ({
+            ...currentActivities,
+            [period]: existingStop.resolvedActivity,
+         }));
+
+         setRecommendationsByPeriod((currentRecommendations) => ({
+            ...currentRecommendations,
+            [period]: [],
+         }));
+
+         setRecommendationStatuses((currentStatuses) => ({
+            ...currentStatuses,
+            [period]: "idle",
+         }));
+
+         setSelectedRecommendations((currentSelections) => {
+            const nextSelections = { ...currentSelections };
+            delete nextSelections[period];
+            return nextSelections;
+         });
+
+         setLoadedRequestKeys((currentKeys) => ({
+            ...currentKeys,
+            [period]: null,
+         }));
+
+         setChapterRefreshStates((currentStates) => ({
+            ...currentStates,
+            [period]: createInitialChapterRefreshState()[period],
+         }));
+
+         setDayPlanAnnouncement(`Sidewalk is finding a genuinely different ${getPeriodLabel(period).toLowerCase()} option. ${existingStop.placeName} stays in your day until you choose a replacement.`);
+         return;
+      }
 
       setDayPlanAnnouncement(`${getPeriodLabel(period)} is ready to change.`);
    }
@@ -2029,6 +2370,12 @@ export function SidewalkPlanner() {
       const nextStops = dayStops.filter((stop) => stop.id !== stopId);
 
       setDayStops(nextStops);
+
+      setReplacementActivitiesByPeriod((currentActivities) => {
+         const nextActivities = { ...currentActivities };
+         delete nextActivities[removedStop.dayPeriod];
+         return nextActivities;
+      });
 
       if (nextStops.length === 0) {
          setIsDayTrayOpen(false);
@@ -2053,6 +2400,7 @@ export function SidewalkPlanner() {
       }
 
       setDayStops([]);
+      setReplacementActivitiesByPeriod({});
       setIsDayTrayOpen(false);
 
       setDayPlanAnnouncement("Your day was cleared. Your area, date, activity preferences, and current recommendations remain in place.");
@@ -2069,7 +2417,7 @@ export function SidewalkPlanner() {
    }
 
    function handleContinuePlanning() {
-      const unfilledPeriod = getFirstUnfilledPeriod(dayStops, similarDayPeriods);
+      const unfilledPeriod = getFirstUnfilledPeriod(dayStops, similarDayPeriods, pastDayPeriods);
 
       if (!unfilledPeriod) {
          return;
@@ -2466,6 +2814,8 @@ export function SidewalkPlanner() {
 
       setChapterRefreshStates(createInitialChapterRefreshState());
 
+      setReplacementActivitiesByPeriod({});
+
       setSimilarDayPeriods([]);
 
       setSharedDayCreationState(createInitialSharedDayCreationState());
@@ -2605,6 +2955,11 @@ export function SidewalkPlanner() {
 
       setActiveDayPeriod("early-morning");
 
+      // A new Trip Folio day is active planning work again, so the tray should
+      // return to Day the next time it opens instead of remembering Trip.
+      setRequestedTrayTab("day");
+      setRequestedTrayTabVersion((currentVersion) => currentVersion + 1);
+
       setIsDayTrayOpen(false);
 
       shouldFocusPeriodPanelReference.current = true;
@@ -2646,7 +3001,15 @@ export function SidewalkPlanner() {
 
    return (
       <>
-         <SiteHeader metroRegions={activeMetroRegions} selectedMetroSlug={selectedMetro.slug} recentMetroSlugs={recentMetroSlugs} onMetroChange={handleMetroChange} />
+         <SiteHeader
+            metroRegions={activeMetroRegions}
+            selectedMetroSlug={selectedMetro.slug}
+            recentMetroSlugs={recentMetroSlugs}
+            tripTitle={tripFolio?.title ?? null}
+            tripDayCount={tripFolio?.days.length ?? 0}
+            onMetroChange={handleMetroChange}
+            onResumeTrip={handleResumeTrip}
+         />
 
          <main id="main-content" className={mainClassName} tabIndex={-1}>
             <section className="planning-view" aria-labelledby="selected-metro-title">
@@ -2734,7 +3097,13 @@ export function SidewalkPlanner() {
                                     {planProgressCopy}
                                  </p>
 
-                                 <PeriodSwitcher activePeriod={activeDayPeriod} completedPeriods={completedPeriods} disabled={!selectedLocalArea || !planningDate} onChange={handlePeriodChange} />
+                                 <PeriodSwitcher
+                                    activePeriod={activeDayPeriod}
+                                    completedPeriods={completedPeriods}
+                                    unavailablePeriods={pastDayPeriods}
+                                    disabled={!selectedLocalArea || !planningDate}
+                                    onChange={handlePeriodChange}
+                                 />
 
                                  <section
                                     ref={periodPanelReference}
@@ -2808,10 +3177,14 @@ export function SidewalkPlanner() {
                      tripShareStatus={sharedTripCreationState.status}
                      tripShareUrl={sharedTripCreationState.shareUrl}
                      tripShareMessage={sharedTripCreationState.message}
+                     requestedTab={requestedTrayTab}
+                     requestedTabVersion={requestedTrayTabVersion}
                      onToggle={() => setIsDayTrayOpen((currentState) => !currentState)}
                      onDone={handleDoneEditingDay}
                      onRemove={handleRemoveStop}
                      onClearDay={handleClearDay}
+                     unavailablePeriods={pastDayPeriods}
+                     canAddAnotherStop={canAddAnotherStop}
                      onEditPeriod={handleEditPeriod}
                      onContinuePlanning={handleContinuePlanning}
                      onCreateShare={() => void handleCreateSharedDay()}
@@ -2825,6 +3198,8 @@ export function SidewalkPlanner() {
                </div>
             </section>
          </main>
+
+         <SidewalkTutorial isOpen={isTutorialOpen} onClose={handleCloseTutorial} />
 
          <SiteFooter hasDayTray={hasPersistentTray} />
       </>

@@ -66,6 +66,10 @@ function isStoredDayStop(value: unknown): value is DayStop {
       (value.summary === undefined || typeof value.summary === "string") &&
       (value.reason === undefined || typeof value.reason === "string") &&
       (value.photoResourceName === undefined || value.photoResourceName === null || typeof value.photoResourceName === "string") &&
+      (value.providerPrimaryType === undefined || value.providerPrimaryType === null || typeof value.providerPrimaryType === "string") &&
+      (value.availabilityStatus === undefined || ["open-through-window", "open-part-of-window", "closed-during-window", "hours-unavailable"].includes(String(value.availabilityStatus))) &&
+      (value.availabilitySource === undefined || ["current-hours", "regular-hours", "unavailable"].includes(String(value.availabilitySource))) &&
+      (value.availabilityLabel === undefined || typeof value.availabilityLabel === "string") &&
       typeof duration.minimum === "number" &&
       Number.isFinite(duration.minimum) &&
       typeof duration.maximum === "number" &&
@@ -384,6 +388,10 @@ export function createTripFolioDaySourceKey(day: TripFolioDay): string {
          summary: stop.summary ?? "",
          reason: stop.reason ?? "",
          photoResourceName: stop.photoResourceName ?? null,
+         providerPrimaryType: stop.providerPrimaryType ?? null,
+         availabilityStatus: stop.availabilityStatus ?? null,
+         availabilitySource: stop.availabilitySource ?? null,
+         availabilityLabel: stop.availabilityLabel ?? "",
          visitDurationMinutes: stop.visitDurationMinutes,
       })),
    });

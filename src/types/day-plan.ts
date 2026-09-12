@@ -1,5 +1,6 @@
 import type { ActivityKind } from "@/types/activity";
 import type { DayPeriod } from "@/types/day-period";
+import type { ProviderPeriodAvailabilitySource, ProviderPeriodAvailabilityStatus } from "@/types/place";
 
 /**
  * One place committed to a Sidewalk time period.
@@ -44,4 +45,13 @@ export type DayStop = Readonly<{
    summary?: string;
    reason?: string;
    photoResourceName?: string | null;
+
+   /**
+    * Small provider snapshots that make trip-wide variety and quiet timing
+    * checks possible without re-querying the places provider later.
+    */
+   providerPrimaryType?: string | null;
+   availabilityStatus?: ProviderPeriodAvailabilityStatus;
+   availabilitySource?: ProviderPeriodAvailabilitySource;
+   availabilityLabel?: string;
 }>;
